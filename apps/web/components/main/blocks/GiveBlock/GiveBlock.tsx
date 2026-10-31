@@ -46,7 +46,12 @@ export const GiveBlock: React.FC<GiveBlockProps> = ({
               page: window.location.pathname,
             },
           });
-          setWidgetContext({ open: true, prefilled: null, prefilledSum: null });
+          setWidgetContext({
+            open: true,
+            prefilled: null,
+            prefilledSum: null,
+            prefilledRecurring: null,
+          });
         }}
         style={accentStyles}
       >

@@ -180,6 +180,7 @@ export const DKGavebrevTaxWidget: React.FC<{
                     ...widgetContext,
                     open: true,
                     prefilledSum: lastValidDonation,
+                    prefilledRecurring: null,
                   });
                 }}
                 variant={EffektButtonVariant.PRIMARY}

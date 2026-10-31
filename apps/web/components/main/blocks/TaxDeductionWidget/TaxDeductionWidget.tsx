@@ -179,6 +179,7 @@ export const TaxDeductionWidget: React.FC<{
                   ...widgetContext,
                   open: true,
                   prefilledSum: lastValidSum,
+                  prefilledRecurring: null,
                 });
               }}
               variant={EffektButtonVariant.PRIMARY}

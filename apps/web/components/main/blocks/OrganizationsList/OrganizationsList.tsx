@@ -98,6 +98,7 @@ export const OrganizationsList: React.FC<{ organizations: Organization[] }> = ({
                       setWidgetContext({
                         open: true,
                         prefilledSum: null,
+                        prefilledRecurring: null,
                         prefilled: [
                           {
                             causeAreaId: organization.widget_button.cause_area_id,

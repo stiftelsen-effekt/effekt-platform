@@ -3,6 +3,7 @@ import { PaymentMethod, RecurringDonation, ShareType } from "../types/Enums";
 import { CauseArea } from "../types/CauseArea";
 import {
   nextPane,
+  prefillActions,
   prefillAmount,
   prevPane,
   selectPaymentMethod,
@@ -262,6 +263,50 @@ describe("widgetReducer", () => {
     it("waits for the cause areas when one cause area is selected", () => {
       const state = reduce(prefillAmount(700));
       expect(state.donation.causeAreaAmounts).toBeUndefined();
+    });
+  });
+
+  describe("prefillActions", () => {
+    const areas = [
+      { id: 1, name: "Global health", isActive: true, organizations: [] },
+      { id: 4, name: "Operations", isActive: true, organizations: [] },
+    ] as unknown as CauseArea[];
+    const opened = (start: State, context: Parameters<typeof prefillActions>[0]) =>
+      prefillActions(context).reduce(widgetReducer, start);
+    const loaded = reduce(setOperationsConfig(config), {
+      type: "causeAreasLoaded",
+      causeAreas: areas,
+    });
+
+    it("sets the amount and monthly when opened with both", () => {
+      const state = opened(loaded, {
+        prefilledSum: 1500,
+        prefilledRecurring: RecurringDonation.RECURRING,
+      });
+      expect(state.donation.recurring).toBe(RecurringDonation.RECURRING);
+      expect(state.donation.causeAreaAmounts).toEqual({ 1: 1500 });
+    });
+
+    it("goes through setRecurring, so a chosen payment method is cleared", () => {
+      const withMethod = widgetReducer(loaded, selectPaymentMethod(PaymentMethod.BANK));
+      expect(withMethod.donation.method).toBe(PaymentMethod.BANK);
+      const state = opened(withMethod, {
+        prefilledSum: 1500,
+        prefilledRecurring: RecurringDonation.RECURRING,
+      });
+      expect(state.donation.method).toBeUndefined();
+    });
+
+    it("leaves the donor's choice as it is when no choice is passed", () => {
+      const monthly = widgetReducer(loaded, setRecurring(RecurringDonation.RECURRING));
+      expect(prefillActions({ prefilledSum: 1500, prefilledRecurring: null })).toEqual([
+        prefillAmount(1500),
+      ]);
+      const state = opened(monthly, { prefilledSum: 1500, prefilledRecurring: null });
+      expect(state.donation.recurring).toBe(RecurringDonation.RECURRING);
+      expect(
+        opened(loaded, { prefilledSum: 1500, prefilledRecurring: null }).donation.recurring,
+      ).toBe(RecurringDonation.NON_RECURRING);
     });
   });
 });

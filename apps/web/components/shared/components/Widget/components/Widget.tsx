@@ -218,13 +218,15 @@ export const Widget = withStaticProps(
     prefilledDistribution: prefilled,
   });
 
-  usePrefilledSum({ inline, causeAreas });
-
   useQueryParamsPrefill({
     inline,
     causeAreas,
     defaultPaymentType,
   });
+
+  // After useQueryParamsPrefill, so a monthly choice the widget was opened with isn't replaced
+  // by defaultPaymentType when both apply in the same render
+  usePrefilledSum({ inline, causeAreas });
 
   useDefaultPaymentMethodEffect(methods);
 

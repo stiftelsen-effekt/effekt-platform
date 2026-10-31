@@ -52,6 +52,7 @@ export const ProfileLayout = withStaticProps(getProfileLayoutStaticProps)(({
     open: false,
     prefilled: null,
     prefilledSum: null,
+    prefilledRecurring: null,
   });
   const externalDonationUrls = getExternalDonationUrls(
     widgetData.data.result.external_donation_widget,

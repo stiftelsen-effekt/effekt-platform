@@ -40,6 +40,7 @@ export const OpenWidgetButton: React.FC<{
                   },
                 ],
           prefilledSum: null,
+          prefilledRecurring: null,
         });
         plausible("OpenDonationWidget", {
           props: {
