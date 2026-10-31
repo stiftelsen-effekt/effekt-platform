@@ -9,6 +9,7 @@ import {
   setOrgAmount,
   setPrefilledShares,
   setReferralCode,
+  prefillAmount,
 } from "../store/actions";
 import { RecurringDonation, ShareType } from "../types/Enums";
 import { WidgetContext } from "../../../../main/layout/layout";
@@ -151,6 +152,33 @@ export const usePrefilledDistribution = ({
   useEffect(() => {
     hasAppliedPrefill.current = false;
   }, [prefilledDistribution, widgetContext.prefilled]);
+};
+
+/**
+ * Sets the amount another block opened the widget pane with (WidgetContext's prefilledSum: the
+ * tax deduction widget, the intervention widget, the wealth calculator). Once per opening, so the
+ * donor's own changes after that are kept. Opening the pane without an amount leaves the amounts
+ * in the store (kept across page navigation) as they are, and only stops a cause area selected
+ * later from getting the earlier amount. Runs after usePrefilledDistribution, so the amount goes
+ * to the cause area a prefilled distribution selected.
+ */
+export const usePrefilledSum = ({
+  inline,
+  causeAreas,
+}: {
+  inline: boolean;
+  causeAreas: CauseArea[] | undefined;
+}) => {
+  const dispatch = useWidgetDispatch();
+  const [widgetContext] = useContext(WidgetContext);
+  const appliedFor = useRef<typeof widgetContext | null>(null);
+
+  useEffect(() => {
+    if (inline || !causeAreas || causeAreas.length === 0) return;
+    if (!widgetContext.open || appliedFor.current === widgetContext) return;
+    appliedFor.current = widgetContext;
+    dispatch(prefillAmount(widgetContext.prefilledSum));
+  }, [inline, causeAreas, widgetContext, dispatch]);
 };
 
 /**

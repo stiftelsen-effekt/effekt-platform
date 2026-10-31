@@ -27,6 +27,7 @@ import {
   useAvailableRecurringOptions,
   useDefaultPaymentMethodEffect,
   usePrefilledDistribution,
+  usePrefilledSum,
   usePrefilledCauseAreaIds,
   useQueryParamsPrefill,
   useWidgetScaleEffect,
@@ -216,6 +217,8 @@ export const Widget = withStaticProps(
     causeAreas,
     prefilledDistribution: prefilled,
   });
+
+  usePrefilledSum({ inline, causeAreas });
 
   useQueryParamsPrefill({
     inline,
