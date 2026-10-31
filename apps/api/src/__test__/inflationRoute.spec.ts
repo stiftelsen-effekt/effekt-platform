@@ -71,10 +71,26 @@ describe("inflation agreement update", () => {
       expect(res.headers.location).to.equal("https://example.org/ok");
     });
 
-    it("redirects to the error page if expired", async () => {
+    it("says the offer has expired when its time ran out", async () => {
       getByTokenStub.resolves(adjustment({ expires: new Date(Date.now() - 1000) }));
-      const res = await request(server).get(path).expect(302);
-      expect(res.headers.location).to.equal("https://example.org/failed");
+      const res = await request(server).get(path).expect(200);
+      expect(res.text).to.contain("Tilbudet har utløpt");
+      expect(res.text).not.to.contain("<form");
+      expect(res.headers["content-security-policy"]).to.contain("default-src 'none'");
+    });
+
+    it("says the offer has expired when it is marked expired", async () => {
+      getByTokenStub.resolves(adjustment({ status: "expired" }));
+      const res = await request(server).get(path).expect(200);
+      expect(res.text).to.contain("Tilbudet har utløpt");
+    });
+
+    it("redirects to the error page for offers that were never sent", async () => {
+      for (const status of ["new", "sending", "cancelled", "failed"]) {
+        getByTokenStub.resolves(adjustment({ status }));
+        const res = await request(server).get(path).expect(302);
+        expect(res.headers.location).to.equal("https://example.org/failed");
+      }
     });
 
     it("redirects to the error page for an unknown or malformed token", async () => {
@@ -108,7 +124,17 @@ describe("inflation agreement update", () => {
       expect(updateAmountStub.called).to.be.false;
     });
 
-    it("does not apply an expired or non-pending adjustment", async () => {
+    it("says the offer has expired instead of applying it", async () => {
+      acceptStub.resolves(false);
+      getByTokenStub.resolves(adjustment({ status: "expired" }));
+
+      const res = await request(server).post(path).expect(200);
+
+      expect(res.text).to.contain("Tilbudet har utløpt");
+      expect(updateAmountStub.called).to.be.false;
+    });
+
+    it("does not apply a non-pending adjustment", async () => {
       acceptStub.resolves(false);
       getByTokenStub.resolves(adjustment({ status: "pending" }));
 

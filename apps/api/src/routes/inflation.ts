@@ -11,7 +11,7 @@ export const inflationRouter = express.Router();
 const successUrl = () => `${config.frontend_url}/${config.inflation_adjustment_success_slug}`;
 const errorUrl = () => `${config.frontend_url}/${config.inflation_adjustment_error_slug}`;
 
-/** Tokens are 32 random bytes as hex (see inflationadjustments.createAdjustment) */
+/** Tokens are 32 random bytes as hex (see inflationadjustments.createIfNoOpenOffer) */
 const isToken = (token: string) => /^[0-9a-f]{64}$/.test(token);
 
 const isExpired = (adjustment: AgreementInflationAdjustment) =>
@@ -20,35 +20,63 @@ const isExpired = (adjustment: AgreementInflationAdjustment) =>
 const formatKroner = (ore: number) =>
   (ore / 100).toLocaleString("nb-NO", { maximumFractionDigits: 2 }) + " kr";
 
-function confirmationPage(adjustment: AgreementInflationAdjustment) {
-  const current = escapeHtml(formatKroner(adjustment.current_amount));
-  const proposed = escapeHtml(formatKroner(adjustment.proposed_amount));
-  // The page interpolates two HTML-escaped amounts and nothing else (the line marked below).
-  // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- only the escaped amounts are interpolated
+const PAGE_STYLE = `body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; color: #000; background: #fff; }
+      button { font: inherit; padding: 0.75rem 1.5rem; border: 1px solid #000; background: #000; color: #fff; cursor: pointer; }`;
+
+/** A minimal page; `body` must be trusted markup (only escaped values interpolated) */
+function page(title: string, body: string) {
+  // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- title and body are constants or built from escaped amounts
   return `<!DOCTYPE html>
 <html lang="nb">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Bekreft nytt beløp</title>
+    <title>${title}</title>
     <style>
-      body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; color: #000; background: #fff; }
-      button { font: inherit; padding: 0.75rem 1.5rem; border: 1px solid #000; background: #000; color: #fff; cursor: pointer; }
+      ${PAGE_STYLE}
     </style>
   </head>
   <body>
-    <h1>Bekreft nytt beløp</h1>
-    ${
-      // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format, javascript.lang.security.html-in-template-string.html-in-template-string -- current and proposed are formatted numbers, HTML-escaped above
-      `<p>Den faste donasjonen din endres fra ${current} til ${proposed} per måned.</p>`
-    }
-    <form method="post">
-      <button type="submit">Bekreft</button>
-    </form>
+    <h1>${title}</h1>
+    ${body}
   </body>
 </html>`;
 }
+
+function confirmationPage(adjustment: AgreementInflationAdjustment) {
+  const current = escapeHtml(formatKroner(adjustment.current_amount));
+  const proposed = escapeHtml(formatKroner(adjustment.proposed_amount));
+  return page(
+    "Bekreft nytt beløp",
+    // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format, javascript.lang.security.html-in-template-string.html-in-template-string -- current and proposed are formatted numbers, HTML-escaped above
+    `<p>Den faste donasjonen din endres fra ${current} til ${proposed} per måned.</p>
+    <form method="post">
+      <button type="submit">Bekreft</button>
+    </form>`,
+  );
+}
+
+/** Shown when the offer's time ran out: nothing is changed */
+const expiredPage = () =>
+  page(
+    "Tilbudet har utløpt",
+    `<p>Fristen for å bekrefte det nye beløpet har gått ut, så den faste donasjonen din er ikke endret.</p>
+    <p>Vil du likevel endre beløpet, kan du gjøre det på Min side, eller svare på e-posten du fikk fra oss.</p>`,
+  );
+
+const sendPage = (res: express.Response, html: string) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+  );
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format -- only formatted numbers are interpolated, HTML-escaped, and the page has a no-script CSP
+  res.send(html);
+};
 
 /**
  * The link in the inflation adjustment email. Only shows a confirmation page: link scanners
@@ -65,21 +93,18 @@ inflationRouter.get("/agreement-update/:token", async (req, res, next) => {
       return res.redirect(302, errorUrl());
     }
     if (adjustment.status === "accepted") return res.redirect(302, successUrl());
-    if (adjustment.status !== "pending" || isExpired(adjustment)) {
-      console.error(`Inflation adjustment ${adjustment.ID} is ${adjustment.status} or expired`);
+    if (
+      adjustment.status === "expired" ||
+      (adjustment.status === "pending" && isExpired(adjustment))
+    ) {
+      return sendPage(res, expiredPage());
+    }
+    if (adjustment.status !== "pending") {
+      console.error(`Inflation adjustment ${adjustment.ID} is ${adjustment.status}`);
       return res.redirect(302, errorUrl());
     }
 
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
-    );
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Referrer-Policy", "no-referrer");
-    // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format -- only formatted numbers are interpolated, HTML-escaped, and the page has a no-script CSP
-    res.send(confirmationPage(adjustment));
+    sendPage(res, confirmationPage(adjustment));
   } catch (ex) {
     next({ ex });
   }
@@ -99,6 +124,13 @@ inflationRouter.post("/agreement-update/:token", async (req, res, next) => {
     if (!claimed) {
       const adjustment = await DAO.inflationadjustments.getByToken(token);
       if (adjustment?.status === "accepted") return res.redirect(303, successUrl());
+      if (
+        adjustment &&
+        (adjustment.status === "expired" ||
+          (adjustment.status === "pending" && isExpired(adjustment)))
+      ) {
+        return sendPage(res, expiredPage());
+      }
       console.error(`Inflation adjustment could not be accepted (missing, not pending or expired)`);
       return res.redirect(303, errorUrl());
     }

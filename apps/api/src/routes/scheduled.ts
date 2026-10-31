@@ -17,7 +17,7 @@ import fetch from "node-fetch";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
 import { Payment_follow_up, Payment_intent } from "@prisma/client";
-import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
+import { previewInflationRound } from "../custom_modules/inflationadjustment";
 import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
 import {
   addMembersInBatches,
@@ -773,25 +773,29 @@ router.post("/initiate-follow-ups", authMiddleware.isAdmin, async (req, res, nex
   }
 });
 
+/**
+ * Read-only: how many agreements an inflation adjustment round would make offers to now. Offers
+ * are prepared and emailed only from the admin (Agreements › Inflation adjustment), see
+ * docs/inflation-adjustment.md. No Cloud Scheduler job calls this.
+ */
 router.get("/inflation-reminder", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    const eligibleAgreements = await getAllInflationEligibleAgreements();
-
-    const summary = {
-      totalEligible: {
-        avtaleGiro: eligibleAgreements.avtaleGiro.length,
-        vipps: eligibleAgreements.vipps.length,
-        total: eligibleAgreements.avtaleGiro.length + eligibleAgreements.vipps.length,
-      },
-      agreements: eligibleAgreements,
-      generated: DateTime.now().toISO(),
-    };
-
-    await DAO.logging.add("InflationReminder", summary);
+    const preview = await previewInflationRound();
+    const count = (type: string) => preview.proposals.filter((p) => p.type === type).length;
 
     res.json({
       status: 200,
-      content: summary,
+      content: {
+        totalEligible: {
+          avtaleGiro: count("avtaleGiro"),
+          vipps: count("vipps"),
+          total: preview.proposals.length,
+        },
+        monthlyIncreaseNok: preview.proposals.reduce((sum, p) => sum + p.increaseOre, 0) / 100,
+        inflationUntil: preview.inflationUntil,
+        skipped: preview.skipped,
+        generated: DateTime.now().toISO(),
+      },
     });
   } catch (ex) {
     next({ ex });

@@ -31,6 +31,7 @@ import { Route as DesignPatternsRouteImport } from './routes/design/patterns'
 import { Route as DesignSettingsRouteImport } from './routes/design/settings'
 import { Route as AppAgreementsIndexRouteImport } from './routes/_app/agreements/index'
 import { Route as AppAgreementsCancelledRouteImport } from './routes/_app/agreements/cancelled'
+import { Route as AppAgreementsInflationRouteImport } from './routes/_app/agreements/inflation'
 import { Route as AppAnalysisIndexRouteImport } from './routes/_app/analysis/index'
 import { Route as AppAnalysisPledgesRouteImport } from './routes/_app/analysis/pledges'
 import { Route as AppDistributionsIndexRouteImport } from './routes/_app/distributions/index'
@@ -171,6 +172,11 @@ const AppAgreementsIndexRoute = AppAgreementsIndexRouteImport.update({
 const AppAgreementsCancelledRoute = AppAgreementsCancelledRouteImport.update({
   id: '/agreements/cancelled',
   path: '/agreements/cancelled',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgreementsInflationRoute = AppAgreementsInflationRouteImport.update({
+  id: '/agreements/inflation',
+  path: '/agreements/inflation',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAnalysisIndexRoute = AppAnalysisIndexRouteImport.update({
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/design/settings': typeof DesignSettingsRoute
   '/design/': typeof DesignIndexRoute
   '/agreements/cancelled': typeof AppAgreementsCancelledRoute
+  '/agreements/inflation': typeof AppAgreementsInflationRoute
   '/analysis/pledges': typeof AppAnalysisPledgesRoute
   '/distributions/$kid': typeof AppDistributionsKidRoute
   '/distributions/new': typeof AppDistributionsNewRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/design': typeof DesignIndexRoute
   '/agreements/cancelled': typeof AppAgreementsCancelledRoute
+  '/agreements/inflation': typeof AppAgreementsInflationRoute
   '/analysis/pledges': typeof AppAnalysisPledgesRoute
   '/distributions/$kid': typeof AppDistributionsKidRoute
   '/distributions/new': typeof AppDistributionsNewRoute
@@ -470,6 +478,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/design/': typeof DesignIndexRoute
   '/_app/agreements/cancelled': typeof AppAgreementsCancelledRoute
+  '/_app/agreements/inflation': typeof AppAgreementsInflationRoute
   '/_app/analysis/pledges': typeof AppAnalysisPledgesRoute
   '/_app/distributions/$kid': typeof AppDistributionsKidRoute
   '/_app/distributions/new': typeof AppDistributionsNewRoute
@@ -527,6 +536,7 @@ export interface FileRouteTypes {
     | '/design/settings'
     | '/design/'
     | '/agreements/cancelled'
+    | '/agreements/inflation'
     | '/analysis/pledges'
     | '/distributions/$kid'
     | '/distributions/new'
@@ -580,6 +590,7 @@ export interface FileRouteTypes {
     | '/'
     | '/design'
     | '/agreements/cancelled'
+    | '/agreements/inflation'
     | '/analysis/pledges'
     | '/distributions/$kid'
     | '/distributions/new'
@@ -636,6 +647,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/design/'
     | '/_app/agreements/cancelled'
+    | '/_app/agreements/inflation'
     | '/_app/analysis/pledges'
     | '/_app/distributions/$kid'
     | '/_app/distributions/new'
@@ -831,6 +843,13 @@ declare module '@tanstack/react-router' {
       path: '/agreements/cancelled'
       fullPath: '/agreements/cancelled'
       preLoaderRoute: typeof AppAgreementsCancelledRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/agreements/inflation': {
+      id: '/_app/agreements/inflation'
+      path: '/agreements/inflation'
+      fullPath: '/agreements/inflation'
+      preLoaderRoute: typeof AppAgreementsInflationRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/analysis/': {
@@ -1102,6 +1121,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAgreementsCancelledRoute: typeof AppAgreementsCancelledRoute
+  AppAgreementsInflationRoute: typeof AppAgreementsInflationRoute
   AppAnalysisPledgesRoute: typeof AppAnalysisPledgesRoute
   AppDistributionsKidRoute: typeof AppDistributionsKidRoute
   AppDistributionsNewRoute: typeof AppDistributionsNewRoute
@@ -1135,6 +1155,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAgreementsCancelledRoute: AppAgreementsCancelledRoute,
+  AppAgreementsInflationRoute: AppAgreementsInflationRoute,
   AppAnalysisPledgesRoute: AppAnalysisPledgesRoute,
   AppDistributionsKidRoute: AppDistributionsKidRoute,
   AppDistributionsNewRoute: AppDistributionsNewRoute,
