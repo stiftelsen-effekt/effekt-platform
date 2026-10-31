@@ -61,11 +61,9 @@ updates:
       day: monday
       time: "05:00"
       timezone: Europe/Oslo
+    # github-actions and docker only take default-days (no per-semver cooldown).
     cooldown:
       default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 7
     commit-message:
       prefix: "ci"
     groups:
@@ -83,11 +81,9 @@ updates:
       day: monday
       time: "05:00"
       timezone: Europe/Oslo
+    # github-actions and docker only take default-days (no per-semver cooldown).
     cooldown:
       default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 7
     commit-message:
       prefix: "deps"
     ignore:
