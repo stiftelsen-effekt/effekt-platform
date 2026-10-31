@@ -158,12 +158,8 @@ describe("Navigation", () => {
             expect(Number(String($input.val()).replace(/\s/g, ""))).to.equal(monthly);
           });
         // "Sett opp fast donasjon": the amount is a monthly one, so the widget opens on monthly
-        cy.get("[data-cy=widget-pane]")
-          .find("[data-cy=recurring-donation-radio]")
-          .should("be.checked");
-        cy.get("[data-cy=widget-pane]")
-          .find("[data-cy=single-donation-radio]")
-          .should("not.be.checked");
+        cy.get("[data-cy=widget-pane]").find("[data-cy=radio-recurring]").should("be.checked");
+        cy.get("[data-cy=widget-pane]").find("[data-cy=radio-single]").should("not.be.checked");
       });
   });
 });
