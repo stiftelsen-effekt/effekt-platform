@@ -32,9 +32,9 @@
     "lint": "oxlint"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.11.0",
+    "@axe-core/playwright": "4.14.0",
     "@effekt/config": "workspace:*",
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/router-cli": "1.167.46",
     "@tanstack/router-plugin": "1.168.48",
