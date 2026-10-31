@@ -74,7 +74,7 @@ const sendPage = (res: express.Response, html: string) => {
   );
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "no-referrer");
-  // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format -- only formatted numbers are interpolated, HTML-escaped, and the page has a no-script CSP
+  // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format, javascript.express.security.audit.xss.direct-response-write.direct-response-write -- html is one of the fixed pages above (only escaped, formatted amounts interpolated), and the page has a no-script CSP
   res.send(html);
 };
 

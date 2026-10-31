@@ -194,17 +194,18 @@ const migration = readFileSync(
     });
 
     it("the migration expires old new and pending offers and keeps accepted ones", async () => {
-      const insert = (status: string, expires: string, token: string) =>
+      const insert = (status: string, expires: Date, token: string) =>
         pool.query(
           `INSERT INTO Agreement_inflation_adjustments
             (agreement_ID, agreement_type, current_amount, proposed_amount, inflation_percentage, token, status, expires)
-           VALUES ('infl-spec-1', 'vipps', 15000, 16000, 0.06, ?, ?, ${expires})`,
-          [token.repeat(64), status],
+           VALUES ('infl-spec-1', 'vipps', 15000, 16000, 0.06, ?, ?, ?)`,
+          [token.repeat(64), status, expires],
         );
-      await insert("new", "'2024-12-01'", "1");
-      await insert("pending", "'2024-12-01'", "2");
-      await insert("accepted", "'2024-12-01'", "3");
-      await insert("pending", "UTC_TIMESTAMP() + INTERVAL 1 DAY", "4");
+      const past = new Date("2024-12-01T00:00:00Z");
+      await insert("new", past, "1");
+      await insert("pending", past, "2");
+      await insert("accepted", past, "3");
+      await insert("pending", new Date(Date.now() + 24 * 3600 * 1000), "4");
 
       await pool.query(migration);
 

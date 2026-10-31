@@ -331,7 +331,7 @@ export async function sendInflationOffers(options: {
     try {
       ok = (await options.sendEmail(row.ID)) === true;
     } catch (ex) {
-      console.error(`Failed to send inflation adjustment ${row.ID}`, ex);
+      console.error("Failed to send inflation adjustment", row.ID, ex);
     }
     await DAO.inflationadjustments.finishSending(row.ID, ok);
     if (ok) sent++;
