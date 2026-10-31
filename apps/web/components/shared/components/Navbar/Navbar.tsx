@@ -333,7 +333,14 @@ export const Navbar = withStaticProps(
             <EffektButton
               cy="send-donation-button"
               extraMargin={true}
-              onClick={() => setWidgetContext({ open: true, prefilled: null, prefilledSum: null })}
+              onClick={() =>
+                setWidgetContext({
+                  open: true,
+                  prefilled: null,
+                  prefilledSum: null,
+                  prefilledRecurring: null,
+                })
+              }
               variant={
                 giveButton.accent_color && !loggedIn
                   ? EffektButtonVariant.ACCENT

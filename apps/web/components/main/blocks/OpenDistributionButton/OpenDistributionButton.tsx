@@ -57,6 +57,7 @@ export const OpenDistributionButton: React.FC<Opendistributionbutton> = ({
               open: true,
               prefilled: prefilled,
               prefilledSum: null,
+              prefilledRecurring: null,
             });
           }}
         >

@@ -181,6 +181,21 @@ export const prefillAmount = (amount: number | null): WidgetAction => ({
   type: "prefillAmount",
   amount,
 });
+/**
+ * The actions for what another block opened the widget with: the amount (see prefillAmount) and,
+ * when the block passes one, one-time or monthly. The choice goes through setRecurring, as when
+ * the donor picks it. null leaves the donor's current choice as it is.
+ */
+export const prefillActions = ({
+  prefilledSum,
+  prefilledRecurring,
+}: {
+  prefilledSum: number | null;
+  prefilledRecurring: RecurringDonation | null;
+}): WidgetAction[] => [
+  prefillAmount(prefilledSum),
+  ...(prefilledRecurring === null ? [] : [setRecurring(prefilledRecurring)]),
+];
 export const setShowAllOrganizations = (show: boolean): WidgetAction => ({
   type: "setShowAllOrganizations",
   show,

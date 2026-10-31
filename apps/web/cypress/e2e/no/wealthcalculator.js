@@ -134,7 +134,7 @@ describe("Navigation", () => {
     cy.get("[data-cy=widget-pane]").should("be.visible");
   });
 
-  it("Should open the widget with the monthly donation amount prefilled", () => {
+  it("Should open the widget on monthly, with the monthly donation amount prefilled", () => {
     // A fixed tax estimate, so the amount is known
     cy.intercept("POST", "/api/tax*", { statusCode: 200, body: 152000 }).as("getTax");
 
@@ -157,6 +157,13 @@ describe("Navigation", () => {
           .should(($input) => {
             expect(Number(String($input.val()).replace(/\s/g, ""))).to.equal(monthly);
           });
+        // "Sett opp fast donasjon": the amount is a monthly one, so the widget opens on monthly
+        cy.get("[data-cy=widget-pane]")
+          .find("[data-cy=recurring-donation-radio]")
+          .should("be.checked");
+        cy.get("[data-cy=widget-pane]")
+          .find("[data-cy=single-donation-radio]")
+          .should("not.be.checked");
       });
   });
 });

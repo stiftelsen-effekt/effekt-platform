@@ -6,6 +6,7 @@ import {
   InterventionWidgetOutputConfiguration,
 } from "../InterventionWidget/InterventionWidgetOutput";
 import { WidgetContext } from "../../layout/layout";
+import { RecurringDonation } from "../../../shared/components/Widget/types/Enums";
 import styles from "./WealthCalculator.module.scss";
 import { usePlausible } from "next-plausible";
 import { Wealthcalculatorimpact } from "../../../../studio/sanity.types";
@@ -59,6 +60,8 @@ export const WealthCalculatorImpact: React.FC<{
                 open: true,
                 prefilled: null,
                 prefilledSum: Math.round(donationAmount / 12 / 100) * 100, // Round to nearest 100
+                // The amount is a monthly one
+                prefilledRecurring: RecurringDonation.RECURRING,
               });
             }}
           >
@@ -81,6 +84,8 @@ export const WealthCalculatorImpact: React.FC<{
               open: true,
               prefilled: null,
               prefilledSum: Math.round(donationAmount / 12 / 100) * 100, // Round to nearest 100
+              // The amount is a monthly one
+              prefilledRecurring: RecurringDonation.RECURRING,
             })
           }
         >

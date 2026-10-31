@@ -9,7 +9,7 @@ import {
   setOrgAmount,
   setPrefilledShares,
   setReferralCode,
-  prefillAmount,
+  prefillActions,
 } from "../store/actions";
 import { RecurringDonation, ShareType } from "../types/Enums";
 import { WidgetContext } from "../../../../main/layout/layout";
@@ -156,7 +156,9 @@ export const usePrefilledDistribution = ({
 
 /**
  * Sets the amount another block opened the widget pane with (WidgetContext's prefilledSum: the
- * tax deduction widget, the intervention widget, the wealth calculator). Once per opening, so the
+ * tax deduction widget, the intervention widget, the wealth calculator), and one-time or monthly
+ * when the block passes that too (prefilledRecurring: the wealth calculator, whose amount is a
+ * monthly one; null leaves the donor's choice as is). Once per opening, so the
  * donor's own changes after that are kept. Opening the pane without an amount leaves the amounts
  * in the store (kept across page navigation) as they are, and only stops a cause area selected
  * later from getting the earlier amount. Runs after usePrefilledDistribution, so the amount goes
@@ -177,7 +179,7 @@ export const usePrefilledSum = ({
     if (inline || !causeAreas || causeAreas.length === 0) return;
     if (!widgetContext.open || appliedFor.current === widgetContext) return;
     appliedFor.current = widgetContext;
-    dispatch(prefillAmount(widgetContext.prefilledSum));
+    for (const action of prefillActions(widgetContext)) dispatch(action);
   }, [inline, causeAreas, widgetContext, dispatch]);
 };
 
@@ -215,6 +217,7 @@ export const useQueryParamsPrefill = ({
         open: true,
         prefilled: prefilledDistribution,
         prefilledSum: null,
+        prefilledRecurring: null,
       });
       hasAppliedQueryParams.current = true;
     }

@@ -8,6 +8,7 @@ import Footer from "../../shared/layout/Footer/Footer";
 import styles from "../../shared/layout/Layout/Layout.module.scss";
 import { GiveButton } from "./GiveButton/GiveButton";
 import { PrefilledDistribution, WidgetPane, WidgetPaneProps } from "./WidgetPane/WidgetPane";
+import { RecurringDonation } from "../../shared/components/Widget/types/Enums";
 import { token } from "../../../token";
 import { LiveQuery } from "../../shared/LiveQuery";
 import React from "react";
@@ -23,11 +24,13 @@ export type WidgetContextType = {
   open: boolean;
   prefilled: PrefilledDistribution | null;
   prefilledSum: number | null;
+  /** One-time or monthly, for a block whose amount is a monthly one. null leaves the choice as is. */
+  prefilledRecurring: RecurringDonation | null;
 };
 
 export const WidgetContext = createContext<
   [WidgetContextType, Dispatch<SetStateAction<WidgetContextType>>]
->([{ open: false, prefilled: null, prefilledSum: null }, () => {}]);
+>([{ open: false, prefilled: null, prefilledSum: null, prefilledRecurring: null }, () => {}]);
 
 export type BanerContextType = {
   consentState: ConsentState;
@@ -126,6 +129,7 @@ export const Layout = withStaticProps(
     open: false,
     prefilled: null,
     prefilledSum: null,
+    prefilledRecurring: null,
   });
   const externalDonationUrls = getExternalDonationUrls(widget.data.result.external_donation_widget);
   const usesExternalWidget = externalDonationUrls !== null;
@@ -159,7 +163,14 @@ export const Layout = withStaticProps(
             inverted={false}
             color={giveButton.accent_color}
             title={giveButton.donate_label_title}
-            onClick={() => setWidgetContext({ open: true, prefilled: null, prefilledSum: null })}
+            onClick={() =>
+              setWidgetContext({
+                open: true,
+                prefilled: null,
+                prefilledSum: null,
+                prefilledRecurring: null,
+              })
+            }
           >
             {giveButton.donate_label_short}
           </GiveButton>

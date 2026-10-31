@@ -215,6 +215,7 @@ export const InterventionWidgetOutput: React.FC<{
                         },
                       ],
                       prefilledSum: sum,
+                      prefilledRecurring: null,
                     });
                   }}
                 >
