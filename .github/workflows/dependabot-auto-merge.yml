@@ -1,0 +1,117 @@
+name: dependabot-auto-merge
+# Turns on auto-merge for Dependabot's minor and patch updates, so they merge once every required
+# check passes. Major updates, the packages in DENYLIST and updates where the package's
+# maintainers changed are left for a person. See docs/dependencies.md.
+#
+# Runs on pull_request (not pull_request_target): a Dependabot pull request gets the workflow
+# and the token permissions below from its own branch, and Dependabot secrets only reach runs
+# that Dependabot triggered. A person pushing to a Dependabot branch triggers a run without them,
+# fetch-metadata refuses a branch with commits that are not Dependabot's, and the revoke job turns
+# auto-merge off again.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+permissions: {}
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  auto-merge:
+    name: Dependabot auto-merge
+    # Pull requests that Dependabot opened. fetch-metadata below also checks that every commit on
+    # the branch is Dependabot's.
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write # to turn auto-merge off again (below)
+    steps:
+      - name: Read the update from the pull request
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      # Every updated dependency (a grouped pull request has several) must be a minor or patch
+      # update of a package that is not on the denylist.
+      - name: Decide
+        id: decide
+        env:
+          UPDATES: ${{ steps.metadata.outputs.updated-dependencies-json }}
+          MAINTAINER_CHANGES: ${{ steps.metadata.outputs.maintainer-changes }}
+          # Packages whose minor updates can change production behaviour in ways the tests don't
+          # cover: the web framework, the database client and driver, the API contract between
+          # the apps, authentication, the CMS and the Node runtime image. Keep the same as the
+          # *-reviewed groups in .github/dependabot.yml.
+          DENYLIST: >-
+            ^(next|react|react-dom|prisma|@prisma/.*|@trpc/.*|@auth0/.*|express-oauth2-jwt-bearer|mysql2|sanity|@sanity/.*|next-sanity|node)$
+        run: |
+          echo "$UPDATES" | jq -r '.[] | "\(.dependencyName) \(.prevVersion) -> \(.newVersion) (\(.updateType))"'
+          blocked=$(echo "$UPDATES" | jq -r --arg deny "$DENYLIST" '
+            if length == 0 then "no updates found"
+            else .[] | select(
+              (.updateType != "version-update:semver-patch" and .updateType != "version-update:semver-minor")
+              or (.dependencyName | test($deny))
+            ) | "\(.dependencyName) (\(.updateType // "unknown update type"))"
+            end')
+          if [ "$MAINTAINER_CHANGES" = "true" ]; then
+            blocked="${blocked}${blocked:+, }maintainer changes"
+          fi
+          if [ -n "$blocked" ]; then
+            echo "::notice::Left for review: $(echo "$blocked" | paste -sd, -)"
+            echo "merge=false" >>"$GITHUB_OUTPUT"
+            # A rebase can change what a grouped pull request updates.
+            echo "disable=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "merge=true" >>"$GITHUB_OUTPUT"
+          fi
+
+      # The approval comes from a machine account that is a code owner, with a token that only
+      # Dependabot runs can read (a Dependabot secret). Auto-merge then waits for the required
+      # checks. Without the secret, nothing happens and the pull request is merged by hand.
+      - name: Approve and enable auto-merge
+        if: steps.decide.outputs.merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::DEPENDABOT_AUTOMERGE_TOKEN is not set; merge this pull request by hand."
+            exit 0
+          fi
+          gh pr review --approve --body "Minor or patch update; merges automatically when the required checks pass." "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
+
+      - name: Turn auto-merge off
+        if: steps.decide.outputs.disable == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          if [ "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest != null')" = true ]; then
+            gh pr merge --disable-auto "$PR_URL"
+          fi
+
+  # Someone else pushed to a Dependabot branch: the earlier approval was for Dependabot's
+  # commits only, so the pull request no longer merges on its own.
+  revoke:
+    name: Dependabot auto-merge (revoke)
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Turn auto-merge off
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          if [ "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest != null')" = true ]; then
+            gh pr merge --disable-auto "$PR_URL"
+            echo "::notice::Auto-merge turned off: the branch has commits that are not Dependabot's."
+          fi

@@ -7,18 +7,6 @@ permissions:
   contents: read
 on:
   pull_request:
-    paths:
-      - "apps/web/**"
-      - "apps/api/**"
-      - "compose.dev.yml"
-      - "compose.e2e.yml"
-      - "compose.e2e-ci.yml"
-      - ".env.docker"
-      - "scripts/e2e-fullstack.sh"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".github/workflows/web-e2e-fullstack.yml"
   # Also on main: GitHub Actions caches made on main are the ones every PR can restore (the
   # Next.js build cache, the Cypress binary).
   push:
@@ -39,8 +27,48 @@ concurrency:
   group: web-e2e-fullstack-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  # Branch protection can only require a check that always reports, and a workflow skipped by a
+  # `paths` filter never does. So pull requests always start this workflow, this job decides
+  # whether the change touches what the checks cover (the same paths as the push trigger), and
+  # "web-e2e-fullstack (required)" below is the check to require: it passes when the checks passed or
+  # had nothing to check. docs/dependencies.md
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.match.outputs.relevant }}
+    steps:
+      - name: Match the changed files
+        id: match
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          relevant=false
+          if [ "$EVENT" != pull_request ]; then
+            relevant=true # the push trigger's paths filter already matched
+          else
+            gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' >"$RUNNER_TEMP/changed-files"
+            count=0
+            while IFS= read -r file; do
+              count=$((count + 1))
+              case "$file" in
+                apps/web/* | apps/api/* | compose.dev.yml | compose.e2e.yml | compose.e2e-ci.yml | .env.docker | scripts/e2e-fullstack.sh | package.json | pnpm-lock.yaml | pnpm-workspace.yaml | .github/workflows/web-e2e-fullstack.yml) relevant=true ;;
+              esac
+            done <"$RUNNER_TEMP/changed-files"
+            # The files API lists at most 3000 files; treat a larger change as relevant.
+            if [ "$count" -ge 3000 ]; then relevant=true; fi
+          fi
+          echo "relevant=$relevant" | tee -a "$GITHUB_OUTPUT"
   e2e:
     name: Full-stack e2e (web)
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -107,3 +135,20 @@ jobs:
             apps/web/cypress/logs
           if-no-files-found: ignore
           retention-days: 7
+
+  required:
+    name: web-e2e-fullstack (required)
+    needs: [changes, e2e]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check the results
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          RESULT: ${{ needs.e2e.result }}
+        run: |
+          echo "changes: $CHANGES, e2e: $RESULT"
+          [ "$CHANGES" = success ] || exit 1
+          case "$RESULT" in success | skipped) ;; *) exit 1 ;; esac

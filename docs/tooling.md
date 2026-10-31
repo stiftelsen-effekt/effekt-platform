@@ -29,6 +29,8 @@ at an API that is running.
 Versions that more than one package uses live in the `catalog` in
 [`pnpm-workspace.yaml`](../pnpm-workspace.yaml); the packages say `"catalog:"`. To upgrade
 React, TypeScript, Vitest, tRPC, zod and so on, change the catalog and run `pnpm install`.
+Dependabot proposes most of these updates, and pnpm refuses versions younger than 7 days
+([dependencies.md](dependencies.md)).
 
 TypeScript comes in two versions. The API and the website stay on TypeScript 5.9, because
 ts-node, the API's spec transform, `next build` and the tRPC type build use TypeScript's
