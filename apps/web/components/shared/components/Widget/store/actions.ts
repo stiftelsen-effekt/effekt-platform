@@ -61,6 +61,7 @@ export type WidgetAction =
   | { type: "setApiError"; message: string | null }
   | { type: "clearApiError" }
   | { type: "setPrefilledShares"; shares: Record<number, number> | null }
+  | { type: "prefillAmount"; amount: number | null }
   | { type: "setShowAllOrganizations"; show: boolean }
   | { type: "setHasManuallyEditedPrefilledOrgAmount"; edited: boolean }
   | { type: "setReferralCode"; referralCode?: string }
@@ -168,6 +169,17 @@ export const clearApiError = (): WidgetAction => ({ type: "clearApiError" });
 export const setPrefilledShares = (shares: Record<number, number> | null): WidgetAction => ({
   type: "setPrefilledShares",
   shares,
+});
+/**
+ * An amount (kr) passed in when the widget is opened from another block (the tax deduction
+ * widget, the intervention widget, the wealth calculator): the total of the selected
+ * distribution, and of a cause area selected afterwards that has no amount yet. Rounded to whole
+ * kroner; anything not above 0 is ignored. null forgets it for later selections and leaves the
+ * amounts as they are.
+ */
+export const prefillAmount = (amount: number | null): WidgetAction => ({
+  type: "prefillAmount",
+  amount,
 });
 export const setShowAllOrganizations = (show: boolean): WidgetAction => ({
   type: "setShowAllOrganizations",

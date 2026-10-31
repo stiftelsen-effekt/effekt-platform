@@ -1,6 +1,7 @@
 import { getEarliestPossibleChargeDate } from "../components/panes/PaymentPane/AvtaleGiro/AvtaleGiroDatePicker/avtalegirodates";
 import { CauseArea } from "../types/CauseArea";
 import { RecurringDonation, ShareType } from "../types/Enums";
+import { splitAmountByShares } from "../utils/donationCalculations";
 import { WidgetAction } from "./actions";
 import { Donation, Layout, Referrals, State } from "./state";
 
@@ -65,6 +66,124 @@ const donationWithCauseAreas = (donation: Donation, areas: CauseArea[]): Donatio
     globalOperationsEnabled: config?.enabledByDefaultGlobal ?? false,
     globalOperationsPercentage: config?.defaultPercentage,
   };
+};
+
+/**
+ * Sets an amount passed in from another block as the total of the current selection, the same
+ * way the amount pane stores what the donor enters:
+ * - smart distribution (-1) and several cause areas: the smart distribution total (amounts the
+ *   donor already entered per cause area are kept)
+ * - one cause area: its amount, and its organization's amount when it has only one. Prefilled
+ *   organization shares that still track the amount get their split of it. A split the donor
+ *   entered by organization would ignore the amount, so the cause area goes back to its
+ *   standard split.
+ * The operations cut is taken from the amount, not added to it, so the total stays the amount.
+ */
+const donationWithAmount = (
+  donation: Donation,
+  causeAreas: CauseArea[] | undefined,
+  amount: number,
+): Donation => {
+  const { selectionType, selectedCauseAreaId } = donation;
+  if (selectedCauseAreaId === -1 || selectionType === "multiple") {
+    return { ...donation, smartDistributionTotal: amount };
+  }
+
+  const causeArea = causeAreas?.find((area) => area.id === selectedCauseAreaId);
+  if (selectionType !== "single" || !causeArea) return donation;
+
+  const causeAreaAmounts = { ...donation.causeAreaAmounts, [causeArea.id]: amount };
+  const orgAmounts = { ...donation.orgAmounts };
+  let causeAreaDistributionType = donation.causeAreaDistributionType;
+
+  const activeOrganizations = causeArea.organizations.filter((org) => org.isActive);
+  const singleOrganization =
+    causeArea.organizations.length <= 1
+      ? causeArea.organizations[0]
+      : activeOrganizations.length === 1
+        ? activeOrganizations[0]
+        : undefined;
+  const trackedShares = trackedSharesOf(donation, causeArea);
+
+  if (singleOrganization) {
+    orgAmounts[singleOrganization.id] = amount;
+  } else if (trackedShares) {
+    const amountByOrgId = splitAmountByShares(amount, trackedShares);
+    Object.keys(trackedShares).forEach((orgId) => {
+      orgAmounts[Number(orgId)] = amountByOrgId[Number(orgId)] ?? 0;
+    });
+  } else if (causeAreaDistributionType?.[causeArea.id] === ShareType.CUSTOM) {
+    causeAreaDistributionType = {
+      ...causeAreaDistributionType,
+      [causeArea.id]: ShareType.STANDARD,
+    };
+  }
+
+  return { ...donation, causeAreaAmounts, orgAmounts, causeAreaDistributionType };
+};
+
+/** The prefilled organization shares in a cause area while they still track its amount */
+const trackedSharesOf = (
+  donation: Donation,
+  causeArea: CauseArea,
+): Record<number, number> | undefined => {
+  if (donation.hasManuallyEditedPrefilledOrgAmount) return undefined;
+  const shares: Record<number, number> = {};
+  for (const org of causeArea.organizations) {
+    const share = donation.prefilledShares?.[org.id];
+    if (share !== undefined) shares[org.id] = share;
+  }
+  return Object.keys(shares).length > 0 ? shares : undefined;
+};
+
+/** Whether the donor (or a prefill) has entered any amount for the current selection */
+const selectionHasAmount = (donation: Donation, causeAreas: CauseArea[] | undefined): boolean => {
+  const { selectionType, selectedCauseAreaId, causeAreaAmounts = {}, orgAmounts = {} } = donation;
+  if (selectedCauseAreaId === -1) return (donation.smartDistributionTotal ?? 0) > 0;
+  if (selectionType === "multiple") {
+    return (
+      (donation.smartDistributionTotal ?? 0) > 0 ||
+      Object.values(causeAreaAmounts).some((amount) => amount > 0) ||
+      Object.values(orgAmounts).some((amount) => amount > 0)
+    );
+  }
+  const causeArea = causeAreas?.find((area) => area.id === selectedCauseAreaId);
+  if (!causeArea) return true;
+  return (
+    (causeAreaAmounts[causeArea.id] ?? 0) > 0 ||
+    causeArea.organizations.some((org) => (orgAmounts[org.id] ?? 0) > 0)
+  );
+};
+
+/** prefillAmount, and a selection made afterwards that has no amount yet */
+const prefillReducer = (state: State, action: WidgetAction): State => {
+  const { donation } = state;
+  const causeAreas = state.layout.causeAreas;
+  if (action.type === "prefillAmount") {
+    if (action.amount === null) {
+      return donation.prefilledAmount === undefined
+        ? state
+        : { ...state, donation: { ...donation, prefilledAmount: undefined } };
+    }
+    // Whole kroner, as the amount inputs allow
+    const amount = Math.round(action.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return state;
+    return {
+      ...state,
+      donation: { ...donationWithAmount(donation, causeAreas, amount), prefilledAmount: amount },
+    };
+  }
+  if (
+    action.type === "setCauseAreaSelection" &&
+    donation.prefilledAmount !== undefined &&
+    !selectionHasAmount(donation, causeAreas)
+  ) {
+    return {
+      ...state,
+      donation: donationWithAmount(donation, causeAreas, donation.prefilledAmount),
+    };
+  }
+  return state;
 };
 
 const donationReducer = (state: Donation, action: WidgetAction): Donation => {
@@ -205,7 +324,10 @@ export const widgetReducer = (state: State, action: WidgetAction): State => {
   const donation = donationReducer(state.donation, action);
   const layout = layoutReducer(state.layout, action);
   const referrals = referralsReducer(state.referrals, action);
-  return donation === state.donation && layout === state.layout && referrals === state.referrals
-    ? state
-    : { donation, layout, referrals };
+  const next =
+    donation === state.donation && layout === state.layout && referrals === state.referrals
+      ? state
+      : { donation, layout, referrals };
+  // Needs the cause areas from the layout slice and the selection from the donation slice
+  return prefillReducer(next, action);
 };

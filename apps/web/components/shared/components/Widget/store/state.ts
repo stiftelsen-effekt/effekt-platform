@@ -45,6 +45,9 @@ export interface Donation extends DonationInput {
   showAllOrganizations?: boolean;
   /** Whether the donor has manually edited the prefilled organization's amount (stops it auto-tracking the cause area total) */
   hasManuallyEditedPrefilledOrgAmount?: boolean;
+  /** An amount another block opened the widget with (see prefillAmount), also set on a cause
+   * area selected afterwards that has no amount yet */
+  prefilledAmount?: number;
   /** Smart distribution total amount (NOK) - when selectedCauseAreaId === -1 */
   smartDistributionTotal?: number;
   /** Whether global operations cut is enabled (for multiple cause areas) */

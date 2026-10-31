@@ -133,4 +133,30 @@ describe("Navigation", () => {
 
     cy.get("[data-cy=widget-pane]").should("be.visible");
   });
+
+  it("Should open the widget with the monthly donation amount prefilled", () => {
+    // A fixed tax estimate, so the amount is known
+    cy.intercept("POST", "/api/tax*", { statusCode: 200, body: 152000 }).as("getTax");
+
+    cy.get("[data-cy=wealthcalculator-income-input]").find("input").type("572000");
+    cy.wait("@getTax");
+
+    cy.get("[data-cy=wealthcalculator-donation-percentage-input]")
+      .invoke("val")
+      .then((percentage) => {
+        // A twelfth of the yearly donation from the post-tax income, rounded to the nearest 100 kr
+        const yearly = Math.round(((572000 - 152000) * Number(percentage)) / 100);
+        const monthly = Math.round(yearly / 12 / 100) * 100;
+        expect(monthly).to.be.greaterThan(0);
+
+        cy.get("[data-cy=wealthcalculator-impact-create-agreement-button]").click();
+        cy.get("[data-cy=widget-pane]").should("be.visible");
+        cy.get("[data-cy=widget-pane]")
+          .find("[data-cy^=donation-sum-input-]")
+          .first()
+          .should(($input) => {
+            expect(Number(String($input.val()).replace(/\s/g, ""))).to.equal(monthly);
+          });
+      });
+  });
 });
