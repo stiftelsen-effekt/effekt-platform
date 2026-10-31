@@ -803,7 +803,7 @@ export async function sendAvtalegiroRegistered(_agreement: AvtaleGiroAgreement) 
  */
 export async function sendAgreementInflationAdjustment(
   adjustment: Agreement_inflation_adjustments,
-) {
+): Promise<boolean> {
   try {
     let agreement: Avtalegiro_agreements | VippsAgreement;
     let agreementCreated: DateTime;
@@ -898,9 +898,8 @@ export async function sendAgreementInflationAdjustment(
       };
     });
 
-    await sendTemplate({
+    const sent = await sendTemplate({
       to: donor!.email,
-      bcc: "hakon.harnes@effektivaltruisme.no",
       templateId: config.mailersend_inflation_adjustment_template_id,
       personalization: {
         firstName: donor!.name!.split(" ")[0] ?? "",
@@ -920,11 +919,11 @@ export async function sendAgreementInflationAdjustment(
       },
     });
 
-    return true;
+    return sent !== false;
   } catch (ex) {
     console.error("Failed to send inflation adjustment");
     console.error(ex);
-    return ex.statusCode;
+    return false;
   }
 }
 

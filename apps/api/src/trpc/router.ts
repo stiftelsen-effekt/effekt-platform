@@ -5,6 +5,7 @@ import { donationsRouter } from "./routers/donations";
 import { donorsRouter } from "./routers/donors";
 import { giroRouter } from "./routers/giro";
 import { homeRouter } from "./routers/home";
+import { inflationRouter } from "./routers/inflation";
 import { intentsRouter } from "./routers/intents";
 import { metaRouter } from "./routers/meta";
 import { minsideRouter } from "./routers/minside";
@@ -24,6 +25,7 @@ export const appRouter = router({
   giro: giroRouter,
   reports: reportsRouter,
   agreements: agreementsRouter,
+  inflation: inflationRouter,
   regranting: regrantingRouter,
   analysis: analysisRouter,
   intents: intentsRouter,

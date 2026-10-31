@@ -21,6 +21,7 @@ import {
   SlidersHorizontalIcon,
   CalendarCheckIcon,
   CircleOffIcon,
+  PercentIcon,
   FlagIcon,
   HandCoinsIcon,
   HourglassIcon,
@@ -139,6 +140,12 @@ const allNavGroups: NavGroup[] = [
         label: "Cancelled agreements",
         icon: CircleOffIcon,
         keywords: ["cancelled", "stopped", "avsluttet", "stoppet", "churn", "reasons", "årsak"],
+      },
+      {
+        to: "/agreements/inflation",
+        label: "Inflation adjustment",
+        icon: PercentIcon,
+        keywords: ["inflation", "prisjustering", "kpi", "raise", "increase", "offer", "øke beløp"],
       },
       {
         to: "/charges",

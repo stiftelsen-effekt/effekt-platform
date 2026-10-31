@@ -45,6 +45,9 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   check (expected vs received vs missing). Cancelled agreements (`agreements.cancelled`): newest
   cancellation first, with the donor's other active agreement, donation stats and the reason
   given; summary of count, share with another active agreement and top reasons.
+  Inflation adjustment (`inflation.*`, Agreements › Inflation adjustment): preview of the
+  agreements that qualify, prepare offers, send them in batches; see
+  [inflation-adjustment.md](inflation-adjustment.md).
 - **Fundraisers**: list + filter + stats; detail; create for a donor.
 - **Settings**: cause areas, organizations per cause area, referral types — create, edit,
   activate/deactivate, ordering, standard split percentages (must sum to 100 within a group; warn
