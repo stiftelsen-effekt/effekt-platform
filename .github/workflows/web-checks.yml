@@ -4,18 +4,6 @@ permissions:
   contents: read
 on:
   pull_request:
-    paths:
-      - "apps/web/**"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".github/workflows/web-checks.yml"
-      # The web typechecks against the backend's tRPC router (packages/api, docs/web-trpc.md)
-      - "apps/api/src/trpc/**"
-      - "packages/api/**"
-      - "apps/api/scripts/build-types.mjs"
-      - "apps/api/tsconfig.trpc.json"
-      - "packages/config/**"
-      - ".nvmrc"
   push:
     branches: [main]
     paths:
@@ -37,8 +25,51 @@ defaults:
   run:
     working-directory: apps/web
 jobs:
+  # Branch protection can only require a check that always reports, and a workflow skipped by a
+  # `paths` filter never does. So pull requests always start this workflow, this job decides
+  # whether the change touches what the checks cover (the same paths as the push trigger), and
+  # "web-checks (required)" below is the check to require: it passes when the checks passed or
+  # had nothing to check. docs/dependencies.md
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      relevant: ${{ steps.match.outputs.relevant }}
+    steps:
+      - name: Match the changed files
+        id: match
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          relevant=false
+          if [ "$EVENT" != pull_request ]; then
+            relevant=true # the push trigger's paths filter already matched
+          else
+            gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' >"$RUNNER_TEMP/changed-files"
+            count=0
+            while IFS= read -r file; do
+              count=$((count + 1))
+              case "$file" in
+                apps/web/* | pnpm-lock.yaml | pnpm-workspace.yaml | .github/workflows/web-checks.yml | apps/api/src/trpc/* | packages/api/* | apps/api/scripts/build-types.mjs | apps/api/tsconfig.trpc.json | packages/config/* | .nvmrc) relevant=true ;;
+              esac
+            done <"$RUNNER_TEMP/changed-files"
+            # The files API lists at most 3000 files; treat a larger change as relevant.
+            if [ "$count" -ge 3000 ]; then relevant=true; fi
+          fi
+          echo "relevant=$relevant" | tee -a "$GITHUB_OUTPUT"
   checks:
     name: Lint, typecheck and test (web)
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -102,3 +133,23 @@ jobs:
       - name: Studio typecheck and test
         working-directory: apps/web/studio
         run: pnpm typecheck && pnpm test
+
+  required:
+    name: web-checks (required)
+    needs: [changes, checks]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Check the results
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          RESULT: ${{ needs.checks.result }}
+        run: |
+          echo "changes: $CHANGES, checks: $RESULT"
+          [ "$CHANGES" = success ] || exit 1
+          case "$RESULT" in success | skipped) ;; *) exit 1 ;; esac

@@ -69,6 +69,130 @@ overrides:
   "@vercel/frameworks>smol-toml": ^1.9.0
   typeid-js>uuid: ^11.1.1
 
+# Supply-chain settings (docs/dependencies.md). pnpm resolves no version published less than
+# 7 days ago (10080 minutes; pnpm's built-in default is 1 day) and fails instead of picking one
+# (minimumReleaseAgeStrict defaults to true once the age is set). `pnpm install --frozen-lockfile`
+# checks the lockfile against the same rules, so CI, Vercel and Cloud Build refuse a lockfile that
+# brings in a younger version. Dependabot reads minimumReleaseAge as the floor of its cooldown.
+minimumReleaseAge: 10080
+# Refuse a version that has weaker publish evidence (trusted publishing, provenance) than an
+# earlier version of the same package, the usual sign of a release from a stolen npm token.
+# Versions published more than 30 days (43200 minutes) ago are not checked: by then a takeover
+# would have been found, and old maintenance releases (semver 5.x and 6.x, jose 4.x) predate
+# provenance.
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 43200
+# Exact versions exempt from trustPolicy, each with the reason.
+trustPolicyExclude:
+  # prisma publishes from its prismabot npm account again since 7.10.0 (7.6 to 7.9 came from
+  # GitHub Actions with provenance). Same publisher as before provenance; check the next release.
+  - "prisma@7.10.1"
+  # Published by the maintainer's own account between two CI releases; 1.7.3 and later are
+  # back on GitHub Actions with provenance. A Dependabot update replaces these.
+  - "seroval@1.7.2"
+  - "seroval-plugins@1.7.2"
+# Only our own package.json files may point at git repositories or tarball URLs (such as
+# norwegian-workdays); a dependency's dependencies have to come from the registry.
+blockExoticSubdeps: true
+
+# Exact versions exempt from minimumReleaseAge. Add one only for a reviewed reason (an urgent
+# fix), with a comment, and remove it once the version is older than 7 days.
 minimumReleaseAgeExclude:
+  # The lockfile entries younger than 7 days when the age went from 1 to 7 days (2026-10-31).
+  # They were already installed everywhere. All of them are older than 7 days from 2026-11-07,
+  # when this block can be deleted.
+  - "@asamuzakjp/css-color@7.1.9"
+  - "@inquirer/ansi@2.0.10"
+  - "@inquirer/checkbox@5.2.8"
+  - "@inquirer/confirm@6.3.5"
+  - "@inquirer/core@12.0.6"
+  - "@inquirer/editor@5.3.6"
+  - "@inquirer/expand@5.1.8"
+  - "@inquirer/external-editor@3.0.7"
+  - "@inquirer/figures@2.0.10"
+  - "@inquirer/input@5.1.9"
+  - "@inquirer/number@4.2.6"
+  - "@inquirer/password@5.2.5"
+  - "@inquirer/prompts@8.7.5"
+  - "@inquirer/rawlist@5.3.8"
+  - "@inquirer/search@4.3.6"
+  - "@inquirer/select@5.2.8"
+  - "@inquirer/type@4.2.1"
+  - "@lezer/common@1.5.5"
+  - "@lezer/lr@1.4.12"
+  - "@oxlint/binding-android-arm-eabi@1.90.0"
+  - "@oxlint/binding-android-arm64@1.90.0"
+  - "@oxlint/binding-darwin-arm64@1.90.0"
+  - "@oxlint/binding-darwin-x64@1.90.0"
+  - "@oxlint/binding-freebsd-x64@1.90.0"
+  - "@oxlint/binding-linux-arm-gnueabihf@1.90.0"
+  - "@oxlint/binding-linux-arm-musleabihf@1.90.0"
+  - "@oxlint/binding-linux-arm64-gnu@1.90.0"
+  - "@oxlint/binding-linux-arm64-musl@1.90.0"
+  - "@oxlint/binding-linux-ppc64-gnu@1.90.0"
+  - "@oxlint/binding-linux-riscv64-gnu@1.90.0"
+  - "@oxlint/binding-linux-riscv64-musl@1.90.0"
+  - "@oxlint/binding-linux-s390x-gnu@1.90.0"
+  - "@oxlint/binding-linux-x64-gnu@1.90.0"
+  - "@oxlint/binding-linux-x64-musl@1.90.0"
+  - "@oxlint/binding-openharmony-arm64@1.90.0"
+  - "@oxlint/binding-win32-arm64-msvc@1.90.0"
+  - "@oxlint/binding-win32-ia32-msvc@1.90.0"
+  - "@oxlint/binding-win32-x64-msvc@1.90.0"
+  - "@pierre/diffs@1.6.2"
+  - "@pierre/highlights@0.3.0"
+  - "@portabletext/editor@8.2.10"
+  - "@portabletext/patches@3.0.3"
+  - "@portabletext/plugin-character-pair-decorator@9.0.24"
+  - "@portabletext/plugin-dnd@2.0.25"
+  - "@portabletext/plugin-input-rule@7.0.24"
+  - "@portabletext/plugin-list-index@2.0.23"
+  - "@portabletext/plugin-markdown-shortcuts@9.0.24"
+  - "@portabletext/plugin-one-line@8.0.23"
+  - "@portabletext/plugin-paste-link@5.0.23"
+  - "@portabletext/plugin-table@2.0.23"
+  - "@portabletext/plugin-typography@9.0.24"
+  - "@portabletext/repair@1.0.1"
+  - "@portabletext/sanity-bridge@4.1.5"
+  - "@sanity/access-ui@6.21.0"
+  - "@sanity/cli-build@7.1.0"
+  - "@sanity/cli-core@3.14.1"
+  - "@sanity/cli@8.27.0"
+  - "@sanity/client@8.14.1"
+  - "@sanity/diff@6.21.0"
+  - "@sanity/export@7.1.0"
+  - "@sanity/import@7.1.0"
+  - "@sanity/mutator@6.21.0"
+  - "@sanity/runtime-cli@17.18.0"
+  - "@sanity/schema@6.21.0"
+  - "@sanity/sdk-react@3.11.0"
+  - "@sanity/sdk@3.11.0"
+  - "@sanity/types@6.21.0"
+  - "@sanity/util@6.21.0"
+  - "@sanity/validation@6.21.0"
+  - "@sanity/vision@6.21.0"
+  - "@sanity/workbench-cli@2.15.0"
+  - "@sentry/browser-utils@11.10.0"
+  - "@sentry/browser@11.10.0"
+  - "@sentry/core@11.10.0"
+  - "@sentry/feedback@11.10.0"
+  - "@sentry/react@11.10.0"
+  - "@sentry/replay-canvas@11.10.0"
+  - "@sentry/replay@11.10.0"
   - "@tanstack/query-core@5.105.0"
   - "@tanstack/react-query@5.105.0"
+  - "@tanstack/react-virtual@3.14.24"
+  - "@tanstack/virtual-core@3.19.9"
+  - "confbox@0.3.2"
+  - "eventsource@5.1.4"
+  - "exsolve@1.2.0"
+  - "i18next@26.5.12"
+  - "interestfor@1.0.12"
+  - "ip-address@10.7.5"
+  - "magic-string@1.4.4"
+  - "mux-embed@5.19.0"
+  - "oxlint@1.90.0"
+  - "parse-duration@2.1.11"
+  - "react-i18next@17.1.9"
+  - "sanity@6.21.0"
+  - "unplugin@3.5.0"

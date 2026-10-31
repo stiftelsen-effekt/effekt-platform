@@ -1,15 +1,103 @@
-# Keeps the SHA-pinned actions in .github/workflows up to date.
-# Dependabot updates the commit SHA and the trailing "# vX.Y.Z" comment together.
+# Dependency updates. Minor and patch updates come as one grouped pull request per ecosystem a
+# week and merge on their own once the required checks pass, except for the packages in the
+# *-reviewed groups (.github/workflows/dependabot-auto-merge.yml). Major updates come one
+# pull request each and are always reviewed. See docs/dependencies.md.
+#
+# Cooldown: Dependabot only proposes a version once it has been published for this many days,
+# so a compromised release is usually found and pulled before it reaches us. Security updates
+# skip the cooldown. For npm, pnpm's minimumReleaseAge (7 days, pnpm-workspace.yaml) is also a
+# floor that Dependabot applies on top of these numbers.
 version: 2
 updates:
+  # The pnpm workspace: every package.json, the catalogs in pnpm-workspace.yaml and
+  # pnpm-lock.yaml.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Oslo
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
+    ignore:
+      # @types/node follows the Node major in .nvmrc and the Dockerfiles.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Minor and patch updates that are merged by hand. Keep this list the same as DENYLIST in
+      # .github/workflows/dependabot-auto-merge.yml. The first group that matches wins.
+      npm-reviewed:
+        update-types: [minor, patch]
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "prisma"
+          - "@prisma/*"
+          - "@trpc/*"
+          - "@auth0/*"
+          - "express-oauth2-jwt-bearer"
+          - "mysql2"
+          - "sanity"
+          - "@sanity/*"
+          - "next-sanity"
+      npm-minor-patch:
+        update-types: [minor, patch]
+        patterns: ["*"]
+
+  # Keeps the SHA-pinned actions in .github/workflows up to date.
+  # Dependabot updates the commit SHA and the trailing "# vX.Y.Z" comment together.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Oslo
     cooldown:
       default-days: 7
-    groups:
-      github-actions:
-        patterns: ["*"]
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
     commit-message:
       prefix: "ci"
+    groups:
+      github-actions:
+        update-types: [minor, patch]
+        patterns: ["*"]
+
+  # Base images in apps/api/Dockerfile and Dockerfile.preview. The node image is in the reviewed
+  # group: .nvmrc and the compose files pin the same Node version and are updated by hand in the
+  # same pull request. The images in compose*.yml (MySQL matches Cloud SQL) are updated by hand.
+  - package-ecosystem: docker
+    directory: /apps/api
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Oslo
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
+    commit-message:
+      prefix: "deps"
+    ignore:
+      # A Node major is a planned upgrade (docs/dependencies.md).
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      docker-reviewed:
+        update-types: [minor, patch]
+        patterns: ["node"]
+      docker-minor-patch:
+        update-types: [minor, patch]
+        patterns: ["*"]

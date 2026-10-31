@@ -1,11 +1,9 @@
 name: zizmor
 # Static analysis of GitHub Actions workflows: https://docs.zizmor.sh
 on:
+  # Every pull request, so that the "zizmor" check always reports and can be required in branch
+  # protection (docs/dependencies.md). It takes seconds.
   pull_request:
-    paths:
-      - ".github/workflows/**"
-      - ".github/dependabot.yml"
-      - ".github/zizmor.yml"
   push:
     branches: [main]
     paths:
