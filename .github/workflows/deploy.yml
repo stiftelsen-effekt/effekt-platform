@@ -1,0 +1,485 @@
+name: Deploy
+# What a merge to main deploys, in one graph (docs/ci.md). The deploys themselves stay in Cloud
+# Build (BackendDeploy, AdminDeploy) and Vercel; this workflow follows them, read-only, and tests
+# what they deployed:
+#
+#   changes ─┬─ api · await BackendDeploy build ─┬─ api · NO · migrate ── api · NO · deploy ── api · NO · smoke ─┐
+#            │                                    └─ api · SE · migrate ── api · SE · deploy ── api · SE · smoke ─┤
+#            ├─ admin · await AdminDeploy ── admin · smoke                                                       │
+#            ├─ web · NO · await Vercel production ─────────────────────── web · NO · prod e2e (after api · NO) ─┤
+#            ├─ web · SE · await Vercel production ─────────────────────── web · SE · prod smoke (after api · SE)┤
+#            └─ web · DK · await Vercel production ─────────────────────── web · DK · prod e2e ──────────────────┴─ Deploy summary
+#
+# The API's step nodes read BackendDeploy's Cloud Build steps with a read-only identity
+# (scripts/ci/gcp-deploy-observer.sh: Cloud Build Viewer and the Cloud Build log view, through
+# workload identity federation limited to this file on main). Until the repository variables
+# DEPLOY_OBSERVER_WIF_PROVIDER and DEPLOY_OBSERVER_SA exist, `api · await BackendDeploy build`
+# follows the whole build through its GitHub check and the step nodes say so. Nothing here can
+# change production: no deploy credentials, read-only tokens.
+run-name: "Deploy · ${{ github.event.head_commit.message }}"
+on:
+  push:
+    branches: [main]
+permissions: {}
+env:
+  SHA: ${{ github.sha }}
+  GCP_PROJECT: hidden-display-243419
+  BACKEND_CHECK: BackendDeploy (hidden-display-243419)
+  ADMIN_CHECK: AdminDeploy (hidden-display-243419)
+  LOG_VIEW: projects/hidden-display-243419/locations/global/buckets/_Default/views/cloudbuild-deploy-observer
+jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      # For the summary only: the Cloud Build triggers and Vercel decide what deploys
+      - name: Match the changed files to lanes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: bash scripts/ci/changes.sh
+
+  # ── API (Cloud Build: BackendDeploy, cloud.deploy.yaml) ────────────────────────────────────
+  api-build:
+    name: api · await BackendDeploy build
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      checks: read
+      id-token: write # the read-only Cloud Build observer, when set up
+    outputs:
+      build_id: ${{ steps.check.outputs.build_id }}
+      url: ${{ steps.check.outputs.url }}
+      # Appended to the names of the step nodes; empty when they follow their Cloud Build step
+      steps: ${{ steps.state.outputs.steps }}
+      # Appended to the smoke tests' names; empty when they run
+      smoke: ${{ steps.state.outputs.smoke }}
+    env:
+      OBSERVER: ${{ vars.DEPLOY_OBSERVER_WIF_PROVIDER != '' && vars.DEPLOY_OBSERVER_SA != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      # With the observer, only until the build has started: the step nodes follow the rest.
+      # Without it, the whole build.
+      - name: Wait for BackendDeploy
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CHECK: ${{ env.BACKEND_CHECK }}
+          UNTIL: ${{ env.OBSERVER == 'true' && 'started' || 'completed' }}
+        run: bash scripts/ci/await-check.sh
+      # A failed login (say, the identity was removed) falls back to following the whole check
+      - name: Log in to Google Cloud (read-only)
+        id: gcp
+        if: env.OBSERVER == 'true' && steps.check.outputs.ran == 'true' && steps.check.outputs.build_id != ''
+        continue-on-error: true
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.DEPLOY_OBSERVER_WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_OBSERVER_SA }}
+          token_format: access_token
+          create_credentials_file: false
+      - name: Image build and deploy guard
+        id: steps
+        if: steps.gcp.outcome == 'success'
+        env:
+          TOKEN: ${{ steps.gcp.outputs.access_token }}
+          BUILD_ID: ${{ steps.check.outputs.build_id }}
+          STEPS: guard build guard-before-release
+          CHECK_GUARD: "1"
+        run: bash scripts/ci/cloudbuild-steps.sh
+      - name: Wait for the whole build (no step view)
+        if: steps.check.outputs.ran == 'true' && steps.check.outputs.conclusion == '' && steps.gcp.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CHECK: ${{ env.BACKEND_CHECK }}
+        run: bash scripts/ci/await-check.sh
+      - name: Lane state
+        id: state
+        env:
+          RAN: ${{ steps.check.outputs.ran }}
+          FOLLOWED: ${{ steps.steps.outcome == 'success' }}
+          GUARD: ${{ steps.steps.outputs.guard_skipped }}
+        run: |
+          if [ "$RAN" != true ]; then
+            steps=" · no change"; smoke=" · no deploy"
+            echo "BackendDeploy didn't run: no API change in this commit." >>"$GITHUB_STEP_SUMMARY"
+          elif [ "$FOLLOWED" != true ]; then
+            steps=" · see BackendDeploy (no step view)"; smoke=""
+            echo "The step nodes need the read-only observer (scripts/ci/gcp-deploy-observer.sh)." >>"$GITHUB_STEP_SUMMARY"
+          elif [ "$GUARD" = true ]; then
+            steps=" · skipped (newer commit deploys)"; smoke=" · no deploy (newer commit deploys)"
+          else
+            steps=""; smoke=""
+          fi
+          { echo "steps=$steps"; echo "smoke=$smoke"; } | tee -a "$GITHUB_OUTPUT"
+
+  api-no-migrate:
+    name: api · NO · migrate${{ needs.api-build.outputs.steps }}
+    needs: api-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # the read-only Cloud Build observer
+    env:
+      SKIP: ${{ needs.api-build.outputs.steps }}
+      BUILD_ID: ${{ needs.api-build.outputs.build_id }}
+      STEPS: migrate-db-norway
+    steps: &cloudbuild-step
+      - name: Not followed
+        if: env.SKIP != ''
+        run: echo "$STEPS${SKIP}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.SKIP == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Log in to Google Cloud (read-only)
+        id: gcp
+        if: env.SKIP == ''
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.DEPLOY_OBSERVER_WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_OBSERVER_SA }}
+          token_format: access_token
+          create_credentials_file: false
+      - name: Follow the Cloud Build step
+        if: env.SKIP == ''
+        env:
+          TOKEN: ${{ steps.gcp.outputs.access_token }}
+        run: bash scripts/ci/cloudbuild-steps.sh
+
+  api-no-deploy:
+    name: api · NO · deploy${{ needs.api-build.outputs.steps }}
+    needs: [api-build, api-no-migrate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # the read-only Cloud Build observer
+    env:
+      SKIP: ${{ needs.api-build.outputs.steps }}
+      BUILD_ID: ${{ needs.api-build.outputs.build_id }}
+      STEPS: deploy-norway
+    steps: *cloudbuild-step
+
+  api-se-migrate:
+    name: api · SE · migrate${{ needs.api-build.outputs.steps }}
+    needs: api-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # the read-only Cloud Build observer
+    env:
+      SKIP: ${{ needs.api-build.outputs.steps }}
+      BUILD_ID: ${{ needs.api-build.outputs.build_id }}
+      STEPS: migrate-db-sweden
+    steps: *cloudbuild-step
+
+  api-se-deploy:
+    name: api · SE · deploy${{ needs.api-build.outputs.steps }}
+    needs: [api-build, api-se-migrate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # the read-only Cloud Build observer
+    env:
+      SKIP: ${{ needs.api-build.outputs.steps }}
+      BUILD_ID: ${{ needs.api-build.outputs.build_id }}
+      STEPS: deploy-sweden
+    steps: *cloudbuild-step
+
+  api-no-smoke:
+    name: api · NO · smoke${{ needs.api-build.outputs.smoke }}
+    needs: [api-build, api-no-deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      SKIP: ${{ needs.api-build.outputs.smoke }}
+      API: https://data.gieffektivt.no
+    steps:
+      - name: No deploy
+        if: env.SKIP != ''
+        run: echo "api · NO · smoke - nothing deployed${SKIP#*no deploy}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Status and a public tRPC call
+        if: env.SKIP == ''
+        run: &api-smoke |
+          set -euo pipefail
+          status=$(curl -fsS --retry 3 --retry-all-errors "$API/" | jq -r .status)
+          [ "$status" = ok ] || { echo "::error::$API/ answered status=$status"; exit 1; }
+          areas=$(curl -fsS --retry 3 --retry-all-errors "$API/trpc/widget.causeAreas" | jq '.result.data | length')
+          [ "$areas" -gt 0 ] || { echo "::error::$API/trpc/widget.causeAreas returned no cause areas"; exit 1; }
+          echo "$API: status ok, widget.causeAreas: $areas cause areas" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  api-se-smoke:
+    name: api · SE · smoke${{ needs.api-build.outputs.smoke }}
+    needs: [api-build, api-se-deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      SKIP: ${{ needs.api-build.outputs.smoke }}
+      API: https://api.geeffektivt.se
+    steps:
+      - name: No deploy
+        if: env.SKIP != ''
+        run: echo "api · SE · smoke - nothing deployed${SKIP#*no deploy}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Status and a public tRPC call
+        if: env.SKIP == ''
+        run: *api-smoke
+
+  # ── Admin (Cloud Build: AdminDeploy, cloudbuild.admin.yaml) ────────────────────────────────
+  admin-build:
+    name: admin · await AdminDeploy
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      ran: ${{ steps.check.outputs.ran }}
+      url: ${{ steps.check.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for AdminDeploy
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CHECK: ${{ env.ADMIN_CHECK }}
+        run: bash scripts/ci/await-check.sh
+
+  admin-smoke:
+    name: ${{ needs.admin-build.outputs.ran == 'true' && 'admin · smoke' || 'admin · smoke · no deploy' }}
+    needs: admin-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      RUN: ${{ needs.admin-build.outputs.ran }}
+      ADMIN: https://admin.gieffektivt.no
+    steps:
+      - name: No deploy
+        if: env.RUN != 'true'
+        run: echo "AdminDeploy did not run (no admin change in this commit)" | tee -a "$GITHUB_STEP_SUMMARY"
+      # index.html is served with no-cache; its hashed assets must exist (publish-assets uploads
+      # them before publish-index)
+      - name: The page and its assets load
+        if: env.RUN == 'true'
+        run: |
+          set -euo pipefail
+          html=$(curl -fsS --retry 3 --retry-all-errors "$ADMIN/")
+          assets=$(grep -oE '/assets/[A-Za-z0-9._-]+\.(js|css)' <<<"$html" | sort -u)
+          [ -n "$assets" ] || { echo "::error::$ADMIN/ has no /assets/ references"; exit 1; }
+          for asset in $assets; do
+            curl -fsS -o /dev/null --retry 3 --retry-all-errors "$ADMIN$asset"
+          done
+          echo "$ADMIN: index.html and $(wc -l <<<"$assets") assets load" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ── Websites (Vercel production), per country ───────────────────────────────────────────────
+  vercel-no:
+    name: web · NO · await Vercel production
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions: &vercel-permissions
+      contents: read
+      statuses: read
+      deployments: read
+    outputs: &vercel-outputs
+      url: ${{ steps.vercel.outputs.url }}
+      inspect: ${{ steps.vercel.outputs.inspect }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for Vercel (main-site)
+        id: vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PROJECT: main-site
+          TARGET: Production
+        run: bash scripts/ci/await-vercel.sh
+
+  vercel-dk:
+    name: web · DK · await Vercel production
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions: *vercel-permissions
+    outputs: *vercel-outputs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for Vercel (giv-effektivt)
+        id: vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PROJECT: giv-effektivt
+          TARGET: Production
+        run: bash scripts/ci/await-vercel.sh
+
+  vercel-se:
+    name: web · SE · await Vercel production
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions: *vercel-permissions
+    outputs: *vercel-outputs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for Vercel (ge-effektivt)
+        id: vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PROJECT: ge-effektivt
+          TARGET: Production
+        run: bash scripts/ci/await-vercel.sh
+
+  # Production runs share the site and the Min Side test account: one at a time per site, and
+  # only the newest waiting one runs (GitHub cancels an older pending run in the group; the
+  # summary marks it as replaced). After the API smoke, so that a commit that changes both is
+  # tested against its own API.
+  e2e-no:
+    name: web · NO · prod e2e
+    needs: [vercel-no, api-no-smoke]
+    concurrency:
+      group: web-e2e-no-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    uses: $/.github/workflows/web-e2e.yml
+    with:
+      group: GiEffektivt e2e tests
+      # The production Min Side Auth0 app only allows exact callbacks, so production is tested
+      # on the custom domain instead of the deployment's *.vercel.app URL
+      base-url: https://gieffektivt.no
+      config-file: cypress-no.config.ts
+    secrets: &cypress-secrets
+      CYPRESS_AUTH_DOMAIN: ${{ secrets.CYPRESS_AUTH_DOMAIN }}
+      CYPRESS_AUTH_USERNAME: ${{ secrets.CYPRESS_AUTH_USERNAME }}
+      CYPRESS_AUTH_PASSWORD: ${{ secrets.CYPRESS_AUTH_PASSWORD }}
+      CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+  smoke-se:
+    name: web · SE · prod smoke
+    needs: [vercel-se, api-se-smoke]
+    concurrency:
+      group: web-e2e-se-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    uses: $/.github/workflows/web-e2e.yml
+    with:
+      group: GeEffektivt smoke tests
+      base-url: https://geeffektivt.se
+      config-file: cypress-se.config.ts
+      containers: "[1]"
+      label: smoke
+    secrets: *cypress-secrets
+
+  # Denmark's backend is separate from this repository's API
+  e2e-dk:
+    name: web · DK · prod e2e
+    needs: vercel-dk
+    concurrency:
+      group: web-e2e-dk-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    uses: $/.github/workflows/web-e2e.yml
+    with:
+      group: GivEffektivt e2e tests
+      base-url: ${{ needs.vercel-dk.outputs.url }}
+      config-file: cypress-dk.config.ts
+    secrets: *cypress-secrets
+
+  summary:
+    name: Deploy summary
+    needs:
+      - changes
+      - api-build
+      - api-no-migrate
+      - api-no-deploy
+      - api-no-smoke
+      - api-se-migrate
+      - api-se-deploy
+      - api-se-smoke
+      - admin-build
+      - admin-smoke
+      - vercel-no
+      - vercel-dk
+      - vercel-se
+      - e2e-no
+      - e2e-dk
+      - smoke-se
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Sum up the lanes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RESULTS: ${{ toJSON(needs) }}
+          TITLE: Deploy
+          SELF: Deploy summary
+          # A newer commit's production e2e replaced these: not a failure
+          ALLOW: e2e-no e2e-dk smoke-se
+          LINKS: |
+            BackendDeploy (Cloud Build)|${{ needs.api-build.outputs.url }}
+            AdminDeploy (Cloud Build)|${{ needs.admin-build.outputs.url }}
+            Vercel NO|${{ needs.vercel-no.outputs.inspect }}
+            Vercel DK|${{ needs.vercel-dk.outputs.inspect }}
+            Vercel SE|${{ needs.vercel-se.outputs.inspect }}
+            Cypress Cloud|https://cloud.cypress.io/projects/wfkg9n/runs
+        run: bash scripts/ci/summary.sh

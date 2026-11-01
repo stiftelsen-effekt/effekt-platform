@@ -8,7 +8,8 @@ merge for each trigger whose files changed; Vercel builds the websites on its ow
 | `BackendDeploy` | `cloud.deploy.yaml`     | Builds the API image as `effektapi:$BUILD_ID`, runs the Norwegian and Swedish migration jobs on it, deploys both Cloud Run services from it |
 | `AdminDeploy`   | `cloudbuild.admin.yaml` | Typechecks, tests and builds `apps/admin`, publishes it to its bucket ([admin-deployment.md](admin-deployment.md))                          |
 
-`QualityAssurance` (`cloud.qa.yaml`) is the PR check and deploys nothing.
+`QualityAssurance` (`cloud.qa.yaml`) is the PR check and deploys nothing. The `Deploy` workflow
+in GitHub Actions shows each merge's deploys as one graph and tests them ([ci.md](ci.md)).
 
 ## Only the newest commit deploys
 
