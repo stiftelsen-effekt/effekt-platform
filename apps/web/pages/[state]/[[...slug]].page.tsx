@@ -1,23 +1,24 @@
 import { GetStaticPropsContext, InferGetStaticPropsType } from "next";
 import { fetchRouterContext } from "../../context/RouterContext";
-import { ArticlePage, getArticlePaths } from "../ArticlePage";
-import { GenericPage, getGenericPagePaths } from "../GenericPage";
-import { ArticlesPage } from "../ArticlesPage";
-import { VippsAgreementPage } from "../VippsAgreementPage";
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { FullPageSpinner } from "../../components/shared/layout/FullPageSpinner/FullPageSpinner";
 import { getDonationsPageSubpaths, getTaxPageSubPaths } from "../dashboard/paths";
-// Only referenced from getStaticProps, so Next strips these imports from the client bundle
+// Only referenced from getStaticProps and getStaticPaths, so Next strips these imports from the
+// client bundle
+import { ArticlePage as ArticlePageData, getArticlePaths } from "../ArticlePage";
+import { GenericPage as GenericPageData, getGenericPagePaths } from "../GenericPage";
+import { ArticlesPage as ArticlesPageData } from "../ArticlesPage";
+import { VippsAgreementPage as VippsAgreementPageData } from "../VippsAgreementPage";
+import { ResultsPage as ResultsPageData } from "../ResultsPage";
+import { FundraiserPage as FundraiserPageData, getFundraiserPagePaths } from "../FundraiserPage";
 import { DonationsPage as DonationsPageData } from "../dashboard/DonationsPage";
 import { AgreementsPage as AgreementsPageData } from "../dashboard/AgreementsPage";
 import { ProfilePage as ProfilePageData } from "../dashboard/ProfilePage";
 import { TaxPage as TaxPageData } from "../dashboard/TaxPage";
 import { VippsAnonymousPage as VippsAnonymousPageData } from "../dashboard/VippsAnonymousPage";
-import { ResultsPage } from "../ResultsPage";
 import { LiveQuery } from "../../components/shared/LiveQuery";
 import { ConsentState } from "../../proxy.page";
-import { FundraiserPage, getFundraiserPagePaths } from "../FundraiserPage";
 import { renderLatexInData } from "../../components/main/blocks/Paragraph/renderLatex";
 
 enum PageType {
@@ -33,6 +34,18 @@ enum PageType {
   ProfilePage = "profile",
   TaxPage = "tax",
 }
+
+// Content pages are split out so Min side (and each other) don't load every block type. They are
+// server-rendered, and Next loads the chunk of the rendered one before hydrating, so content pages
+// paint and hydrate as before. A placeholder only shows on client-side navigation.
+const GenericPage = dynamic(() => import("../GenericPage").then((m) => m.GenericPage));
+const ArticlesPage = dynamic(() => import("../ArticlesPage").then((m) => m.ArticlesPage));
+const ArticlePage = dynamic(() => import("../ArticlePage").then((m) => m.ArticlePage));
+const ResultsPage = dynamic(() => import("../ResultsPage").then((m) => m.ResultsPage));
+const FundraiserPage = dynamic(() => import("../FundraiserPage").then((m) => m.FundraiserPage));
+const VippsAgreementPage = dynamic(() =>
+  import("../VippsAgreementPage").then((m) => m.VippsAgreementPage),
+);
 
 // Min side pages are split out so ordinary content pages don't load them (or Auth0). They are
 // still server-rendered, and Next loads the chunks of rendered ones before hydrating. The
@@ -255,7 +268,7 @@ const getPageStaticProps = async (
 
   switch (pageType) {
     case PageType.GenericPage: {
-      const props = await GenericPage.getStaticProps({ draftMode, consentState, path });
+      const props = await GenericPageData.getStaticProps({ draftMode, consentState, path });
       if (!props.data.result.page && !draftMode) {
         return {
           notFound: true,
@@ -271,7 +284,7 @@ const getPageStaticProps = async (
       } as const;
     }
     case PageType.ArticlesPage: {
-      const props = await ArticlesPage.getStaticProps({ draftMode, consentState });
+      const props = await ArticlesPageData.getStaticProps({ draftMode, consentState });
       return {
         props: {
           ...props,
@@ -283,7 +296,7 @@ const getPageStaticProps = async (
     }
     case PageType.ArticlePage: {
       const slug = path.slice(1).join("/");
-      const props = await ArticlePage.getStaticProps({ draftMode, consentState, slug });
+      const props = await ArticlePageData.getStaticProps({ draftMode, consentState, slug });
       return {
         props: {
           ...props,
@@ -295,7 +308,7 @@ const getPageStaticProps = async (
     }
     case PageType.FundraiserPage: {
       const slug = path.slice(1).join("/");
-      const props = await FundraiserPage.getStaticProps({ draftMode, consentState, slug });
+      const props = await FundraiserPageData.getStaticProps({ draftMode, consentState, slug });
       if (!props.data.result.page && !draftMode) {
         return {
           notFound: true,
@@ -311,7 +324,7 @@ const getPageStaticProps = async (
       } as const;
     }
     case PageType.ResultsPage: {
-      const props = await ResultsPage.getStaticProps({ draftMode, consentState });
+      const props = await ResultsPageData.getStaticProps({ draftMode, consentState });
       return {
         props: {
           ...props,
@@ -322,7 +335,7 @@ const getPageStaticProps = async (
       } as const;
     }
     case PageType.VippsAgreementPage: {
-      const props = await VippsAgreementPage.getStaticProps({ draftMode, consentState });
+      const props = await VippsAgreementPageData.getStaticProps({ draftMode, consentState });
       return {
         props: {
           ...props,

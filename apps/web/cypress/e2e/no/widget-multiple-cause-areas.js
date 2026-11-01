@@ -20,9 +20,8 @@ describe("Widget multiple cause areas", () => {
         "x-vercel-skip-toolbar": "1",
       },
     });
+    cy.openWidgetPane();
     cy.wait("@getCauseAreas");
-    cy.get("[data-cy=gi-button]").should("be.visible").click();
-    cy.get("[data-cy=widget-pane]").should("be.visible");
   });
 
   it("Shows the cause area selection pane instead of SingleCauseAreaPane", () => {

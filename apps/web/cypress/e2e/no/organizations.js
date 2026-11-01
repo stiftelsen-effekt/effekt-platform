@@ -16,8 +16,7 @@ describe("Organizations Page", () => {
         "x-vercel-skip-toolbar": "1",
       },
     });
-    cy.wait("@getCauseAreas");
-    cy.wait("@getReferrals");
+    cy.waitForHydration();
   });
 
   it("Can open the widget with prefilled distribution", () => {

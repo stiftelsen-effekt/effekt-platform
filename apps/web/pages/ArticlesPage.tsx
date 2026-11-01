@@ -13,19 +13,6 @@ import { GeneralPageProps, getAppStaticProps } from "./_app.page";
 import { token } from "../token";
 import { ConsentState } from "../proxy.page";
 
-const fetchArticlesPageSlug = groq`
-{
-  "page": *[_type == "articles"] {
-    "slug": slug.current,
-  }[0]
-}
-`;
-
-export const getArticlesPagePath = async () => {
-  const { page } = await getClient().fetch<{ page: { slug: string } }>(fetchArticlesPageSlug);
-  return page.slug.split("/");
-};
-
 export const ArticlesPage = withStaticProps(
   async ({
     draftMode = false,

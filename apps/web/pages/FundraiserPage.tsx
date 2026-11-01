@@ -38,21 +38,6 @@ export const getFundraiserPagePaths = async (fundraisersPagePath: string[]) => {
   ]);
 };
 
-const fetchFundraisersSlug = groq`
-{
-  "settings": *[_type == "site_settings"][0] {
-    fundraiser_page_slug
-  }
-}
-`;
-
-export const getFundraisersPath = async () => {
-  const { settings } = await getClient().fetch<{ settings: { fundraiser_page_slug: string } }>(
-    fetchFundraisersSlug,
-  );
-  return stegaClean(settings.fundraiser_page_slug).split("/");
-};
-
 /**
  * The fundraiser's totals and gifts (tRPC site.fundraiser; on the Danish site the REST link maps it
  * to GET /fundraisers/:id with the fundraiser's UUID). Null if the backend answered with an error

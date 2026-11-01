@@ -1,15 +1,14 @@
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
 import React, { ComponentProps, useContext, useEffect, useState } from "react";
 import type { Widget as WidgetType } from "../../../shared/components/Widget/components/Widget";
 import { WidgetContext } from "../layout";
 import styles from "./WidgetPane.module.scss";
+import { loadWidget } from "./loadWidget";
 
-const Widget = dynamic<WidgetPaneProps>(
-  () => import("../../../shared/components/Widget/components/Widget").then((mod) => mod.Widget),
-  {
-    ssr: false,
-  },
-);
+const Widget = dynamic<WidgetPaneProps>(loadWidget, {
+  ssr: false,
+});
 
 export type PrefilledDistribution = {
   causeAreaId: number;
@@ -25,6 +24,18 @@ export interface WidgetPaneProps extends ComponentProps<typeof WidgetType> {
 
 export const WidgetPane: React.FC<WidgetPaneProps> = ({ darkMode, ...widgetProps }) => {
   const [widgetContext] = useContext(WidgetContext);
+  const { query } = useRouter();
+
+  // The widget (its code, and its cause areas and referral types from the API) is only loaded
+  // once the pane is first opened, and then kept for the rest of the visit. The pane is fixed
+  // and hidden while closed, so this doesn't move the page. Links with ?distribution= or
+  // ?recurring= open the pane from inside the widget (useQueryParamsPrefill), so those load it
+  // right away.
+  const opensFromQuery = query.distribution !== undefined || query.recurring !== undefined;
+  const [widgetLoaded, setWidgetLoaded] = useState(false);
+  if (!widgetLoaded && (widgetContext.open || opensFromQuery)) {
+    setWidgetLoaded(true);
+  }
 
   // On initial load, have no animation
   // Then reset on render
@@ -61,9 +72,7 @@ export const WidgetPane: React.FC<WidgetPaneProps> = ({ darkMode, ...widgetProps
       style={style}
     >
       <div className={styles.widgetPaneHeader}></div>
-      <div className={styles.widgetPaneContent}>
-        <Widget {...widgetProps} />
-      </div>
+      <div className={styles.widgetPaneContent}>{widgetLoaded && <Widget {...widgetProps} />}</div>
     </aside>
   );
 };

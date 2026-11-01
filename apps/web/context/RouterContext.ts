@@ -1,6 +1,10 @@
 import { createContext, useContext } from "react";
-import { getArticlesPagePath } from "../pages/ArticlesPage";
-import { getVippsAgreementPagePath } from "../pages/VippsAgreementPage";
+import {
+  getArticlesPagePath,
+  getFundraisersPath,
+  getResultsPagePath,
+  getVippsAgreementPagePath,
+} from "../pages/contentPaths";
 import {
   getAgreementsPagePath,
   getDashboardPagePath,
@@ -9,8 +13,6 @@ import {
   getTaxPagePath,
   getVippsAnonymousPagePath,
 } from "../pages/dashboard/paths";
-import { getResultsPagePath } from "../pages/ResultsPage";
-import { getFundraisersPath } from "../pages/FundraiserPage";
 
 export type RouterContextValue = {
   articlesPagePath: Awaited<ReturnType<typeof getArticlesPagePath>>;

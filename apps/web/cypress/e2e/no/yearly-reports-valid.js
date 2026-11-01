@@ -40,7 +40,7 @@ describe("Tax reports page valid", () => {
     /**
      * Wait for initial data load
      */
-    cy.wait(["@getDonor", "@getCauseAreas", "@getReports", "@getDonations", "@getDistribution"], {
+    cy.wait(["@getDonor", "@getReports", "@getDonations", "@getDistribution"], {
       timeout: 30000,
     });
   });

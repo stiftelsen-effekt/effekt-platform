@@ -1,9 +1,8 @@
-import { groq } from "next-sanity";
 import Link from "next/link";
 import { createContext, useEffect, useRef, useState } from "react";
 import { useWidgetSelector, useWidgetStore } from "../store/store";
-import { getClient } from "../../../../../lib/sanity.client";
 import { withStaticProps } from "../../../../../util/withStaticProps";
+import { getWidgetStaticProps } from "../widgetStaticProps";
 import { fetchCauseAreas, fetchReferralTypes } from "../store/flows";
 import { setWidgetApiLocale, widgetAsksForReferrals } from "../store/widgetApi";
 import {
@@ -12,7 +11,6 @@ import {
   setOperationsPercentageModeByCauseArea,
 } from "../store/actions";
 import { State } from "../store/state";
-import { WidgetProps } from "../types/WidgetProps";
 import { Carousel } from "./Carousel";
 import { SelectionPane } from "./panes/SelectionPane";
 import { AmountPane } from "./panes/AmountPane/index";
@@ -21,7 +19,6 @@ import { DonorPane } from "./panes/DonorPane/DonorPane";
 import { PaymentPane } from "./panes/PaymentPane/PaymentPane";
 import { ProgressBar } from "./shared/ProgressBar/ProgressBar";
 import { ApiErrorNotification } from "./shared/ApiErrorNotification/ApiErrorNotification";
-import { token } from "../../../../../token";
 import {
   useAvailablePaymentMethods,
   useAvailableRecurringOptions,
@@ -35,118 +32,22 @@ import {
   WIDGET_FRAME_WIDTH,
 } from "./hooks";
 import { useElementHeight } from "../../../../../hooks/useElementHeight";
-import { PrefilledDistribution } from "../../../../main/layout/WidgetPane/WidgetPane";
-import { RecurringDonation } from "../types/Enums";
 import { applyWidgetDefaults, DEFAULT_OPERATIONS_CONFIG } from "../utils/widgetDefaults";
 import progressBar from "./shared/ProgressBar/ProgressBar.module.scss";
 
-export const widgetContentQuery = groq`
-  ...,
-  "locale": *[ _type == "site_settings"][0].main_locale,
-  "donate_label": *[ _type == "site_settings"][0].donate_label,
-  "accentColor": *[ _type == "site_settings"][0].accent_color,
-  methods[@->_type in ["bank", "vipps", "avtalegiro", "quickpay_card", "quickpay_mobilepay", "dkbank"]] {
-    _type == 'reference' => @->{
-      _type == 'bank' => {
-        ...,
-        transaction_cost,
-        completed_redirect -> {
-          "slug": slug.current,
-        },
-        "locale": *[ _type == "site_settings"][0].main_locale,
-      },
-      _type == 'vipps' => {
-        _id,
-        selector_text,
-        recurring_title,
-        recurring_selector_earliest_text,
-        recurring_selector_choose_date_text,
-        recurring_selector_date_picker_configuration->,
-        recurring_button_text,
-        single_title,
-        single_button_text,
-        transaction_cost,
-      },
-      _type == 'avtalegiro' => {
-        ...,
-        transaction_cost,
-        date_selector_configuration->
-      },
-      _type == 'quickpay_card' => {
-        ...,
-        transaction_cost,
-      },
-      _type == 'quickpay_mobilepay' => {
-        ...,
-        transaction_cost,
-      },
-      _type == 'dkbank' => {
-        ...,
-        transaction_cost,
-      },
-    },
-  },
-  nudges[]{
-    _key,
-    message,
-    minimum_amount,
-    recurring_type,
-    from_method->{
-      _id,
-      selector_text
-    },
-    to_method->{
-      _id,
-      selector_text
-    },
-  },
-  privacy_policy_link {
-    ...,
-    "slug": page->slug.current,
-    "pagetype": page->_type,
-  },
-`;
-
-export const widgetQuery = groq`
-*[_type == "donationwidget"][0] {
-  ${widgetContentQuery}
-}
-`;
+export { widgetContentQuery, widgetQuery } from "../widgetStaticProps";
 
 export const WidgetTooltipContext = createContext<[{ text: string; link?: string } | null, any]>([
   null,
   () => {},
 ]);
 
-export const Widget = withStaticProps(
-  async ({
-    draftMode,
-    inline,
-    prefilled,
-    defaultPaymentType,
-  }: {
-    draftMode: boolean;
-    inline?: boolean;
-    prefilled?: PrefilledDistribution;
-    defaultPaymentType?: RecurringDonation;
-  }) => {
-    const result = await getClient(draftMode ? token : undefined).fetch<WidgetProps>(widgetQuery);
-
-    if (!result.methods?.length) {
-      throw new Error("No payment methods found");
-    }
-
-    return {
-      data: {
-        result,
-        query: widgetQuery,
-      },
-      inline: inline ?? false,
-      prefilled: prefilled ?? null,
-      defaultPaymentType: defaultPaymentType ?? RecurringDonation.NON_RECURRING,
-    };
-  },
-)(({ data, inline = false, prefilled, defaultPaymentType }) => {
+export const Widget = withStaticProps(getWidgetStaticProps)(({
+  data,
+  inline = false,
+  prefilled,
+  defaultPaymentType,
+}) => {
   const widget = applyWidgetDefaults(data.result);
   const methods = widget.methods;
 

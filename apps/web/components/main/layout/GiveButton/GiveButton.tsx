@@ -1,6 +1,7 @@
 import React, { PropsWithChildren } from "react";
 import styles from "./GiveButton.module.scss";
 import { usePlausible } from "next-plausible";
+import { preloadDonationWidgetProps } from "../WidgetPane/loadWidget";
 
 export const GiveButton: React.FC<
   PropsWithChildren<{ color: string; inverted: boolean; onClick: () => void; title: string }>
@@ -29,6 +30,7 @@ export const GiveButton: React.FC<
       className={`${styles.givebutton} ${inverted ? styles.givebuttoninverted : ""}`}
       title={title}
       onClick={handleClick}
+      {...preloadDonationWidgetProps}
       data-cy="gi-button"
     >
       {children}

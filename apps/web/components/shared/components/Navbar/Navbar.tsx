@@ -5,6 +5,7 @@ import AnimateHeight from "react-animate-height";
 import type { SanityImageObject } from "@sanity/image-url";
 import { WidgetContext } from "../../../main/layout/layout";
 import { EffektButton, EffektButtonVariant } from "../EffektButton/EffektButton";
+import { preloadDonationWidgetProps } from "../../../main/layout/WidgetPane/loadWidget";
 import { ResponsiveImage } from "../../responsiveimage";
 import { useRouterContext } from "../../../../context/RouterContext";
 import { withStaticProps } from "../../../../util/withStaticProps";
@@ -333,6 +334,7 @@ export const Navbar = withStaticProps(
             <EffektButton
               cy="send-donation-button"
               extraMargin={true}
+              {...preloadDonationWidgetProps}
               onClick={() =>
                 setWidgetContext({
                   open: true,
