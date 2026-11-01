@@ -17,7 +17,14 @@ import {
 import { usePageQuery } from "@/lib/query";
 import { useTRPC } from "@/lib/trpc";
 
-const entities = ["estimate", "grant", "charity", "intervention"] as const;
+const entities = [
+  "estimate",
+  "grant",
+  "charity",
+  "intervention",
+  "agf_summary",
+  "givewell_grant",
+] as const;
 
 const changesList = defineList({
   id: "impact-changes",

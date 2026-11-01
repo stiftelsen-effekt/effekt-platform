@@ -622,3 +622,50 @@ What to watch after each step (first hour, then daily):
   `gcloud scheduler jobs run ImpactCompatDiff --location europe-west1`.
 - **Cloud Armor**: the `effekt-api-armor` rules are the same on both backends (600/min per IP,
   path throttles that don't match `/api/*`, SQLi/XSS rules in preview), so coverage doesn't change.
+
+### All Grants Fund grants (reference data, 2026-11-01)
+
+Decision 3 stands: donations to the All Grants Fund still show no estimate on Min Side, receipts,
+the results page and the widget, and nothing below changes them. What's new is that we **store**
+what GiveWell publishes about the fund's grants, so we can decide later how to show it.
+
+- **Why not `Impact_grants`.** Those rows split donors' money: a Top Charities Fund grant applies
+  to the months from its `valid_from`, each allotment needs an output count, and the compatibility
+  REST serves `fund = 'AGF'` rows as `all_grants_fund_grants`. The AGF is forward-funded (GiveWell
+  doesn't tie a donation to a grant), most of its grants have no output count, and the legacy
+  endpoint should keep its one frozen AGF row (its golden tests pin it). So the AGF data has its
+  own two tables, read by nothing donor-facing:
+  - `Impact_fund_portfolio`: the AGF's money per **metrics year** and organisation (and programme
+    for 2022–2024), from GiveWell's yearly metrics report spreadsheets. Each year adds up to the
+    report's AGF total (2025's rows are $1 under its rounded total).
+  - `Impact_givewell_grants`: GiveWell **grants** recommended since August 2022 (when the AGF
+    started), one row per grant write-up, plus grants GiveWell names as AGF grants without one.
+    `funders` is `AGF` only where GiveWell names the fund; otherwise null (grant pages don't say
+    who paid). Amount, months, location, cost-effectiveness multiple and benchmark, outputs, cost
+    per output, deaths averted when published; `grant_type` is guessed from the title.
+- **Sources** (all public): the metrics report sheets (2022–2025), the grant pages listed in
+  givewell.org's sitemap, "Selected grants from the fund" on givewell.org/all-grants-fund, and
+  the AGF rows of the impact estimates sheet. GiveWell's grants database (Airtable, filterable by
+  funder) is the only source that names the funder of every grant; reading it from a script was
+  blocked here, so `scripts/agf-grants.ts fetch --airtable-csv FILE` takes a CSV downloaded by
+  hand instead (see impact-givewell-numbers.md).
+- **Coverage on 2026-11-01**: 73 portfolio rows (2022: 9, 2023: 14, 2024: 18, 2025: 32; $15.5M,
+  $24.4M, $38.4M, $129.6M) and 149 grants (by month recommended 2022: 14, 2023: 31, 2024: 50,
+  2025: 47, 2026: 7). GiveWell names the AGF as funder for 9 of them (1, 3, 5, 0, 0 per year);
+  77 have figures (69 a cost-effectiveness multiple, 23 deaths averted, 3 outputs and cost per
+  output).
+- **Loading**: the importer prints a snapshot (`fetch`), a dry-run `diff` against a database and
+  upsert SQL (`sql`) for a data migration, keyed by slug and by fund + year + row. Rows edited in
+  the admin keep their values; new rows get an `Impact_changes` row by `migration:<name>`
+  (`entity` `agf_summary` / `givewell_grant`). First load: migrations
+  `20261101230000_impact_agf_tables` and `20261101230100_impact_agf_data`.
+- **Admin**: Impact › All Grants Fund grants (filters: year, funder named, figures, kind;
+  search), Impact › AGF by year (filter: year), both read-only (`impact.agf.grants`,
+  `impact.agf.portfolio`). Corrections go through the importer and a data migration.
+- **Later, for donors (not built)**: a portfolio snapshot per year ("in 2025 the fund granted
+  $129.6M to 32 organisations, the largest PATH, IRC and CHAI"), an exhaustive list of the
+  fund's grants (a pull-down or table on the website or Min Side, from `Impact_givewell_grants`
+  where `funders` names the AGF, once the grants database CSV fills it in), and a few highlighted
+  grants with their figures. Each is a product decision; the "Hva støtter du gjennom Smart
+  fordeling?" section of gieffektivt.no/smart-fordeling (four hand-picked grants in Sanity) is the
+  obvious first consumer.

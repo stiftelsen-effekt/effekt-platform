@@ -43,6 +43,8 @@ import { Route as AppDonorsIndexRouteImport } from './routes/_app/donors/index'
 import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
+import { Route as AppImpactAgfRouteImport } from './routes/_app/impact/agf'
+import { Route as AppImpactAgfSummaryRouteImport } from './routes/_app/impact/agf-summary'
 import { Route as AppImpactChangesRouteImport } from './routes/_app/impact/changes'
 import { Route as AppImpactExchangeRatesRouteImport } from './routes/_app/impact/exchange-rates'
 import { Route as AppImpactSettingsRouteImport } from './routes/_app/impact/settings'
@@ -245,6 +247,16 @@ const AppFundraisersIdRoute = AppFundraisersIdRouteImport.update({
   path: '/fundraisers/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppImpactAgfRoute = AppImpactAgfRouteImport.update({
+  id: '/impact/agf',
+  path: '/impact/agf',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImpactAgfSummaryRoute = AppImpactAgfSummaryRouteImport.update({
+  id: '/impact/agf-summary',
+  path: '/impact/agf-summary',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppImpactChangesRoute = AppImpactChangesRouteImport.update({
   id: '/impact/changes',
   path: '/impact/changes',
@@ -442,6 +454,8 @@ export interface FileRoutesByFullPath {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/impact/agf': typeof AppImpactAgfRoute
+  '/impact/agf-summary': typeof AppImpactAgfSummaryRoute
   '/impact/changes': typeof AppImpactChangesRoute
   '/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
   '/impact/settings': typeof AppImpactSettingsRoute
@@ -507,6 +521,8 @@ export interface FileRoutesByTo {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/impact/agf': typeof AppImpactAgfRoute
+  '/impact/agf-summary': typeof AppImpactAgfSummaryRoute
   '/impact/changes': typeof AppImpactChangesRoute
   '/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
   '/impact/settings': typeof AppImpactSettingsRoute
@@ -576,6 +592,8 @@ export interface FileRoutesById {
   '/_app/donations/register': typeof AppDonationsRegisterRoute
   '/_app/donors/$id': typeof AppDonorsIdRoute
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/_app/impact/agf': typeof AppImpactAgfRoute
+  '/_app/impact/agf-summary': typeof AppImpactAgfSummaryRoute
   '/_app/impact/changes': typeof AppImpactChangesRoute
   '/_app/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
   '/_app/impact/settings': typeof AppImpactSettingsRoute
@@ -645,6 +663,8 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/impact/agf'
+    | '/impact/agf-summary'
     | '/impact/changes'
     | '/impact/exchange-rates'
     | '/impact/settings'
@@ -710,6 +730,8 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/impact/agf'
+    | '/impact/agf-summary'
     | '/impact/changes'
     | '/impact/exchange-rates'
     | '/impact/settings'
@@ -778,6 +800,8 @@ export interface FileRouteTypes {
     | '/_app/donations/register'
     | '/_app/donors/$id'
     | '/_app/fundraisers/$id'
+    | '/_app/impact/agf'
+    | '/_app/impact/agf-summary'
     | '/_app/impact/changes'
     | '/_app/impact/exchange-rates'
     | '/_app/impact/settings'
@@ -1064,6 +1088,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFundraisersIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/impact/agf': {
+      id: '/_app/impact/agf'
+      path: '/impact/agf'
+      fullPath: '/impact/agf'
+      preLoaderRoute: typeof AppImpactAgfRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/impact/agf-summary': {
+      id: '/_app/impact/agf-summary'
+      path: '/impact/agf-summary'
+      fullPath: '/impact/agf-summary'
+      preLoaderRoute: typeof AppImpactAgfSummaryRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/impact/changes': {
       id: '/_app/impact/changes'
       path: '/impact/changes'
@@ -1340,6 +1378,8 @@ interface AppRouteChildren {
   AppDonationsRegisterRoute: typeof AppDonationsRegisterRoute
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
+  AppImpactAgfRoute: typeof AppImpactAgfRoute
+  AppImpactAgfSummaryRoute: typeof AppImpactAgfSummaryRoute
   AppImpactChangesRoute: typeof AppImpactChangesRoute
   AppImpactExchangeRatesRoute: typeof AppImpactExchangeRatesRoute
   AppImpactSettingsRoute: typeof AppImpactSettingsRoute
@@ -1385,6 +1425,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonationsRegisterRoute: AppDonationsRegisterRoute,
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
+  AppImpactAgfRoute: AppImpactAgfRoute,
+  AppImpactAgfSummaryRoute: AppImpactAgfSummaryRoute,
   AppImpactChangesRoute: AppImpactChangesRoute,
   AppImpactExchangeRatesRoute: AppImpactExchangeRatesRoute,
   AppImpactSettingsRoute: AppImpactSettingsRoute,
