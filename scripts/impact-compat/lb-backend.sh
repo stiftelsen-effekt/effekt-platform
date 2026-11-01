@@ -59,11 +59,24 @@ else
   run gcloud compute backend-services create "$BACKEND" \
     --project "$PROJECT" --global \
     --load-balancing-scheme EXTERNAL_MANAGED --protocol HTTP --timeout 30s \
-    --enable-logging --logging-sample-rate 1.0 \
-    --security-policy "$POLICY"
+    --enable-logging --logging-sample-rate 1.0
+fi
+# Each step checks the live state, so a run that stopped halfway can simply be repeated
+if [ "$APPLY" = 1 ] && gcloud compute backend-services describe "$BACKEND" --global --project "$PROJECT" \
+  --format='value(backends[].group)' | grep -q "$NEG"; then
+  echo "Backend service $BACKEND already has $NEG"
+else
   run gcloud compute backend-services add-backend "$BACKEND" \
     --project "$PROJECT" --global \
     --network-endpoint-group "$NEG" --network-endpoint-group-region "$REGION"
+fi
+# `create` has no --security-policy flag; it is set with `update`
+if [ "$APPLY" = 1 ] && [ "$(gcloud compute backend-services describe "$BACKEND" --global --project "$PROJECT" \
+  --format='value(securityPolicy.basename())')" = "$POLICY" ]; then
+  echo "Backend service $BACKEND already uses $POLICY"
+else
+  run gcloud compute backend-services update "$BACKEND" \
+    --project "$PROJECT" --global --security-policy "$POLICY"
 fi
 
 if [ "$APPLY" = 1 ]; then
