@@ -132,7 +132,9 @@ export const ProfileLayout = withStaticProps(getProfileLayoutStaticProps)(({
                           prefilledSum={widgetContext.prefilledSum}
                         />
                       )}
-                      <main className={styles.main}>
+                      {/* At least a screen tall, so the footer stays below the fold while the
+                          page's data loads */}
+                      <main className={styles.main} style={{ minHeight: "100vh" }}>
                         <NavbarAuthProvider>{children}</NavbarAuthProvider>
                       </main>
                       {profileData.missing_name_modal_config && (

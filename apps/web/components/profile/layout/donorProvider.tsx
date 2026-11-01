@@ -3,13 +3,12 @@ import React, { useState } from "react";
 import { Donor } from "../../../models";
 import { useDonor } from "../../../_queries";
 import { FullPageError } from "../../shared/layout/FullPageError/FullPageError";
-import { FullPageSpinner } from "../../shared/layout/FullPageSpinner/FullPageSpinner";
 import { DonorContext } from "./donorContext";
 
 export { DonorContext };
 
 export const DonorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
+  const { getAccessTokenSilently, user, isLoading: authLoading } = useAuth0();
   const { loading, error, data } = useDonor(user, getAccessTokenSilently);
   const noData =
     typeof data !== "undefined" && (data === null || (Array.isArray(data) && data.length === 0));
@@ -31,13 +30,17 @@ export const DonorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  if (loading && user) {
-    return <FullPageSpinner />;
-  } else if (error) {
+  // The page renders (and starts its own queries, keyed on the login) while the profile loads;
+  // consumers of the donor check `loading`
+  if (error) {
     return <FullPageError error={error.message} />;
   } else if (user && noData) {
     return <FullPageError title="No data available" />;
   }
 
-  return <DonorContext.Provider value={{ donor, setDonor }}>{children}</DonorContext.Provider>;
+  return (
+    <DonorContext.Provider value={{ donor, setDonor, loading: authLoading || (!!user && loading) }}>
+      {children}
+    </DonorContext.Provider>
+  );
 };

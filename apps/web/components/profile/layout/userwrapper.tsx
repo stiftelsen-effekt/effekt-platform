@@ -45,7 +45,10 @@ export const UserWrapper: React.FC<{
       ></LoginError>
     );
 
-  if (!user && !skipAuthentication) return <FullPageSpinner />; // In the process of redirecting
+  // While Auth0 checks the session (and on the server), render the page: its shell (navigation,
+  // title, placeholders) shows at once, and its queries wait for the user. Blank only while
+  // redirecting to the login.
+  if (!user && !skipAuthentication && !isLoading) return <FullPageSpinner />;
 
   return <>{children}</>;
 };

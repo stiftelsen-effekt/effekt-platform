@@ -31,14 +31,23 @@ export const ProfileInfo: React.FC<{
   // The Danish backend has no route for saving the profile, so it is shown read-only there
   const editable = isProcedureAvailable(useMainLocale(), "minside.updateProfile");
 
-  const { donor: initialDonor, setDonor: setGlobalDonor } = useContext(DonorContext);
+  const {
+    donor: initialDonor,
+    setDonor: setGlobalDonor,
+    loading: donorLoading,
+  } = useContext(DonorContext);
   const [editedDonor, setDonor] = useState<Donor | null>(initialDonor);
   // Fall back to the donor from context until it has loaded and been edited locally
-  const donor = editedDonor ?? initialDonor;
+  const loadedDonor = editedDonor ?? initialDonor;
 
-  if (!donor || !user) return <ErrorMessage />;
+  // While the login is checked and the profile loads, the same form is shown empty and disabled,
+  // so nothing moves when the donor arrives
+  const placeholder = donorLoading && !loadedDonor;
+  if (!placeholder && (!loadedDonor || !user)) return <ErrorMessage />;
+  const donor: Donor = loadedDonor ?? placeholderDonor;
 
   const save = async () => {
+    if (!user) return;
     const result = await saveDonor(donor, user, trpc);
     if (result === null) {
       failureToast(config.failure_message);
@@ -53,14 +62,20 @@ export const ProfileInfo: React.FC<{
       <h3 className={style.header}>
         {titleTemplate.replace("{{name}}", donor.name ? " " + donor.name.split(" ")[0] : "")}
       </h3>
-      <section className={style.personalInfo}>
+      <section
+        className={style.personalInfo}
+        aria-busy={placeholder || undefined}
+        data-skeleton={placeholder || undefined}
+      >
         <div className={style.inputContainer}>
           {config.name_label}
           <input
-            id="name"
+            // Mounted again with the loaded name (it is uncontrolled)
+            key={placeholder ? "placeholder" : "donor"}
+            id={placeholder ? undefined : "name"}
             type="text"
             defaultValue={donor.name ?? undefined}
-            disabled={!editable}
+            disabled={!editable || placeholder}
             className={style.input}
             onChange={(e) => {
               setDonor({ ...donor, name: e.target.value });
@@ -69,22 +84,34 @@ export const ProfileInfo: React.FC<{
         </div>
         <div className={style.inputContainer}>
           {config.email_label}
-          <input id="email" type="email" disabled value={donor.email} className={style.input} />
+          <input
+            id={placeholder ? undefined : "email"}
+            type="email"
+            disabled
+            value={donor.email}
+            className={style.input}
+          />
         </div>
         {editable && (
           <>
             <div className={style.inputContainer}>
               <EffektCheckbox
-                dataCy="checkbox-newsletter"
+                dataCy={placeholder ? undefined : "checkbox-newsletter"}
                 checked={donor.newsletter}
                 onChange={() => {
+                  if (placeholder) return;
                   setDonor({ ...donor, newsletter: !donor.newsletter });
                 }}
               >
                 {config.newsletter_label}
               </EffektCheckbox>
             </div>
-            <EffektButton role={"submit"} onClick={save} cy="btn-save">
+            <EffektButton
+              role={"submit"}
+              onClick={save}
+              cy={placeholder ? undefined : "btn-save"}
+              disabled={placeholder}
+            >
               {config.save_button_label}
             </EffektButton>
           </>
@@ -92,6 +119,14 @@ export const ProfileInfo: React.FC<{
       </section>
     </>
   );
+};
+
+const placeholderDonor: Donor = {
+  id: 0,
+  name: null,
+  email: "",
+  newsletter: false,
+  registered: "",
 };
 
 const successToast = (msg: string) =>

@@ -5,4 +5,6 @@ import { Donor } from "../../../models";
 export const DonorContext = createContext<{
   donor: Donor | null;
   setDonor: React.Dispatch<React.SetStateAction<Donor | null>>;
-}>({ donor: null, setDonor: () => {} });
+  /** True while the login is being checked or the profile is loading (donor is null until then) */
+  loading: boolean;
+}>({ donor: null, setDonor: () => {}, loading: false });
