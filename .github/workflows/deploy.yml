@@ -16,7 +16,7 @@ name: Deploy
 # DEPLOY_OBSERVER_WIF_PROVIDER and DEPLOY_OBSERVER_SA exist, `api · await BackendDeploy build`
 # follows the whole build through its GitHub check and the step nodes say so. Nothing here can
 # change production: no deploy credentials, read-only tokens.
-run-name: "Deploy · ${{ github.event.head_commit.message }}"
+# No run-name: GitHub names the run after the commit's first line ("Deploy" is shown next to it).
 on:
   push:
     branches: [main]
