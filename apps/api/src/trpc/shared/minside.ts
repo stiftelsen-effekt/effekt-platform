@@ -91,8 +91,9 @@ export const donationImpactEntry = z.object({
   recipient: z.string(),
   unit: z.string().nullable(),
   organization: z.string().nullable(),
-  /** Only our backend sends it */
+  /** Only our backend sends these two; `description` only with a count */
   organizationId: z.number().int().optional(),
+  description: z.string().optional(),
   amount: z.number(),
   count: z.number().nullable(),
 });

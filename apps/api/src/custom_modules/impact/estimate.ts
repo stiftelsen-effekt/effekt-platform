@@ -114,13 +114,15 @@ export function estimateDonation(
  * organization's name as Min Side lists it, `unit` the output, `count` the number of outputs
  * (null: no estimate) and `amount` the part of the donation. `organizationId` (only our backend
  * sends it) is the organization's ID, so Min Side can tell money given through a fund from money
- * given directly without matching names.
+ * given directly without matching names; `description` (only ours, only with a count) is the
+ * output's long description ("Myggnett impregnert med insektmiddel levert til husholdninger").
  */
 export type DonationImpactEntry = {
   recipient: string;
   unit: string | null;
   organization: string | null;
   organizationId: number;
+  description?: string;
   amount: number;
   count: number | null;
 };
@@ -147,6 +149,7 @@ export function toImpactEntries(
         unit: line.unit,
         organization: data.organizationNames.get(line.organizationId) ?? null,
         organizationId: line.organizationId,
+        description: line.longDescription,
         amount: line.amount,
         count: line.outputs,
       });
