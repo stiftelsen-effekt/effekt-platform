@@ -8,6 +8,7 @@ import { DonorProvider } from "./donorProvider";
 import { ActivityProvider } from "./activityProvider";
 import { NavbarAuthProvider } from "./NavbarAuthProvider";
 import { TrpcClientProvider } from "./TrpcClientProvider";
+import { ConnectionHints } from "./ConnectionHints";
 import { ToastContainer } from "react-toastify";
 import { SWRConfig } from "swr";
 import {
@@ -98,6 +99,7 @@ export const ProfileLayout = withStaticProps(getProfileLayoutStaticProps)(({
       onRedirectCallback={onRedirectCallback}
       cacheLocation={cacheLocation}
     >
+      <ConnectionHints />
       <div className={styles.container + " " + styles.dark}>
         <SWRConfig value={{ revalidateOnFocus: false, shouldRetryOnError: false }}>
           <MainLocaleContext.Provider
