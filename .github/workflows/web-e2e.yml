@@ -1,5 +1,5 @@
 name: web-e2e
-# Cypress tests for apps/web, called by web-ci.yml.
+# Cypress tests for apps/web against a Vercel deployment, called by web-ci.yml.
 on:
   workflow_call:
     inputs:
@@ -12,6 +12,16 @@ on:
       base-url:
         required: true
         type: string
+      # Cypress Cloud spreads the specs over this many parallel machines
+      containers:
+        required: false
+        type: string
+        default: "[1, 2, 3, 4, 5, 6]"
+      # Shown in the job names, e.g. "NO" gives "NO · e2e 1/6"
+      label:
+        required: false
+        type: string
+        default: e2e
     secrets:
       CYPRESS_AUTH_DOMAIN:
         required: true
@@ -27,7 +37,9 @@ defaults:
     working-directory: apps/web
 jobs:
   e2e:
+    name: ${{ inputs.label }} ${{ matrix.containers }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     strategy:
@@ -37,7 +49,7 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        containers: [1, 2, 3, 4, 5, 6]
+        containers: ${{ fromJSON(inputs.containers) }}
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

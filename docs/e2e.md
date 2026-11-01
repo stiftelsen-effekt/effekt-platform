@@ -2,10 +2,10 @@
 
 The website (`apps/web`) has two Cypress suites:
 
-| Suite      | Config                                         | Runs against                                             | Data                                                  | Login                          |
-| ---------- | ---------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------- | ------------------------------ |
-| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts` | Vercel deployments (`web-ci.yml` → `web-e2e.yml`)        | `cy.intercept` fixtures in `cypress/fixtures/`        | real Auth0 test user (secrets) |
-| Full stack | `cypress-fullstack.config.ts`                  | local web → API → MySQL (`web-e2e-fullstack.yml` on PRs) | the real API and DB, seeded by `apps/api/prisma/e2e/` | local OIDC issuer, no secrets  |
+| Suite      | Config                                                                         | Runs against                                             | Data                                                  | Login                          |
+| ---------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- | ----------------------------------------------------- | ------------------------------ |
+| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts`, `cypress-se.config.ts` (smoke) | Vercel deployments (`web-ci.yml` → `web-e2e.yml`)        | `cy.intercept` fixtures in `cypress/fixtures/`        | real Auth0 test user (secrets) |
+| Full stack | `cypress-fullstack.config.ts`                                                  | local web → API → MySQL (`web-e2e-fullstack.yml` on PRs) | the real API and DB, seeded by `apps/api/prisma/e2e/` | local OIDC issuer, no secrets  |
 
 ## Running the full-stack suite
 
