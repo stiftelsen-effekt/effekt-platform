@@ -5,6 +5,7 @@
  *   Money in     – every krone that arrives: donations, the KIDs they use, imports, review
  *   Agreements   – recurring giving, one model across Vipps / AvtaleGiro
  *   Regranting   – money out: balances, rounds, projects, adjustments, payees & funds
+ *   Impact       – GiveWell cost estimates and fund grants behind the impact donors see
  *   Analysis     – how much has been given through time, with open pledges (tilsagn)
  *   Records      – reports and the import log
  *   Settings     – cause areas, organizations, referral types, matching rules
@@ -12,6 +13,10 @@
  */
 import {
   ArrowDownToLineIcon,
+  ArrowLeftRightIcon,
+  HeartPulseIcon,
+  ShapesIcon,
+  ChartPieIcon,
   BookOpenIcon,
   CoinsIcon,
   FolderKanbanIcon,
@@ -230,6 +235,35 @@ const allNavGroups: NavGroup[] = [
         label: "Payees & funds",
         icon: LandmarkIcon,
         keywords: ["payee", "routing", "own fund", "hold", "mottaker"],
+      },
+    ],
+  },
+  {
+    label: "Impact",
+    items: [
+      {
+        to: "/impact/estimates",
+        label: "Cost estimates",
+        icon: HeartPulseIcon,
+        keywords: ["impact", "givewell", "evaluation", "cost per output", "effekt", "estimate"],
+      },
+      {
+        to: "/impact/grants",
+        label: "Fund grants",
+        icon: ChartPieIcon,
+        keywords: ["impact", "top charities fund", "tcf", "all grants fund", "agf", "allotment"],
+      },
+      {
+        to: "/impact/settings",
+        label: "Charities & interventions",
+        icon: ShapesIcon,
+        keywords: ["impact", "charity", "intervention", "output", "abbreviation", "translation"],
+      },
+      {
+        to: "/impact/exchange-rates",
+        label: "Exchange rates",
+        icon: ArrowLeftRightIcon,
+        keywords: ["impact", "ecb", "currency", "valuta", "usd", "nok"],
       },
     ],
   },

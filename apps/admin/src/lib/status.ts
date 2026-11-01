@@ -264,3 +264,19 @@ export const pledgeStatus = define({
   },
 });
 export type PledgeStatus = keyof typeof pledgeStatus;
+
+/** Impact estimates and fund grants (impact.*): which one a month's donations use. */
+export const impactCoverage = define({
+  current: {
+    label: "In effect",
+    tone: "success",
+    description: "Donations this month use it, and will until a newer one is added",
+  },
+  superseded: {
+    label: "Superseded",
+    tone: "neutral",
+    description: "A newer one applies from a later month; donations in its months still use it",
+  },
+  upcoming: { label: "Upcoming", tone: "accent", description: "Starts in a later month" },
+});
+export type ImpactCoverage = keyof typeof impactCoverage;

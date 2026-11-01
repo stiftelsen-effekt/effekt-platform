@@ -61,4 +61,17 @@ export const recordPanels: PanelRoute[] = [
     path: "/regranting/recipients/$organizationId",
     label: ([id]) => `Recipient statement #${id}`,
   },
+
+  {
+    kind: "impact-charity",
+    routeId: "/_app/impact/estimates/$charityId",
+    path: "/impact/estimates/$charityId",
+    label: ([id]) => `Charity #${id} estimates`,
+  },
+  {
+    kind: "impact-grant",
+    routeId: "/_app/impact/grants/$id",
+    path: "/impact/grants/$id",
+    label: ([id]) => `Fund grant #${id}`,
+  },
 ];

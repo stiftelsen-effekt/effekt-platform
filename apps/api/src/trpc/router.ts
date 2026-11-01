@@ -5,6 +5,7 @@ import { donationsRouter } from "./routers/donations";
 import { donorsRouter } from "./routers/donors";
 import { giroRouter } from "./routers/giro";
 import { homeRouter } from "./routers/home";
+import { impactRouter } from "./routers/impact";
 import { inflationRouter } from "./routers/inflation";
 import { intentsRouter } from "./routers/intents";
 import { metaRouter } from "./routers/meta";
@@ -30,6 +31,7 @@ export const appRouter = router({
   analysis: analysisRouter,
   intents: intentsRouter,
   home: homeRouter,
+  impact: impactRouter,
   // Donor-facing (Min Side on the website); everything above is admin-only
   minside: minsideRouter,
   // The public donation widget on the website (no login)
