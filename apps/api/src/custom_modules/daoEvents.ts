@@ -16,8 +16,11 @@ let publisher: Redis | null = null;
 let subscriber: Redis | null = null;
 
 if (redisUrl) {
-  publisher = new Redis(redisUrl);
-  subscriber = new Redis(redisUrl);
+  // ioredis 6 speaks RESP3 by default. Pub/sub works on both, but production is Upstash, so
+  // keep the RESP2 wire protocol that ioredis 5 used until RESP3 has been tried against it.
+  const options = { protocol: 2 } as const;
+  publisher = new Redis(redisUrl, options);
+  subscriber = new Redis(redisUrl, options);
 
   subscriber.subscribe("dao-events");
   subscriber.on("message", (channel, message) => {
