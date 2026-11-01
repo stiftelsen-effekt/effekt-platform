@@ -186,7 +186,11 @@ routes, so the REST link leaves them unmapped and they fail without a request on
 - Every `widget.*` mutation also has a stricter per-IP limit (`publicMutationLimiter`,
   `apps/api/src/middleware/publicMutationRateLimit.ts`).
 - Stays REST for good: anything a payment provider, bank or email calls or links to
-  (`/avtalegiro/:kid/redirect`, `/vipps/*` callbacks, `/donations/status`).
+  (`/avtalegiro/:kid/redirect`, `/vipps/*` callbacks, `/donations/status`), and the legacy impact
+  API's endpoints for third parties (`impact.gieffektivt.no/api/evaluations`,
+  `/api/max_impact_fund_grants`, `/api/all_grants_fund_grants`; also
+  `data.gieffektivt.no/impact/api/*`), which keep the old JSON byte for byte
+  (`apps/api/src/routes/impactCompat.ts`, [impact-api-migration.md](impact-api-migration.md) phase 5).
 
 ## Public site reads
 
