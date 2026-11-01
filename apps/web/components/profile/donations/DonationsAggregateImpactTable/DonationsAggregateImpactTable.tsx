@@ -35,7 +35,9 @@ export const DonationsAggregateImpactTable: React.FC<{
   );
   const [loadedClass, setLoadedClass] = useState<string>("");
   const [lastimpactCount, setLastimpactCount] = useState<number>(0);
-  const [currentHeight, setCurrentHeight] = useState<number | "auto">(0);
+  // Starts at its full height: the impact comes with the donations, so the table has nothing to
+  // load, and growing it from 0 pushed the content below it down after the page appeared
+  const [currentHeight, setCurrentHeight] = useState<number | "auto">("auto");
   const [currentTimeoutId, setCurrentTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 

@@ -1,0 +1,31 @@
+.skeleton {
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+  /* The text colour, faint: light on Min Side's dark pages */
+  background: var(--primary);
+  opacity: 0.08;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.08;
+  }
+  50% {
+    opacity: 0.16;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

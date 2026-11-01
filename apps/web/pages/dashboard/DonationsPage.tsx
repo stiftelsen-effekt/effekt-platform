@@ -19,7 +19,7 @@ import {
 import Head from "next/head";
 import { MainHeader } from "../../components/shared/layout/Header/Header";
 import { PageContent } from "../../components/profile/layout/PageContent/PageContent";
-import { Spinner } from "../../components/shared/components/Spinner/Spinner";
+import { SkeletonStack } from "../../components/profile/shared/Skeleton/Skeleton";
 import { AggregatedDonations, Distribution, Donation, Donor } from "../../models";
 import {
   DonationList,
@@ -246,22 +246,27 @@ export const DonationsPage = withStaticProps(
           <link rel="icon" href="/favicon.ico" />
         </Head>
 
+        {/* The same header and year menus as the loaded page (the years fill in), and fixed-size
+            placeholders for the chart, the totals and the lists */}
         <MainHeader hideOnScroll={false}>
           <Navbar {...navbarData} />
+          <DonationYearMenu
+            totalTitle={page.year_menu_total_title}
+            years={[]}
+            selected={filterYear || "total"}
+            mobile
+          />
         </MainHeader>
 
         <PageContent>
           <h3 className={style.header}>{page.title}</h3>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              paddingTop: "10vh",
-              paddingBottom: "40vh",
-            }}
-          >
-            <Spinner />
+          <DonationYearMenu
+            totalTitle={page.year_menu_total_title}
+            years={[]}
+            selected={filterYear || "total"}
+          />
+          <div className={style.placeholder}>
+            <SkeletonStack heights={[80, 260, 300]} />
           </div>
         </PageContent>
       </>

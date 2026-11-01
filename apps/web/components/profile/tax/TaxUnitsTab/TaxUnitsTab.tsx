@@ -2,7 +2,7 @@ import { useAuth0, User } from "@auth0/auth0-react";
 import { useState } from "react";
 import { useTaxUnits } from "../../../../_queries";
 import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
-import { Spinner } from "../../../shared/components/Spinner/Spinner";
+import { SkeletonStack } from "../../shared/Skeleton/Skeleton";
 import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
 import { TaxUnitList } from "../../shared/lists/taxUnitList/TaxUnitList";
 import { TaxUnitMobileList } from "../../shared/lists/taxUnitList/TaxUnitMobileList";
@@ -85,9 +85,7 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
           </div>
         )
       ) : (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <Spinner />
-        </div>
+        <SkeletonStack heights={[180, 180]} />
       )}
 
       {createModalOpen && (
