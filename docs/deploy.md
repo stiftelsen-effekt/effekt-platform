@@ -63,7 +63,7 @@ from `gcr.io/hidden-display-243419/effektapi`, kept there for rollbacks. The mig
 leaves the job pointing at that image) and both Cloud Run services use that tag, never
 `:latest`: an older build running in parallel can push `:latest` after this one, and deploying
 by the shared tag would then ship the older image. `:latest` is still moved to the image after
-`guard-before-release` (`gcloud artifacts docker tags add`), as a convenience for pulling the
+`guard-before-release` (`docker buildx imagetools create`, which needs only the writer role; the step may fail without blocking the deploy), as a convenience for pulling the
 current image by hand; nothing deploys from it. After that guard both countries migrate and
 deploy at the same time, each migrating before it deploys: they are separate databases and
 services.
