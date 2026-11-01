@@ -66,4 +66,4 @@ Run in `apps/web` (or `pnpm web:test`, `pnpm web:lint`, `pnpm web:typecheck` fro
 - `pnpm typecheck`.
 - Cypress end-to-end suites: see [e2e.md](e2e.md).
 
-`web-checks.yml` runs lint, typecheck and unit tests on PRs. Merges to `main` deploy through Vercel.
+`ci.yml` runs lint, typecheck, unit tests and the e2e suites on PRs ([ci.md](ci.md)). Merges to `main` deploy through Vercel.

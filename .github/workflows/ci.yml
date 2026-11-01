@@ -1,14 +1,35 @@
 name: CI
-# The pull request checks for the whole platform, one run per push (docs/ci.md). `changes` decides
-# which lanes a pull request touches; a lane without changes ends right away as "<app> · no change"
-# instead of being skipped, and "CI (required)" sums up every lane.
-run-name: "CI · ${{ github.event.pull_request.title }}"
+# Every check of the platform in one graph, one run per push (docs/ci.md):
+#
+#   changes ─┬─ api · QA (Cloud Build) ┬─ admin · … ┬─ functions · … ┬─ web · … ┬─ studio · …
+#            ├─ web · full-stack e2e
+#            ├─ web · NO · await Vercel preview ── web · NO · e2e 1/6 … 6/6
+#            ├─ web · DK · await Vercel preview ── web · DK · e2e 1/6 … 6/6
+#            └─ web · SE · await Vercel preview ── web · SE · smoke
+#                                                                    └── CI (required)
+#
+# `changes` (scripts/ci/changes.sh) decides which lanes a change touches. A lane without changes
+# still finishes, as "<app> · no change", so nothing shows as skipped. The Vercel lanes wait for
+# Vercel's own deployment of the commit (scripts/ci/await-vercel.sh); Vercel's Ignored Build Step
+# ends them as "no web change". "CI (required)" passes only when every lane passed, and writes the
+# summary table. Semgrep and zizmor stay separate workflows (their check names are required).
+#
+# On main (push) the same checks run to keep the caches that pull requests restore (pnpm store,
+# Cypress binary, Next.js and tsc build caches) and to show main's state; the website's production
+# deployments are tested by deploy.yml.
+run-name: >-
+  ${{ github.event_name == 'pull_request' && format('CI · {0}', github.event.pull_request.title)
+  || format('CI · main · {0}', github.event.head_commit.message) }}
 on:
   pull_request:
+  push:
+    branches: [main]
 permissions: {}
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 jobs:
   changes:
     name: changes
@@ -18,8 +39,14 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
+      api: ${{ steps.match.outputs.api }}
       admin: ${{ steps.match.outputs.admin }}
       functions: ${{ steps.match.outputs.functions }}
+      web: ${{ steps.match.outputs.web }}
+      studio: ${{ steps.match.outputs.studio }}
+      fullstack: ${{ steps.match.outputs.fullstack }}
+      # Why the Vercel e2e lanes can't run here (empty: they can)
+      e2e-skip: ${{ steps.secrets.outputs.skip }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,8 +60,65 @@ jobs:
           REPO: ${{ github.repository }}
           EVENT: ${{ github.event_name }}
           PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
         run: bash scripts/ci/changes.sh
+      # Dependabot and fork pull requests get no Actions secrets, so the Cypress Cloud runs can't
+      # record and the Min Side test user can't log in. The full-stack e2e needs no secrets.
+      - name: Check for the Cypress secrets
+        id: secrets
+        env:
+          HAS_SECRETS: ${{ secrets.CYPRESS_RECORD_KEY != '' }}
+          EVENT: ${{ github.event_name }}
+          ACTOR: ${{ github.event.pull_request.user.login }}
+          FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          skip=""
+          if [ "$EVENT" != pull_request ]; then
+            skip="production is tested by Deploy"
+          elif [ "$ACTOR" = "dependabot[bot]" ]; then
+            skip="no secrets on Dependabot PRs; full-stack e2e covers it"
+          elif [ "$FORK" = true ]; then
+            skip="no secrets on fork PRs; full-stack e2e covers it"
+          elif [ "$HAS_SECRETS" != true ]; then
+            skip="no Cypress secrets; full-stack e2e covers it"
+          fi
+          echo "skip=$skip" | tee -a "$GITHUB_OUTPUT"
 
+  # ── API ─────────────────────────────────────────────────────────────────────────────────────
+  # The API's typecheck and tests, and Prettier and Oxlint on the whole repository, run in Cloud
+  # Build (cloud.qa.yaml) on 32 vCPUs. This lane mirrors that check, so the graph shows it.
+  api-qa:
+    name: api · QA (Cloud Build)
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      checks: read
+    outputs:
+      url: ${{ steps.qa.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for QualityAssurance
+        id: qa
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CHECK: QualityAssurance (hidden-display-243419)
+          # QA reports on pull requests only
+          APPEAR_MINUTES: ${{ github.event_name == 'pull_request' && '10' || '0' }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "QualityAssurance runs on pull requests only." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          bash scripts/ci/await-check.sh
+
+  # ── Admin ───────────────────────────────────────────────────────────────────────────────────
   admin:
     name: ${{ needs.changes.outputs.admin == 'true' && 'admin · typecheck + test + build' || 'admin · no change' }}
     needs: changes
@@ -80,6 +164,7 @@ jobs:
         if: env.RUN == 'true'
         run: pnpm --dir apps/admin build
 
+  # ── Functions ───────────────────────────────────────────────────────────────────────────────
   functions:
     name: ${{ needs.changes.outputs.functions == 'true' && 'functions · test' || 'functions · no change' }}
     needs: changes
@@ -118,25 +203,461 @@ jobs:
           pnpm --filter "./functions/*" --if-present typecheck
           pnpm --filter "./functions/*" --if-present test
 
+  # ── Website ─────────────────────────────────────────────────────────────────────────────────
+  web-checks:
+    name: ${{ needs.changes.outputs.web == 'true' && 'web · lint + typecheck + test' || 'web · no change' }}
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      RUN: ${{ needs.changes.outputs.web }}
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: No website change
+        if: env.RUN != 'true'
+        working-directory: .
+        run: echo "No change to the website or the tRPC contract it compiles in; nothing to check." | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        if: env.RUN == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node
+        if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      # Same as the Vercel projects' install command: the web build compiles the tRPC types with
+      # the API package's dependencies (docs/web-trpc.md). Keep the two in sync.
+      - name: Install dependencies
+        if: env.RUN == 'true'
+        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
+        env:
+          # The Cypress lanes need the binary; this job doesn't.
+          CYPRESS_INSTALL_BINARY: "0"
+      # tsc's incremental build info, for both the API's tRPC declarations (apps/api/dist-types,
+      # docs/web-trpc.md) and the web typecheck. tsc compares file contents, so build info from an
+      # older commit only means less is skipped, never a stale result.
+      - name: Restore the TypeScript build info
+        if: env.RUN == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            apps/api/dist-types
+            apps/web/node_modules/.cache/tsc
+          key: web-tsc-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            web-tsc-${{ hashFiles('pnpm-lock.yaml') }}-
+            web-tsc-
+      - name: Build the tRPC types
+        if: env.RUN == 'true'
+        run: pnpm types:api
+      # Typecheck (`pnpm typecheck` minus the type build above, incremental), lint and test are
+      # independent of each other: run them at once and print each one's output in its own group.
+      - name: Typecheck, lint and test
+        if: env.RUN == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/checks"
+          pnpm exec tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/web.tsbuildinfo \
+            >"$RUNNER_TEMP/checks/typecheck.log" 2>&1 & tsc=$!
+          pnpm lint >"$RUNNER_TEMP/checks/lint.log" 2>&1 & lint=$!
+          pnpm test >"$RUNNER_TEMP/checks/test.log" 2>&1 & tests=$!
+          failed=""
+          for check in typecheck:$tsc lint:$lint test:$tests; do
+            name=${check%%:*}
+            if wait "${check##*:}"; then status=passed; else status=FAILED; failed="$failed $name"; fi
+            echo "::group::$name ($status)"
+            cat "$RUNNER_TEMP/checks/$name.log"
+            echo "::endgroup::"
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::Failed:$failed"
+            exit 1
+          fi
+
+  studio:
+    name: ${{ needs.changes.outputs.studio == 'true' && 'studio · typecheck + test + build' || 'studio · no change' }}
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      RUN: ${{ needs.changes.outputs.studio }}
+    defaults:
+      run:
+        working-directory: apps/web/studio
+    steps:
+      - name: No Studio change
+        if: env.RUN != 'true'
+        working-directory: .
+        run: echo "No change to the Sanity Studio; nothing to check." | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        if: env.RUN == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node
+        if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        if: env.RUN == 'true'
+        run: pnpm install --frozen-lockfile --filter effekt-studio
+      - name: Typecheck and test
+        if: env.RUN == 'true'
+        run: pnpm typecheck && pnpm test
+      # The same build the website's Vercel builds run (apps/web/build-studio.mjs), into a
+      # scratch directory, against the public production dataset.
+      - name: Build
+        if: env.RUN == 'true'
+        env:
+          SANITY_STUDIO_API_PROJECT_ID: vf0df6h3
+          SANITY_STUDIO_API_DATASET: production
+        run: pnpm run build "$RUNNER_TEMP/studio" -y
+
+  # Full-stack Cypress: the website built against a local API, MySQL with seed data and a local
+  # OIDC issuer (compose.dev.yml + compose.e2e.yml, docs/e2e.md). Needs no secrets.
+  fullstack:
+    name: ${{ needs.changes.outputs.fullstack == 'true' && 'web · full-stack e2e' || 'web · full-stack e2e · no change' }}
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      RUN: ${{ needs.changes.outputs.fullstack }}
+    steps:
+      - name: No change for the full-stack e2e
+        if: env.RUN != 'true'
+        run: echo "No change to the website, the API or the e2e stack; nothing to test." | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The stack's images (MySQL, the mock OIDC issuer, nginx, Node) download, and the services
+      # that need nothing from the install (db, auth, oidc) start, while the next steps set up
+      # Node and install. The e2e step waits for this to finish before its own `compose up`.
+      - name: Start the database and OIDC issuer in the background
+        if: env.RUN == 'true'
+        run: |
+          (
+            compose() { docker compose -f compose.dev.yml -f compose.e2e.yml -f compose.e2e-ci.yml "$@"; }
+            compose pull --quiet && compose up -d db auth oidc
+            echo "$?" >"$RUNNER_TEMP/e2e-early-stack.done"
+          ) >"$RUNNER_TEMP/e2e-early-stack.log" 2>&1 &
+      - name: Setup pnpm
+        if: env.RUN == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node
+        if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Restore the Cypress binary
+        if: env.RUN == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: cypress-${{ runner.os }}-
+      # Next.js's build cache: an older one only means less is reused.
+      - name: Restore the Next.js build cache
+        if: env.RUN == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/web/.next/cache
+          key: web-next-e2e-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            web-next-e2e-${{ hashFiles('pnpm-lock.yaml') }}-
+            web-next-e2e-
+      # The website (and Cypress), plus the API package: for the tRPC type build, for mysql2,
+      # which the Cypress resetE2EData task uses to rewrite the seed data
+      # (apps/api/prisma/e2e/seed.mjs), and as the backend's install, mounted into the stack's
+      # migrate, seed-e2e and api containers (compose.e2e-ci.yml).
+      - name: Install dependencies
+        if: env.RUN == 'true'
+        run: |
+          pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
+          pnpm --filter main-site exec cypress cache prune
+      # Brings the stack up, builds and serves the web app, runs Cypress and tears down.
+      - name: Run full-stack e2e
+        if: env.RUN == 'true'
+        run: pnpm e2e:fullstack
+        env:
+          E2E_BACKEND_FROM_HOST: "1"
+          E2E_WAIT_FOR: ${{ runner.temp }}/e2e-early-stack.done
+      - name: Upload screenshots and logs
+        if: failure() && env.RUN == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-e2e-fullstack-${{ github.run_id }}
+          path: |
+            apps/web/cypress/screenshots
+            apps/web/cypress/videos
+            apps/web/cypress/logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ── Website on Vercel, per country ──────────────────────────────────────────────────────────
+  # Each lane waits for Vercel's preview of this commit, then runs that site's Cypress suite
+  # against it (.github/actions/cypress-deployment). `skip` says why there is nothing to test.
+  vercel-no:
+    name: web · NO · await Vercel preview
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      statuses: read
+      deployments: read
+    outputs:
+      url: ${{ steps.vercel.outputs.url }}
+      skip: ${{ steps.vercel.outputs.skip }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for Vercel (main-site)
+        id: vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PROJECT: main-site
+          TARGET: Preview
+          SKIP: ${{ needs.changes.outputs.e2e-skip }}
+        run: bash scripts/ci/vercel-lane.sh
+
+  e2e-no:
+    name: >-
+      ${{ needs.vercel-no.outputs.skip == ''
+      && format('web · NO · e2e {0}/{1}', matrix.shard, strategy.job-total)
+      || format('web · NO · e2e · {0}', needs.vercel-no.outputs.skip) }}
+    needs: vercel-no
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      # Cancelling a shard kills its Cypress process and leaves the Cypress Cloud run hanging
+      # (https://github.com/cypress-io/github-action/issues/48)
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.vercel-no.outputs.skip == '' && '[1, 2, 3, 4, 5, 6]' || '[0]') }}
+    env:
+      SKIP: ${{ needs.vercel-no.outputs.skip }}
+    steps:
+      - name: Nothing to test
+        if: env.SKIP != ''
+        run: echo "web · NO · e2e - $SKIP" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.SKIP == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Cypress (NO)
+        if: env.SKIP == ''
+        uses: ./.github/actions/cypress-deployment # zizmor: ignore[self-repository] -- actionlint does not read `$/` for actions yet
+        with:
+          config-file: cypress-no.config.ts
+          base-url: ${{ needs.vercel-no.outputs.url }}
+          group: GiEffektivt e2e tests
+          ci-build-id: ${{ github.run_id }}-${{ github.run_attempt }}-no
+          record-key: ${{ secrets.CYPRESS_RECORD_KEY }}
+          auth-domain: ${{ secrets.CYPRESS_AUTH_DOMAIN }}
+          auth-username: ${{ secrets.CYPRESS_AUTH_USERNAME }}
+          auth-password: ${{ secrets.CYPRESS_AUTH_PASSWORD }}
+
+  vercel-dk:
+    name: web · DK · await Vercel preview
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      statuses: read
+      deployments: read
+    outputs:
+      url: ${{ steps.vercel.outputs.url }}
+      skip: ${{ steps.vercel.outputs.skip }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for Vercel (giv-effektivt)
+        id: vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PROJECT: giv-effektivt
+          TARGET: Preview
+          SKIP: ${{ needs.changes.outputs.e2e-skip }}
+        run: bash scripts/ci/vercel-lane.sh
+
+  e2e-dk:
+    name: >-
+      ${{ needs.vercel-dk.outputs.skip == ''
+      && format('web · DK · e2e {0}/{1}', matrix.shard, strategy.job-total)
+      || format('web · DK · e2e · {0}', needs.vercel-dk.outputs.skip) }}
+    needs: vercel-dk
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.vercel-dk.outputs.skip == '' && '[1, 2, 3, 4, 5, 6]' || '[0]') }}
+    env:
+      SKIP: ${{ needs.vercel-dk.outputs.skip }}
+    steps:
+      - name: Nothing to test
+        if: env.SKIP != ''
+        run: echo "web · DK · e2e - $SKIP" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.SKIP == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Cypress (DK)
+        if: env.SKIP == ''
+        uses: ./.github/actions/cypress-deployment # zizmor: ignore[self-repository] -- actionlint does not read `$/` for actions yet
+        with:
+          config-file: cypress-dk.config.ts
+          base-url: ${{ needs.vercel-dk.outputs.url }}
+          group: GivEffektivt e2e tests
+          ci-build-id: ${{ github.run_id }}-${{ github.run_attempt }}-dk
+          record-key: ${{ secrets.CYPRESS_RECORD_KEY }}
+          auth-domain: ${{ secrets.CYPRESS_AUTH_DOMAIN }}
+          auth-username: ${{ secrets.CYPRESS_AUTH_USERNAME }}
+          auth-password: ${{ secrets.CYPRESS_AUTH_PASSWORD }}
+
+  vercel-se:
+    name: web · SE · await Vercel preview
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      statuses: read
+      deployments: read
+    outputs:
+      url: ${{ steps.vercel.outputs.url }}
+      skip: ${{ steps.vercel.outputs.skip }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Wait for Vercel (ge-effektivt)
+        id: vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PROJECT: ge-effektivt
+          TARGET: Preview
+          SKIP: ${{ needs.changes.outputs.e2e-skip }}
+        run: bash scripts/ci/vercel-lane.sh
+
+  # Sweden takes donations through an external widget: a smoke test, not a widget suite.
+  smoke-se:
+    name: ${{ needs.vercel-se.outputs.skip == '' && 'web · SE · smoke' || format('web · SE · smoke · {0}', needs.vercel-se.outputs.skip) }}
+    needs: vercel-se
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      SKIP: ${{ needs.vercel-se.outputs.skip }}
+    steps:
+      - name: Nothing to test
+        if: env.SKIP != ''
+        run: echo "web · SE · smoke - $SKIP" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.SKIP == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Cypress (SE)
+        if: env.SKIP == ''
+        uses: ./.github/actions/cypress-deployment # zizmor: ignore[self-repository] -- actionlint does not read `$/` for actions yet
+        with:
+          config-file: cypress-se.config.ts
+          base-url: ${{ needs.vercel-se.outputs.url }}
+          group: GeEffektivt smoke tests
+          ci-build-id: ${{ github.run_id }}-${{ github.run_attempt }}-se
+          record-key: ${{ secrets.CYPRESS_RECORD_KEY }}
+          auth-domain: ${{ secrets.CYPRESS_AUTH_DOMAIN }}
+          auth-username: ${{ secrets.CYPRESS_AUTH_USERNAME }}
+          auth-password: ${{ secrets.CYPRESS_AUTH_PASSWORD }}
+
+  # ── Summary ─────────────────────────────────────────────────────────────────────────────────
   required:
     name: CI (required)
-    needs: [changes, admin, functions]
+    needs:
+      [
+        changes,
+        api-qa,
+        admin,
+        functions,
+        web-checks,
+        studio,
+        fullstack,
+        vercel-no,
+        e2e-no,
+        vercel-dk,
+        e2e-dk,
+        vercel-se,
+        smoke-se,
+      ]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
+      actions: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
       - name: Sum up the lanes
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
           RESULTS: ${{ toJSON(needs) }}
-        run: |
-          {
-            echo "| Lane | Result |"
-            echo "| --- | --- |"
-            echo "$RESULTS" | jq -r 'to_entries[] | "| \(.key) | \(.value.result) |"'
-          } >>"$GITHUB_STEP_SUMMARY"
-          failed=$(echo "$RESULTS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
-          if [ -n "$failed" ]; then
-            echo "::error::Not successful: $failed"
-            exit 1
-          fi
+          TITLE: CI
+          SELF: CI (required)
+          LINKS: |
+            QualityAssurance (Cloud Build)|${{ needs.api-qa.outputs.url }}
+            Vercel preview NO|${{ needs.vercel-no.outputs.url }}
+            Vercel preview DK|${{ needs.vercel-dk.outputs.url }}
+            Vercel preview SE|${{ needs.vercel-se.outputs.url }}
+            Cypress Cloud (deployment suites)|https://cloud.cypress.io/projects/wfkg9n/runs
+        run: bash scripts/ci/summary.sh

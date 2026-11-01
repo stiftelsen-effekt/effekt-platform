@@ -1,4 +1,5 @@
 name: web-ci
+# Production only: the previews are tested by ci.yml. To be replaced by deploy.yml (docs/ci.md).
 # e2e tests against Vercel deployments of apps/web. Vercel reports a deployment_status for each
 # deployment; the environment ("Preview – <project>" or "Production – <project>") picks the test
 # suite. Other environments (such as giv-effektivt's custom `api-dev`), deployments of other
@@ -11,8 +12,7 @@ jobs:
     name: web · NO
     if: >-
       github.event.deployment_status.state == 'success' &&
-      (github.event.deployment_status.environment == 'Preview – main-site' ||
-        github.event.deployment_status.environment == 'Production – main-site')
+      github.event.deployment_status.environment == 'Production – main-site'
     # Production runs share the site and the Min Side test account: one at a time, and only the
     # newest waiting one runs (GitHub drops older pending runs in the group). Previews run freely.
     concurrency:
@@ -36,8 +36,7 @@ jobs:
     name: web · DK
     if: >-
       github.event.deployment_status.state == 'success' &&
-      (github.event.deployment_status.environment == 'Preview – giv-effektivt' ||
-        github.event.deployment_status.environment == 'Production – giv-effektivt')
+      github.event.deployment_status.environment == 'Production – giv-effektivt'
     # Production runs share the site and the Min Side test account: one at a time, and only the
     # newest waiting one runs (GitHub drops older pending runs in the group). Previews run freely.
     concurrency:
@@ -59,8 +58,7 @@ jobs:
     name: web · SE
     if: >-
       github.event.deployment_status.state == 'success' &&
-      (github.event.deployment_status.environment == 'Preview – ge-effektivt' ||
-        github.event.deployment_status.environment == 'Production – ge-effektivt')
+      github.event.deployment_status.environment == 'Production – ge-effektivt'
     concurrency:
       group: web-e2e-se-${{ startsWith(github.event.deployment_status.environment, 'Production') && 'production' || github.run_id }}
       cancel-in-progress: false

@@ -33,9 +33,9 @@ lanes=(
   "api|API (apps/api) and its image|apps/api/* packages/* package.json pnpm-lock.yaml pnpm-workspace.yaml cloud.deploy.yaml cloud.qa.yaml scripts/deploy/* .nvmrc"
   "admin|Admin (apps/admin)|apps/admin/* apps/api/src/* apps/api/prisma/schema.prisma apps/api/package.json apps/api/tsconfig*.json packages/* pnpm-lock.yaml pnpm-workspace.yaml cloudbuild.admin.yaml scripts/deploy/* .github/workflows/ci.yml scripts/ci/*"
   "functions|Cloud Functions (functions/*)|functions/* pnpm-lock.yaml pnpm-workspace.yaml .github/workflows/ci.yml scripts/ci/*"
-  "web|Website (apps/web) and the tRPC contract it compiles in|apps/web/* apps/api/src/trpc/* packages/api/* packages/config/* apps/api/scripts/build-types.mjs apps/api/tsconfig.trpc.json pnpm-lock.yaml pnpm-workspace.yaml .nvmrc .github/workflows/ci.yml .github/workflows/web-checks.yml scripts/ci/*"
+  "web|Website (apps/web) and the tRPC contract it compiles in|apps/web/* apps/api/src/trpc/* packages/api/* packages/config/* apps/api/scripts/build-types.mjs apps/api/tsconfig.trpc.json pnpm-lock.yaml pnpm-workspace.yaml .nvmrc .github/workflows/ci.yml scripts/ci/*"
   "studio|Sanity Studio (apps/web/studio)|apps/web/studio/* pnpm-lock.yaml pnpm-workspace.yaml .nvmrc .github/workflows/ci.yml scripts/ci/*"
-  "fullstack|Full-stack e2e (web, API, MySQL)|apps/web/* apps/api/* compose.dev.yml compose.e2e.yml compose.e2e-ci.yml .env.docker scripts/e2e-fullstack.sh scripts/e2e/* package.json pnpm-lock.yaml pnpm-workspace.yaml .github/workflows/ci.yml .github/workflows/web-e2e-fullstack.yml scripts/ci/*"
+  "fullstack|Full-stack e2e (web, API, MySQL)|apps/web/* apps/api/* compose.dev.yml compose.e2e.yml compose.e2e-ci.yml .env.docker scripts/e2e-fullstack.sh scripts/e2e/* package.json pnpm-lock.yaml pnpm-workspace.yaml .github/workflows/ci.yml scripts/ci/*"
 )
 
 count=$(grep -c . "$files" || true)
