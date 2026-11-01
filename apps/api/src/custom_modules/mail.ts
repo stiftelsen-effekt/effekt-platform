@@ -630,6 +630,51 @@ export async function sendAvtaleGiroRetryAlert(
 }
 
 /**
+ * Alerts the team that the impact compat REST answered differently from the legacy impact API
+ * for requests no edit explains (docs/impact-api-migration.md, phase 5). Contains only public
+ * impact API queries and values, no donor data.
+ */
+export async function sendImpactCompatDiffAlert(summary: {
+  requests: number;
+  same: number;
+  edited: number;
+  legacyLanguage: number;
+  unexpected: number;
+  unreachable: number;
+  differences: Array<{ endpoint: string; query: string; status: string; detail?: string }>;
+}) {
+  const rows: Array<[string, string]> = [
+    ["Tidspunkt", formatTimestamp(new Date())],
+    [
+      "Forespørsler",
+      `${summary.requests}: ${summary.same} like, ${summary.edited} endret etter frys, ` +
+        `${summary.legacyLanguage} språkfeil i gammel API, ${summary.unexpected} uventede, ` +
+        `${summary.unreachable} uten svar fra gammel API`,
+    ],
+  ];
+  for (const d of summary.differences.filter(
+    (d) => d.status === "unexpected" || d.status === "unreachable",
+  ))
+    rows.push([`${d.status}: /api/${d.endpoint}?${d.query}`, d.detail ?? ""]);
+  rows.push([
+    "Hva nå",
+    "Sammenlign svarene for hånd (impact.gieffektivt.no/api/... og data.gieffektivt.no/impact/api/...). " +
+      "Er den nye API-en feil og lastbalansereren delt, sett vekten tilbake: " +
+      "scripts/impact-compat/lb-weight.sh --weight 0 --apply (se docs/impact-api-migration.md).",
+  ]);
+  const { text, html } = formatInternalAlert(
+    "Impact compat REST: avvik fra gammel impact API",
+    rows,
+  );
+  return await sendInternalAlert({
+    alertName: "sendImpactCompatDiffAlert",
+    subject: "Impact API: nye svar avviker fra gamle",
+    text,
+    html,
+  });
+}
+
+/**
  * These six emails were sent through mailgun until it was deprecated. No
  * MailerSend template was ever created to replace them - confirmed against the
  * MailerSend template list - so they cannot be sent at all.

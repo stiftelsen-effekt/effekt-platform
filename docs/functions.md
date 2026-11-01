@@ -6,7 +6,7 @@ Each function is a package of the pnpm workspace, with `lint`, `format` and (whe
 
 ## api-scheduled
 
-Dispatcher that Cloud Scheduler calls (as `api-scheduled@`, OIDC) with `?type=ocr|avtalegiro|avtalegiro_retry|vipps|vipps_sync|vipps_charges|auth0check|followup|mailchimp|exchangerates`.
+Dispatcher that Cloud Scheduler calls (as `api-scheduled@`, OIDC) with `?type=ocr|avtalegiro|avtalegiro_retry|vipps|vipps_sync|vipps_charges|auth0check|followup|mailchimp|exchangerates|impactdiff`.
 It fetches an Auth0 client-credentials token and calls the matching `/scheduled/*` endpoint on effektapi.
 
 Recovered on 2026-10-23 from the deployed source (it was previously deployed from the console). Deploy with `./deploy.sh`.
@@ -49,6 +49,16 @@ upserts them into `Exchange_rates` as units per USD. On an empty table it backfi
 2013-01-01 (about 110k rows, under a minute). `?from=YYYY-MM-DD` refetches from that day. The
 impact figures (receipts, results page, Min Side) read these rates, taking the latest day on or
 before the one they need ([impact-api-migration.md](impact-api-migration.md)).
+
+### Impact compat diff (`impactdiff`)
+
+Cloud Scheduler job `ImpactCompatDiff`, daily at 06:30 Europe/Oslo, calls
+`POST /scheduled/impact-compat-diff`. It asks the legacy impact API (through the load balancer,
+pinned to `bs-impact-api` with `X-Impact-Backend: legacy`) and our compat REST the same ~80
+requests and compares the answers byte for byte. The summary goes to Import_logs
+(`ImpactCompatDiff`); differences that no Impact_changes row explains, or requests the legacy API
+did not answer, are mailed to teknisk@. Remove the job with the legacy API (phase 6 of
+[impact-api-migration.md](impact-api-migration.md)).
 
 ## dmarc-report
 

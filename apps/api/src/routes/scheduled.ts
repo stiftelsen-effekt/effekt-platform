@@ -1,5 +1,9 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendAvtaleGiroRetryAlert, sendPaymentIntentFollowUp } from "../custom_modules/mail";
+import {
+  sendAvtaleGiroRetryAlert,
+  sendImpactCompatDiffAlert,
+  sendPaymentIntentFollowUp,
+} from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { excludeAgreementsClaimedThisMonth } from "../custom_modules/avtalegiro/charges";
@@ -19,6 +23,7 @@ import { Payment_follow_up, Payment_intent } from "@prisma/client";
 import { previewInflationRound } from "../custom_modules/inflationadjustment";
 import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
 import { updateExchangeRates } from "../custom_modules/exchangeRates";
+import { runCompatDiff } from "../custom_modules/impact/compat/diff";
 import {
   addMembersInBatches,
   getMemberStatuses,
@@ -385,6 +390,25 @@ router.post("/exchange-rates", authMiddleware.isAdmin, async (req, res, next) =>
     const result = await updateExchangeRates({ from });
     await DAO.logging.add("ExchangeRates", result);
     res.json(result);
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+/**
+ * Daily dual-run diff of the impact compat REST against the legacy impact API
+ * (custom_modules/impact/compat/diff.ts, docs/impact-api-migration.md phase 5). Logged in
+ * Import_logs as ImpactCompatDiff; differences no edit explains are mailed to teknisk@.
+ */
+router.post("/impact-compat-diff", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const summary = await runCompatDiff();
+    await DAO.logging.add("ImpactCompatDiff", summary);
+    const alerted =
+      summary.unexpected > 0 || summary.unreachable > 0
+        ? await sendImpactCompatDiffAlert(summary)
+        : false;
+    res.json({ ...summary, alerted });
   } catch (ex) {
     next({ ex });
   }

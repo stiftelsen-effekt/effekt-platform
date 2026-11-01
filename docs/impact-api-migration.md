@@ -1,6 +1,7 @@
 # Moving the impact API into the platform
 
-Status: **phases 0–4 done** (decisions settled 2026-11-01, see [Decisions](#decisions);
+Status: **phases 0–4 done, phase 5 code merged; the load balancer switch is run by hand**
+([runbook](#phase-5-switch-runbook); decisions settled 2026-11-01, see [Decisions](#decisions);
 phase 0 runs as scripts by hand). The website no longer calls the impact API. Written
 2026-10-30 from read-only inspection of the code, the GCP config, the load balancer logs and the
 public API. No database was queried (the `Impact` schema needs the `impactapi` credentials, which
@@ -265,20 +266,23 @@ earlier date, as the ECB package does today for weekends.
 
 ### Compatibility REST (for consumers we don't control)
 
-Express routes `GET /impact/api/evaluations`, `/impact/api/max_impact_fund_grants` and
-`/impact/api/all_grants_fund_grants` on the main API. They reproduce the old JSON byte-shape:
+Express routes for `evaluations`, `max_impact_fund_grants` and `all_grants_fund_grants` on the
+main API, at `/impact/api/*` on every host and at `/api/*` when the Host is
+`impact.gieffektivt.no` (see [Phase 5 notes](#phase-5-notes)). They reproduce the old JSON byte-shape:
 every field, nested `charity`/`intervention`, `converted_*`, `exchange_rate_date`, `errors` and
 `warnings`, the `language` → currency defaults (with `dk` → DKK added), and CORS `*`. They answer
 with `Cache-Control: public, max-age=3600`. They belong in the "stays REST for good" group in
 `docs/web-trpc.md`.
 
-On `effekt-api-lb`, the `impact` path matcher gets a route rule:
+On `effekt-api-lb`, the `impact` path matcher gets route rules (as built in phase 5; a
+`urlRewrite` would apply to both weighted backends, so there is none, and effektapi answers
+`/api/*` itself on the impact host):
 
 ```
+host impact.gieffektivt.no, header X-Impact-Backend: legacy → bs-impact-api (the diff's pin)
 host impact.gieffektivt.no, prefix /api/
-  → weightedBackendServices: bs-impact-api (100 → 0), bs-effektapi (0 → 100)
-  → urlRewrite.pathPrefixRewrite: /impact/api/
-host impact.gieffektivt.no, prefix /admin → redirect admin.gieffektivt.no/impact
+  → weightedBackendServices: bs-impact-api (100 → 0), bs-effektapi-impact (0 → 100)
+everything else (/admin, /) → bs-impact-api until phase 6
 ```
 
 The weights give a gradual cutover and a one-command rollback. The hostname, certificate and
@@ -304,11 +308,9 @@ frozen in phase 0, so nothing should).
 
 **Verification.** The script prints per-table counts and a SHA-256 of a canonical JSON dump for
 both sides; phase 1's exit criterion is that they match. Phase 5 adds an automated **dual-run
-diff**: a GitHub Actions job (daily, and on demand) replays the distinct URLs from the last 14
-days of LB logs, about 2k after deduplication. It runs them against `impact.gieffektivt.no` (old)
-and `data.gieffektivt.no/impact/api/…` (new) and compares the JSON. Exact match is required for
-everything but `converted_*` (tolerance 0.5 % if the rate source changes, 0 otherwise) and
-`exchange_rate_date`. Any diff fails the job.
+diff**: a daily Cloud Scheduler job asks the legacy API and our compat REST a fixed matrix of ~80
+requests that covers every query shape in the LB logs and compares the answers byte for byte
+(see [Phase 5 notes](#phase-5-notes)).
 
 **References elsewhere.** No row in `EffektDonasjonDB` stores an impact API ID. Sanity stores
 **abbreviations** (unchanged). Web and API code match by abbreviation or org name, and phases 2–3
@@ -505,3 +507,118 @@ Settled on 2026-11-01:
      Change log show the edit with Ops as its author (from #1038 on).
      The preview scales to at most two instances; the other instance shows the change within 15
      minutes (the cache's lifetime), as in production.
+
+### Phase 5 notes
+
+- **Routes** (`apps/api/src/routes/impactCompat.ts`, code in `custom_modules/impact/compat/`):
+  `GET /api/{evaluations,max_impact_fund_grants,all_grants_fund_grants}` when the Host header is
+  `impact.gieffektivt.no` (`IMPACT_COMPAT_HOSTS`), and the same at `/impact/api/*` on every host
+  (`data.gieffektivt.no/impact/api/evaluations`, for checks and the diff). Host-based rather than a
+  path prefix with an LB rewrite: a URL map `urlRewrite` applies to every weighted backend of a
+  route, so the legacy service would get the rewritten path too. The LB passes the Host header
+  through to Cloud Run, and `TRUST_PROXY_HOPS=2` is the same as for data.gieffektivt.no (same LB).
+  CORS `*` (own headers; the global allowlist in `server.ts` is untouched), preflight answered,
+  `Cache-Control: public, max-age=3600`, `X-Content-Type-Options: nosniff`, 300 requests a minute
+  per IP and instance (Cloud Armor allows 600 per IP before that). They stay REST for good
+  (docs/web-trpc.md).
+- **Same bytes.** The answers are written as Django wrote them: Python `json.dumps` (`", "` and
+  `": "`, `\uXXXX` escapes, `1.0` floats), the DRF serializers' field order and nesting, grant
+  `id` = `legacy_id`, `max_impact_fund_grants` = TCF and `all_grants_fund_grants` = AGF
+  (decision 8), `errors` (200) and `warnings`, `exchange_rate_date` = the requested day, the
+  start/end filters comparing years and months separately, and MySQL's row order (with up to four
+  `charity_abbreviation`s the rows came in index order (charity, month, year), with five or more
+  or none in ID order; measured). Conversion is the Python `CurrencyConverter`'s: per-EUR rates,
+  linear interpolation for days without a rate, first/last rate outside the series,
+  `amount / rate(USD) * rate(X)`. The per-EUR rates are recovered exactly from `Exchange_rates`
+  (USD per EUR has 4 decimals, the others at most 6; the stored per-USD values carry ≤ 5e-9 of
+  rounding). Migration `20261101210000_exchange_rates_december_2012` adds December 2012, because
+  evaluations from 2013-01-01 (a holiday) interpolate with 2012-12-31.
+- **Golden tests** (`src/__test__/impactCompat.golden.spec.ts`): 82 requests recorded from the
+  live API on 2026-11-01 by `apps/api/scripts/impact-compat-golden.ts` (each with a unique
+  `cachebust`, see below), answered from the rows of the phase 1 migration and the recorded
+  `Exchange_rates` rows, are identical **byte for byte**. They are pinned to the frozen data, so
+  later data changes don't break them. The matrix (`compat/matrix.ts`): all 15 charities; `no`,
+  `en`, `sv`, `et`, `dk`; NOK, SEK, DKK, EUR, USD, GBP, ISK, JPY; with and without donation month,
+  day and conversion date; weekend and holiday days; one to five charities and repeats; the
+  start/end filters; empty answers; unknown currency and language; both grant endpoints.
+- **Deliberate differences**: `language=dk` without a currency answers in DKK (legacy: a 500);
+  without `language` the answer is English (the legacy API reused the request thread's last
+  activated language, so the same URL could come back in Estonian); malformed numbers or dates
+  answer 400 `{"errors": [...]}` (legacy: a 500 page); currencies are the legacy ECB zip's that
+  `Exchange_rates` has, so those that ended before 2013 (CYP, EEK, MTL, ROL, SIT, SKK, TRL) are
+  rejected, and days before December 2012 use the first stored rate. **Not copied:** the legacy
+  Datastore cache key kept only the last `charity_abbreviation`, so a request for several charities
+  could get the cached answer of another request that ended with the same charity (seen live while
+  building this: `charity_abbreviation=AMF&charity_abbreviation=AMF&cachebust=9` returned the AMF
+  - MC answer of an earlier request). There is no answer cache; the data and rates are cached in
+    memory for 15 minutes and edits clear them.
+- **When our data moves on.** Admin edits (phase 4) and data migrations (corrected TCF windows,
+  new GiveWell evaluations, AGF grants) change our answers on purpose; the legacy data stays
+  frozen. The compat REST always answers in the legacy shape: `max_impact_fund_grants` lists every
+  `Impact_grants` row with `fund = 'TCF'`, `all_grants_fund_grants` every `fund = 'AGF'` row (one
+  today; with more AGF grants each one is another entry), each as
+  `{id: legacy_id, allotment_set: [{id, intervention, converted_sum, currency,
+converted_cost_per_output, exchange_rate_date, sum_in_cents, number_outputs_purchased, _lower_bound,
+_upper_bound, source_name, source_url, comment, charity}], language, start_year, start_month}`.
+  New columns in our tables are not exposed. A grant without `legacy_id` would show its own ID
+  (the admin always assigns one).
+- **Dual-run diff** (`custom_modules/impact/compat/diff.ts`): Cloud Scheduler `ImpactCompatDiff`
+  (daily 06:30 Oslo) → `api-scheduled?type=impactdiff` → `POST /scheduled/impact-compat-diff`.
+  It asks the legacy API through the LB with `X-Impact-Backend: legacy` (pinned to
+  `bs-impact-api` by a route rule, so it keeps working at any weight; an answer without Django's
+  `Content-Language` header counts as unreachable) and computes ours in-process, then compares the
+  text. Differences are classified: `edited` when an `Impact_changes` row (admin edit or
+  migration) touches an estimate, charity or intervention in either answer, or any fund grant for
+  the grant endpoints; `legacy-language` for the language leak above; otherwise `unexpected`. The
+  summary goes to Import_logs (`ImpactCompatDiff`); unexpected or unreachable requests (after one
+  retry) are mailed to teknisk@. Chosen over a GitHub Actions cron because it needs no new
+  credentials and reaches Import_logs and the alert mail directly.
+- **Real traffic, 2026-10-24 → 11-01** (LB logs, 67.2k requests: 60.4k `evaluations`, 5.3k
+  `max_impact_fund_grants`, 25 `all_grants_fund_grants`, ~200 scanner paths; counted by path,
+  parameter names, `language`/`currency` values and user agent/referer class only):
+
+  | Shape                                                                                   | Who (UA / referer)                                                                                | Count |
+  | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----- |
+  | `evaluations?charity_abbreviation×3&conversion_month&conversion_year&currency&language` | our widget before phase 3 (Vercel previews 43.7k, gieffektivt.no 3.7k, localhost, .dk, .se, bots) | 50.6k |
+  | `evaluations?charity_abbreviation&currency&donation_month&donation_year&language`       | our Min Side before phase 3 (gieffektivt.no, localhost, .se), our API, curl                       | 8.1k  |
+  | `max_impact_fund_grants?currency&language` (± `donation_year&donation_month`)           | our Min Side before phase 3                                                                       | 3.7k  |
+  | `evaluations?language=NO`, `max_impact_fund_grants?language=NO`                         | our API (`node`) before phase 2                                                                   | 3.2k  |
+  | `evaluations?currency=EUR&language=en`                                                  | server side (`node`, no referer); not ours                                                        | 65    |
+  | `evaluations?charity_abbreviation&currency=GBP&donation_month&donation_year`            | One for the World (browser, referer 1fortheworld.org), no `language`                              | 1     |
+  | `evaluations?currency=EUR&language=et`                                                  | Annetame Targalt's pattern; no request with its referer in the window                             | –     |
+
+  Everything else was our own checks (`curl`, the phase 1 verify script, `cachebust`). Only
+  `language` en/no/NO/sv/dk/et and currencies NOK, DKK, SEK, EUR, USD, GBP occurred.
+
+### Phase 5 switch runbook
+
+Run from the repo root with `gcloud` logged in as an owner. Every script is a dry run unless
+given `--apply`, and `lb-weight.sh` exports the URL map to `~/impact-lb-backups/` before each
+change and prints the exact rollback. **Rollback at any step:**
+`scripts/impact-compat/lb-weight.sh --weight 0 --apply` (100 % legacy, seconds to minutes).
+
+| Day | Step                                                                                                                                                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | `scripts/impact-compat/lb-backend.sh --apply` (NEG `neg-effektapi-impact` + `bs-effektapi-impact` with `effekt-api-armor` and full logging); then `lb-weight.sh --weight 0 --apply` (adds the rules, all traffic still legacy) and `scripts/impact-compat/lb-check.sh`: pin ok, legacy only |
+| 1   | `lb-weight.sh --weight 10 --apply`; after ~5 min `lb-check.sh 60`: ~10 % effektapi, identical answers, CORS and cache headers present                                                                                                                                                       |
+| 3   | if day 1–3 were clean: `lb-weight.sh --weight 50 --apply`, `lb-check.sh`                                                                                                                                                                                                                    |
+| 5   | if clean: `lb-weight.sh --weight 100 --apply`, `lb-check.sh`: effektapi only                                                                                                                                                                                                                |
+| 12  | 7 clean days at 100 %: phase 5 done. Email One for the World and Annetame Targalt (nothing to change for them). Phase 6 after 30 days with no `/api/*` requests to `bs-impact-api` (the diff's pinned requests excepted); remove the diff job then                                          |
+
+What to watch after each step (first hour, then daily):
+
+- **5xx and latency per backend**: Cloud Monitoring, metric
+  `loadbalancing.googleapis.com/https/request_count` and `.../total_latencies` filtered on
+  `url_map_name = effekt-api-lb`, grouped by `backend_target_name` and `response_code_class`.
+  `bs-effektapi-impact` should show 0 5xx and a p95 well under the legacy one (no cold Python
+  starts). The existing Cloud Run 5xx alert covers effektapi.
+- **Logs**: `resource.type="http_load_balancer" resource.labels.backend_service_name="bs-effektapi-impact" httpRequest.status>=400`
+  (429 = rate limited; check `jsonPayload.enforcedSecurityPolicy` for Cloud Armor denies).
+- **Requests by consumer** (no personal data: path, query shape, user agent and referer class):
+  `gcloud logging read 'resource.type="http_load_balancer" httpRequest.requestUrl:"impact.gieffektivt.no/api/"' --freshness=1d --format='value(resource.labels.backend_service_name,httpRequest.requestUrl,httpRequest.referer,httpRequest.userAgent)'`,
+  grouped by backend, path and referer host; One for the World's referer is 1fortheworld.org.
+- **Diff job**: Import_logs `ImpactCompatDiff` daily: `unexpected` and `unreachable` must be 0
+  (`edited` is fine and expected after admin edits or data migrations). Run it on demand with
+  `gcloud scheduler jobs run ImpactCompatDiff --location europe-west1`.
+- **Cloud Armor**: the `effekt-api-armor` rules are the same on both backends (600/min per IP,
+  path throttles that don't match `/api/*`, SQLi/XSS rules in preview), so coverage doesn't change.
