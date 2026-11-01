@@ -45,6 +45,8 @@ export const createWebTrpcClient = ({
         ? restLink<AppRouter>({ url, getToken })
         : httpBatchLink({
             url: `${url}/trpc`,
+            // Long batches (e.g. distributions for many KIDs) are split into several GETs
+            maxURLLength: 2083,
             headers: async () => ({ Authorization: `Bearer ${await getToken()}` }),
           }),
     ],
