@@ -1,0 +1,54 @@
+[
+  {
+    "abbreviation": "AMF",
+    "charityId": 1,
+    "charityName": "Against Malaria Foundation",
+    "interventionId": 2,
+    "shortDescription": "Myggnett",
+    "longDescription": "Myggnett impregnert med insektmiddel levert til husholdninger",
+    "centsPerOutput": 585,
+    "costPerOutput": 58.5,
+    "currency": "NOK",
+    "validFrom": "2023-01-01",
+    "exchangeRateDate": "2026-10-30"
+  },
+  {
+    "abbreviation": "HKI",
+    "charityId": 3,
+    "charityName": "Helen Keller International",
+    "interventionId": 3,
+    "shortDescription": "A-vitamintilskudd",
+    "longDescription": "Barn som får A-vitamintilskudd",
+    "centsPerOutput": 203,
+    "costPerOutput": 20.3,
+    "currency": "NOK",
+    "validFrom": "2023-01-01",
+    "exchangeRateDate": "2026-10-30"
+  },
+  {
+    "abbreviation": "NI",
+    "charityId": 10,
+    "charityName": "New Incentives",
+    "interventionId": 5,
+    "shortDescription": "Vaksinasjoner",
+    "longDescription": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+    "centsPerOutput": 13274,
+    "costPerOutput": 1327.4,
+    "currency": "NOK",
+    "validFrom": "2023-01-01",
+    "exchangeRateDate": "2026-10-30"
+  },
+  {
+    "abbreviation": "MC",
+    "charityId": 4,
+    "charityName": "Malaria Consortium",
+    "interventionId": 1,
+    "shortDescription": "Malariabehandlinger",
+    "longDescription": "Barn behandlet med en full kur med malariamedisin",
+    "centsPerOutput": 801,
+    "costPerOutput": 80.1,
+    "currency": "NOK",
+    "validFrom": "2023-01-01",
+    "exchangeRateDate": "2026-10-30"
+  }
+]

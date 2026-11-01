@@ -34,6 +34,7 @@ const TRPC_URLS = {
   "site.fundraiser": /\/trpc\/site\.fundraiser(?:\?|$)/,
   "site.ltvEstimate": /\/trpc\/site\.ltvEstimate(?:\?|$)/,
   "site.organizations": /\/trpc\/site\.organizations(?:\?|$)/,
+  "site.impactCosts": /\/trpc\/site\.impactCosts(?:\?|$)/,
   // Mutations (POST /trpc/<path>?batch=1, the input in the body as {"0": input})
   "minside.updateProfile": /\/trpc\/(?:[^/?]*,)?minside\.updateProfile(?:,[^/?]*)?(?:\?|$)/,
   "minside.createTaxUnit": /\/trpc\/(?:[^/?]*,)?minside\.createTaxUnit(?:,[^/?]*)?(?:\?|$)/,

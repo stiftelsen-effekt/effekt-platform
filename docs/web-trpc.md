@@ -205,6 +205,7 @@ main layout now provides too.
 | `site.fundraiser`      | `GET /fundraisers/:id`                   | `FundraiserPage` (build)                          | REST link, same route (UUID ids)     |
 | `site.ltvEstimate`     | `GET /ltv/recentestimate`                | `util/ltv.ts` (widget, `PlausibleRevenueTracker`) | unmapped (no route; the LTV is null) |
 | `site.organizations`   | `GET /organizations/all/`                | Min Side `useAllOrganizations`                    | REST link, same route                |
+| `site.impactCosts`     | impact API `/api/evaluations`            | `InterventionWidgetOutput` (client side)          | our API (`impactTrpcFor`), see below |
 
 - Each procedure runs the same code as its REST route: the monthly outputs and the LTV estimate
   moved into `custom_modules/monthlyOutputs.ts` and `custom_modules/ltv.ts`, which both call.
@@ -221,6 +222,13 @@ main layout now provides too.
   map the output to the widget's `CauseArea`/`Organization` types (`lib/trpc/causeAreas.ts`). The
   Danish backend's `/organizations/all` also has a "Smart fordeling" entry outside any cause area,
   so the organizations aren't derived from the cause areas.
+
+`site.impactCosts` (the intervention widget's cost per output) always goes to the Norwegian API,
+on every site: the impact figures exist only in its database. `impactTrpcFor(mainLocale)`
+(`lib/trpc/client.ts`) uses the site's own API on the Norwegian site and
+`NEXT_PUBLIC_IMPACT_API` (default `https://data.gieffektivt.no`) on the Danish and Swedish ones.
+The procedure answers any origin (CORS `*`), sends `Cache-Control: public, max-age=3600` and is
+refused inside a batch.
 
 Still REST, on purpose:
 

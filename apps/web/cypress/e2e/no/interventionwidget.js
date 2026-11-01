@@ -1,15 +1,9 @@
 describe("InterventionWidget", () => {
   beforeEach(() => {
-    cy.fixture("impact_evaluations")
-      .then((impactEvaluations) => {
-        cy.intercept("GET", "https://impact.gieffektivt.no/api/evaluations*", {
-          statusCode: 200,
-          body: {
-            evaluations: impactEvaluations,
-          },
-        });
-      })
-      .as("getImpactEvaluations");
+    // The widget's cost per output: site.impactCosts on the Norwegian API (httpLink, unbatched)
+    cy.fixture("impact_costs").then((costs) => {
+      cy.interceptTrpc("site.impactCosts", costs).as("getImpactCosts");
+    });
 
     cy.visit({
       url: "/",
@@ -20,7 +14,7 @@ describe("InterventionWidget", () => {
   });
 
   it("Should by default show more than 0 intervention output", () => {
-    cy.wait("@getImpactEvaluations").its("response.statusCode").should("be.oneOf", [200, 304]);
+    cy.wait("@getImpactCosts").its("response.statusCode").should("eq", 200);
 
     cy.get("[data-cy=impact-input]").scrollIntoView();
     cy.get("[data-cy=impact-output]").invoke("text").then(parseFloat).should("be.gt", 0);
@@ -30,8 +24,17 @@ describe("InterventionWidget", () => {
     cy.get("[data-cy=impact-output]").invoke("text").then(parseFloat).should("be.gt", 0);
   });
 
+  it("Should divide the sum by the cost per output", () => {
+    cy.wait("@getImpactCosts");
+    cy.get("[data-cy=impact-input]").scrollIntoView();
+    cy.get("[data-cy=impact-input]").clear().type("5850");
+    cy.get("[data-cy=Myggnett-button]").click();
+    // 5 850 kr / 58,50 kr per net (fixtures/no/impact_costs.json)
+    cy.get("[data-cy=impact-output]").invoke("text").then(parseFloat).should("be.equal", 100);
+  });
+
   it("0 NOK should give 0 interventions output", () => {
-    cy.wait("@getImpactEvaluations").its("response.statusCode").should("be.oneOf", [200, 304]);
+    cy.wait("@getImpactCosts").its("response.statusCode").should("eq", 200);
 
     cy.get("[data-cy=impact-input]").scrollIntoView();
     cy.get("[data-cy=impact-input]").clear();
