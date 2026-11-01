@@ -103,11 +103,20 @@ exports.default = async (req, res) => {
           throw new Error("Failed to process exchange rates");
         res.send("OK");
         break;
+      case "impactdiff":
+        let impactdiffresponse = await fetch(
+          "https://data.gieffektivt.no/scheduled/impact-compat-diff",
+          { method: "POST", headers: { authorization: "Bearer " + token } },
+        );
+        if (impactdiffresponse.status !== 200)
+          throw new Error("Failed to process impact compat diff");
+        res.send("OK");
+        break;
       default:
         res
           .status(400)
           .send(
-            "Missing query parameter {type}, or invalid value (ocr, avtalegiro, avtalegiro_retry, vipps, vipps_sync, vipps_charges, auth0check, followup, mailchimp, exchangerates are allowed values)",
+            "Missing query parameter {type}, or invalid value (ocr, avtalegiro, avtalegiro_retry, vipps, vipps_sync, vipps_charges, auth0check, followup, mailchimp, exchangerates, impactdiff are allowed values)",
           );
     }
     return;
