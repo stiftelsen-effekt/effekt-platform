@@ -63,6 +63,11 @@ compose files on its branch (which also stops auto-merge for that PR), then merg
 major, `@types/node` majors and the other compose images (MySQL follows Cloud SQL) are planned
 upgrades done by hand.
 
+TypeScript majors are ignored as well (`ignore` in `dependabot.yml`): the API and the website
+stay on TypeScript 5.9 until TypeScript 7 has a JavaScript API (see
+[tooling.md](tooling.md#versions)). Moving the default catalog to 7 is done by hand, and so is
+the `native` catalog's next major.
+
 ## What merges on its own
 
 `.github/workflows/dependabot-auto-merge.yml` runs on Dependabot's pull requests. It approves
