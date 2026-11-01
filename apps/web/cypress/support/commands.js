@@ -140,7 +140,12 @@ Cypress.Commands.add("pickAnonymous", pickAnonymous);
  * calls the backend's tRPC router on the Norwegian site; see ./trpc.js for the request format.
  */
 const trpcStubs = new Map();
-beforeEach(() => trpcStubs.clear());
+/** The stubbed paths in the order their first intercept was set up (see interceptTrpcPath) */
+const trpcInterceptOrder = [];
+beforeEach(() => {
+  trpcStubs.clear();
+  trpcInterceptOrder.length = 0;
+});
 
 const trpcBatchEntry = (path) => {
   const stub = trpcStubs.get(path);
@@ -158,18 +163,27 @@ const trpcBatchEntry = (path) => {
 /**
  * Answers the requests for `path` from the stubs: queries (GET) and mutations (POST), also when
  * batched with other procedures, whose entries come from their own stubs or are errors.
+ *
+ * A batch matches the intercept of every procedure in it. Cypress runs the matching handlers from
+ * the newest to the oldest until one replies, and only the ones that ran count for `cy.wait`. So
+ * only the handler of the batch's earliest stubbed procedure replies (with every entry), and the
+ * others let the request pass on to it: each procedure's alias sees the request.
  */
-const interceptTrpcPath = (path) =>
-  cy.intercept({ url: trpcUrl(path) }, (req) => {
+const interceptTrpcPath = (path) => {
+  if (!trpcInterceptOrder.includes(path)) trpcInterceptOrder.push(path);
+  return cy.intercept({ url: trpcUrl(path) }, (req) => {
     if (!isTrpcBatch(req.url)) {
       // The donation widget's httpLink: one procedure, one entry, the error's own status
       const entry = trpcBatchEntry(path);
       req.reply({ statusCode: entry.error ? entry.error.data.httpStatus : 200, body: entry });
       return;
     }
-    const body = trpcPaths(req.url).map(trpcBatchEntry);
+    const paths = trpcPaths(req.url);
+    if (trpcInterceptOrder.find((stubbed) => paths.includes(stubbed)) !== path) return;
+    const body = paths.map(trpcBatchEntry);
     req.reply({ statusCode: body.some((entry) => entry.error) ? 207 : 200, body });
   });
+};
 
 /**
  * Answers the tRPC procedure `path` (a query or a mutation) with `data`. Calling it again for the
