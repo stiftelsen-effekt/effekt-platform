@@ -1,9 +1,4 @@
-import {
-  Distribution,
-  Donation,
-  TaxYearlyReport,
-  TaxYearlyReportUnits,
-} from "../../../../../models";
+import { Donation, TaxYearlyReport, TaxYearlyReportUnits } from "../../../../../models";
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
 import { TaxYearlyReportMobileDetails } from "./TaxYearlyReportMobileDetails";
@@ -14,9 +9,8 @@ import { AggregatedImpactTableConfiguration } from "../../../donations/Donations
 export const TaxYearlyReportMobileList: React.FC<{
   report: TaxYearlyReport;
   donations: Donation[];
-  distribtionMap: Map<string, Distribution>;
   aggregateImpactConfig: AggregatedImpactTableConfiguration;
-}> = ({ report, donations, distribtionMap, aggregateImpactConfig }) => {
+}> = ({ report, donations, aggregateImpactConfig }) => {
   const rowMissingTaxUnits = {
     id: "missingTaxUnits",
     defaultExpanded: false,
@@ -74,7 +68,6 @@ export const TaxYearlyReportMobileList: React.FC<{
           <TaxYearlyReportListSupplemental
             report={report}
             donations={donations}
-            distribtionMap={distribtionMap}
             aggregateImpactConfig={aggregateImpactConfig}
           />
         }

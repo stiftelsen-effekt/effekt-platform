@@ -4,7 +4,11 @@ import { Donation } from "../../../../models";
 import style from "./DonationImpact.module.scss";
 import { LinkType, Links } from "../../../main/blocks/Links/Links";
 import { NavLink } from "../../../shared/components/Navbar/Navbar";
-import { DonationImpactItem, ImpactItemConfiguration } from "./DonationImpactItem";
+import {
+  DonationImpactItem,
+  ImpactItemConfiguration,
+  PreComputedImpact,
+} from "./DonationImpactItem";
 
 export type DonationImpactItemsConfiguration = {
   currency: string;
@@ -22,8 +26,8 @@ export type ImpactDistributionEntry = {
   isFund?: boolean;
   isOperations?: boolean;
   sum: number;
-  smartDistributionSum?: number;
-  smartDistributionOutput?: number;
+  /** The estimate from the donation's impact; null or missing: no estimate */
+  impact?: PreComputedImpact | null;
 };
 
 const isOperationsEntry = (entry: ImpactDistributionEntry) =>
@@ -50,9 +54,8 @@ const renderOperationsContent = (configuration: DonationImpactItemsConfiguration
 export const DonationImpactList: React.FC<{
   donation: Donation;
   distribution: ImpactDistributionEntry[];
-  timestamp: Date;
   configuration: DonationImpactItemsConfiguration;
-}> = ({ donation, distribution, timestamp, configuration }) => {
+}> = ({ donation, distribution, configuration }) => {
   const [requiredPrecision, setRequiredPrecision] = useState(0);
   const updatePrecision = useCallback((precision: number) => {
     setRequiredPrecision(precision);
@@ -78,14 +81,12 @@ export const DonationImpactList: React.FC<{
                 orgAbriv={dist.org}
                 orgName={operations ? configuration.operations_label : dist.orgName}
                 sumToOrg={dist.sum}
-                smartDistributionSum={dist.smartDistributionSum}
-                smartDistributionOutput={dist.smartDistributionOutput}
-                donationTimestamp={timestamp}
                 precision={requiredPrecision}
                 signalRequiredPrecision={(precision) => {
                   if (precision > requiredPrecision) updatePrecision(precision);
                 }}
                 configuration={configuration.impact_item_configuration}
+                preComputedImpact={dist.impact ?? undefined}
                 isFund={dist.isFund}
                 isOperations={operations}
                 expandedContentOverride={

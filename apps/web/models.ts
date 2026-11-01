@@ -6,7 +6,7 @@ import type { RouterOutputs } from "./lib/trpc/client";
  */
 type Minside = RouterOutputs["minside"];
 export type Donation = Minside["donations"][number];
-/** One entry of a Danish donation's precomputed impact */
+/** One entry of a donation's impact (minside.donations; both backends send it) */
 export type DonationImpactEntry = NonNullable<Donation["impact"]>[number];
 export type AvtaleGiroAgreement = Minside["avtaleGiroAgreements"][number];
 export type VippsAgreement = Minside["vippsAgreements"][number];
@@ -52,46 +52,4 @@ export type SEOMeta = {
   keywords?: string;
   siteName: string;
   noIndex?: boolean;
-};
-
-export type ImpactCharity = {
-  id: number; // Not necessarily the same as the id in the database
-  charity_name: string;
-  abbreviation: string;
-};
-
-export type ImpactIntervention = {
-  long_description: string;
-  short_description: string;
-  id: number;
-};
-
-export type ImpactEvaluation = {
-  id: number;
-  intervention: ImpactIntervention;
-  converted_cost_per_output: number;
-  currency: string;
-  language: string;
-  start_year: number;
-  start_month: number;
-  cents_per_output: number;
-  charity: ImpactCharity;
-};
-
-export type GiveWellGrant = {
-  id: number;
-  allotment_set: {
-    id: number;
-    intervention: ImpactIntervention;
-    converted_sum: number;
-    currency: string;
-    converted_cost_per_output: number;
-    exchange_rate_date: string;
-    sum_in_cents: number;
-    number_outputs_purchased: number;
-    charity: ImpactCharity;
-  }[];
-  language: string;
-  start_year: number;
-  start_month: number;
 };

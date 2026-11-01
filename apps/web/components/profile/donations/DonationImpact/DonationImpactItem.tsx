@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from "react";
 import style from "./DonationImpactItem.module.scss";
 import { thousandize, thousandizeString } from "../../../../util/formatting";
-import useSWR from "swr";
-import { ImpactEvaluation } from "../../../../models";
 import AnimateHeight from "react-animate-height";
 import { LinkType, Links } from "../../../main/blocks/Links/Links";
 import { PortableText } from "@portabletext/react";
 import { NavLink } from "../../../shared/components/Navbar/Navbar";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const DEFAULT_GIVEWELL_ALL_GRANTS_TEXT =
   "All Grants Fund lar GiveWells eksperter investere i de mest lovende mulighetene på tvers av deres arbeid. Fordi fondet kombinerer både velprøvde og mer eksperimentelle tiltak, oppnår det høyere forventet effekt enn fokus på færre, kjente interventioner alene. Fondet støtter for eksempel utrulling av nye malariavaksiner i Afrika og prosesser som kan få nye legemidler raskere ut til dem som trenger det. Når du donerer til All Grants Fund, stoler du på GiveWells analysekompetanse, og får maksimal effekt per krone.";
@@ -81,14 +77,10 @@ export const DonationImpactItem: React.FC<{
   orgAbriv: string;
   orgName: string;
   sumToOrg: number;
-  // Portion of `sumToOrg` routed via a GiveWell grant, and the outputs it bought
-  // using the grant's own cost-per-output
-  smartDistributionSum?: number;
-  smartDistributionOutput?: number;
-  donationTimestamp: Date;
   precision: number;
   signalRequiredPrecision: (precision: number) => void;
   configuration: ImpactItemConfiguration;
+  /** The estimate, from the donation's impact (minside.donations); none: a single line */
   preComputedImpact?: PreComputedImpact;
   /**
    * Items without an impact estimate (operations, funds and organizations without an
@@ -107,9 +99,6 @@ export const DonationImpactItem: React.FC<{
   orgAbriv,
   orgName,
   sumToOrg,
-  smartDistributionSum,
-  smartDistributionOutput,
-  donationTimestamp,
   precision,
   signalRequiredPrecision,
   configuration,
@@ -120,23 +109,6 @@ export const DonationImpactItem: React.FC<{
   isFund,
 }) => {
   const isFundItem = Boolean(isFund) || orgAbriv === "AGF" || orgAbriv === "GiveWell";
-  const { data, error, isValidating } = useSWR<{ evaluations: ImpactEvaluation[] }>(
-    preComputedImpact || isOperations || isFundItem
-      ? null
-      : `https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=${orgAbriv}&currency=${
-          configuration.currency
-        }&language=${
-          configuration.locale
-        }&donation_year=${donationTimestamp.getFullYear()}&donation_month=${
-          donationTimestamp.getMonth() + 1
-        }`,
-    fetcher,
-    {
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-    },
-  );
   const [showDetails, setShowDetails] = useState(isFundItem);
   const [requiredPrecision, setRequiredPrecision] = useState(0);
 
@@ -146,53 +118,8 @@ export const DonationImpactItem: React.FC<{
     }
   }, [precision, requiredPrecision, signalRequiredPrecision]);
 
-  if (!preComputedImpact && !isOperations && !isFundItem) {
-    if (!data || isValidating) {
-      return (
-        <tr key={`loading`}>
-          <td>Loading...</td>
-        </tr>
-      );
-    }
-    if (error) {
-      return (
-        <tr key={`error`}>
-          <td>{error}</td>
-        </tr>
-      );
-    }
-  }
-
-  /**
-   * Sort evaluations by start time
-   * Then return the first evaluation that has a start year and month less than or equal to the donation
-   * This will be the most recent relevant evaluation to calculate the impact
-   */
-  const relevantEvaluation = data?.evaluations[0];
-  // Grant portion uses grant-derived outputs; the direct portion uses the evaluation.
-  const grantOutput = smartDistributionOutput ?? 0;
-  const directSum = sumToOrg - (smartDistributionSum ?? 0);
-  const resolvedImpact: {
-    output: number;
-    shortDescription: string;
-    longDescription: string;
-    charityName: string;
-    orgUrl: string;
-  } | null = isFundItem
-    ? null
-    : preComputedImpact
-      ? preComputedImpact
-      : relevantEvaluation
-        ? {
-            output: grantOutput + directSum / relevantEvaluation.converted_cost_per_output,
-            shortDescription: relevantEvaluation.intervention.short_description,
-            longDescription: relevantEvaluation.intervention.long_description,
-            charityName: relevantEvaluation.charity.charity_name,
-            orgUrl: configuration.about_org_link_url_format_string
-              .replace("{{org}}", relevantEvaluation.charity.charity_name)
-              .replaceAll(" ", "_"),
-          }
-        : null;
+  const resolvedImpact: PreComputedImpact | null =
+    isFundItem || isOperations ? null : (preComputedImpact ?? null);
 
   const isGiveWellAllGrantsFund = orgAbriv === "AGF";
 

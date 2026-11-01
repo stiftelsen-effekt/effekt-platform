@@ -1,5 +1,5 @@
 /** GiveWell Top Charities Fund */
-export const GIVEWELL_TOP_CHARITIES_FUND_ID = 12;
+const GIVEWELL_TOP_CHARITIES_FUND_ID = 12;
 /** GiveWell All Grants Fund */
 const GIVEWELL_ALL_GRANTS_FUND_ID = 15;
 

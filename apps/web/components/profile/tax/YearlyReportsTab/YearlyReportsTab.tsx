@@ -128,7 +128,6 @@ export const YearlyReportsTab: React.FC<{
               <TaxYearlyReportList
                 key={report.year}
                 donations={filteredDonations}
-                distribtionMap={distributionsMap}
                 report={report}
                 aggregateImpactConfig={aggregatedImpactConfiguration}
               />
@@ -141,7 +140,6 @@ export const YearlyReportsTab: React.FC<{
                     new Date(donation.timestamp).getFullYear() === report.year &&
                     distributionsMap.get(donation.KID)?.taxUnitId,
                 )}
-                distribtionMap={distributionsMap}
                 report={report}
                 aggregateImpactConfig={aggregatedImpactConfiguration}
               />

@@ -9,7 +9,39 @@
     "timestamp": "2019-02-28T23:27:09.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 134.6577,
+        "count": 0.136103
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 32.6711,
+        "count": 0.783189
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 32.6711,
+        "count": 0.553908
+      }
+    ]
   },
   {
     "id": 1355,
@@ -21,7 +53,39 @@
     "timestamp": "2019-06-09T16:13:13.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1453,
@@ -33,7 +97,39 @@
     "timestamp": "2019-10-03T18:44:50.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 33.6644,
+        "count": 0.034026
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 8.1678,
+        "count": 0.195797
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 8.1678,
+        "count": 0.138477
+      }
+    ]
   },
   {
     "id": 1454,
@@ -45,7 +141,39 @@
     "timestamp": "2019-10-03T19:09:00.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 33.6644,
+        "count": 0.034026
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 8.1678,
+        "count": 0.195797
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 8.1678,
+        "count": 0.138477
+      }
+    ]
   },
   {
     "id": 1455,
@@ -57,7 +185,39 @@
     "timestamp": "2019-10-03T19:51:35.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 134.6577,
+        "count": 0.136103
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 32.6711,
+        "count": 0.783189
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 32.6711,
+        "count": 0.553908
+      }
+    ]
   },
   {
     "id": 1471,
@@ -69,7 +229,39 @@
     "timestamp": "2019-10-22T17:38:49.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 13.4658,
+        "count": 0.01361
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.078319
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.055391
+      }
+    ]
   },
   {
     "id": 1473,
@@ -81,7 +273,39 @@
     "timestamp": "2019-10-23T21:10:38.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1475,
@@ -93,7 +317,39 @@
     "timestamp": "2019-10-23T22:08:20.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1476,
@@ -105,7 +361,39 @@
     "timestamp": "2019-10-23T22:16:33.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1477,
@@ -117,7 +405,39 @@
     "timestamp": "2019-10-23T22:23:23.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1478,
@@ -129,7 +449,39 @@
     "timestamp": "2019-10-23T22:32:57.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1479,
@@ -141,7 +493,39 @@
     "timestamp": "2019-10-23T22:34:27.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1481,
@@ -153,7 +537,39 @@
     "timestamp": "2019-10-23T22:52:12.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1482,
@@ -165,7 +581,39 @@
     "timestamp": "2019-10-23T22:53:54.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1483,
@@ -177,7 +625,49 @@
     "timestamp": "2019-10-23T23:00:23.000Z",
     "paymentMethod": "PayPal",
     "KID": "29563244",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 5.0,
+        "count": 0.120936
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 3.3664,
+        "count": 0.003403
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.8168,
+        "count": 0.01958
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.8168,
+        "count": 0.013848
+      }
+    ]
   },
   {
     "id": 1484,
@@ -189,7 +679,77 @@
     "timestamp": "2019-10-23T23:06:06.000Z",
     "paymentMethod": "PayPal",
     "KID": "189324340",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1.0,
+        "count": 0.024187
+      },
+      {
+        "recipient": "SCI Foundation",
+        "unit": null,
+        "organization": "SCI Foundation",
+        "organizationId": 2,
+        "amount": 1.0,
+        "count": null
+      },
+      {
+        "recipient": "The END Fund",
+        "unit": "Ormekurer",
+        "organization": "The End Fund",
+        "organizationId": 3,
+        "description": "Barn behandlet med ormekur for ett år",
+        "viaFund": false,
+        "amount": 1.0,
+        "count": 0.13527
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "Malaria Consortium",
+        "organizationId": 4,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": false,
+        "amount": 6.0,
+        "count": 0.092203
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 1485,
@@ -201,7 +761,39 @@
     "timestamp": "2019-10-24T15:04:13.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1486,
@@ -213,7 +805,57 @@
     "timestamp": "2019-10-24T15:07:12.000Z",
     "paymentMethod": "PayPal",
     "KID": "92268267",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 3.5,
+        "count": 0.084655
+      },
+      {
+        "recipient": "SCI Foundation",
+        "unit": null,
+        "organization": "SCI Foundation",
+        "organizationId": 2,
+        "amount": 3.0,
+        "count": null
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 2.3565,
+        "count": 0.002382
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.5717,
+        "count": 0.013706
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.5717,
+        "count": 0.009693
+      }
+    ]
   },
   {
     "id": 1487,
@@ -225,7 +867,39 @@
     "timestamp": "2019-10-24T15:10:11.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1488,
@@ -237,7 +911,39 @@
     "timestamp": "2019-10-24T15:11:56.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1489,
@@ -249,7 +955,39 @@
     "timestamp": "2019-10-24T15:26:05.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1491,
@@ -261,7 +999,75 @@
     "timestamp": "2019-10-24T16:16:51.000Z",
     "paymentMethod": "PayPal",
     "KID": "973593270",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 2.5,
+        "count": 0.060468
+      },
+      {
+        "recipient": "SCI Foundation",
+        "unit": null,
+        "organization": "SCI Foundation",
+        "organizationId": 2,
+        "amount": 1.0,
+        "count": null
+      },
+      {
+        "recipient": "The END Fund",
+        "unit": "Ormekurer",
+        "organization": "The End Fund",
+        "organizationId": 3,
+        "description": "Barn behandlet med ormekur for ett år",
+        "viaFund": false,
+        "amount": 1.0,
+        "count": 0.13527
+      },
+      {
+        "recipient": "Drift av gieffektivt.no",
+        "unit": null,
+        "organization": "Drift av gieffektivt.no",
+        "organizationId": 11,
+        "amount": 3.0,
+        "count": null
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 1.6832,
+        "count": 0.001701
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.00979
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.006924
+      }
+    ]
   },
   {
     "id": 1492,
@@ -273,7 +1079,39 @@
     "timestamp": "2019-10-24T16:18:06.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1493,
@@ -285,7 +1123,39 @@
     "timestamp": "2019-10-25T11:12:19.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1494,
@@ -297,7 +1167,39 @@
     "timestamp": "2019-10-25T11:32:22.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1495,
@@ -309,7 +1211,39 @@
     "timestamp": "2019-10-26T20:10:13.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 1504,
@@ -321,7 +1255,39 @@
     "timestamp": "2019-10-23T00:00:00.000Z",
     "paymentMethod": "Vipps KID",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 134.6577,
+        "count": 0.136103
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 32.6711,
+        "count": 0.783189
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 32.6711,
+        "count": 0.553908
+      }
+    ]
   },
   {
     "id": 1784,
@@ -333,7 +1299,75 @@
     "timestamp": "2019-11-24T16:10:52.000Z",
     "paymentMethod": "PayPal",
     "KID": "973593270",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 2.5,
+        "count": 0.060217
+      },
+      {
+        "recipient": "SCI Foundation",
+        "unit": null,
+        "organization": "SCI Foundation",
+        "organizationId": 2,
+        "amount": 1.0,
+        "count": null
+      },
+      {
+        "recipient": "The END Fund",
+        "unit": "Ormekurer",
+        "organization": "The End Fund",
+        "organizationId": 3,
+        "description": "Barn behandlet med ormekur for ett år",
+        "viaFund": false,
+        "amount": 1.0,
+        "count": 0.135302
+      },
+      {
+        "recipient": "Drift av gieffektivt.no",
+        "unit": null,
+        "organization": "Drift av gieffektivt.no",
+        "organizationId": 11,
+        "amount": 3.0,
+        "count": null
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 1.6832,
+        "count": 0.001701
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.00979
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.006924
+      }
+    ]
   },
   {
     "id": 1813,
@@ -345,7 +1379,39 @@
     "timestamp": "2019-12-05T23:33:50.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 67.3289,
+        "count": 0.068051
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 16.3356,
+        "count": 0.391594
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 16.3356,
+        "count": 0.276954
+      }
+    ]
   },
   {
     "id": 1965,
@@ -357,7 +1423,39 @@
     "timestamp": "2019-12-23T11:28:28.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 2013,
@@ -369,7 +1467,39 @@
     "timestamp": "2019-12-26T01:52:35.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 2014,
@@ -381,7 +1511,39 @@
     "timestamp": "2019-12-26T02:06:44.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 2015,
@@ -393,7 +1555,39 @@
     "timestamp": "2019-12-26T02:10:29.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 2110,
@@ -405,7 +1599,39 @@
     "timestamp": "2019-12-31T10:50:04.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 2123,
@@ -417,7 +1643,39 @@
     "timestamp": "2020-01-03T14:37:06.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 2131,
@@ -429,7 +1687,49 @@
     "timestamp": "2020-01-05T18:54:14.000Z",
     "paymentMethod": "PayPal",
     "KID": "32166183",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 6.3,
+        "count": 0.138425
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 2.4912,
+        "count": 0.002518
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.6044,
+        "count": 0.014489
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.6044,
+        "count": 0.010247
+      }
+    ]
   },
   {
     "id": 2155,
@@ -441,7 +1741,39 @@
     "timestamp": "2019-10-22T09:24:50.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 67.3289,
+        "count": 0.068051
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 16.3356,
+        "count": 0.391594
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 16.3356,
+        "count": 0.276954
+      }
+    ]
   },
   {
     "id": 2156,
@@ -453,7 +1785,39 @@
     "timestamp": "2019-10-23T09:24:50.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 13.4658,
+        "count": 0.01361
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.078319
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.055391
+      }
+    ]
   },
   {
     "id": 2157,
@@ -465,7 +1829,39 @@
     "timestamp": "2019-10-23T09:24:50.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 13.4658,
+        "count": 0.01361
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.078319
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.055391
+      }
+    ]
   },
   {
     "id": 2158,
@@ -477,7 +1873,39 @@
     "timestamp": "2019-12-24T10:24:50.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 2177,
@@ -489,7 +1917,39 @@
     "timestamp": "2020-01-06T01:00:00.000Z",
     "paymentMethod": "Vipps KID",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 3366.4434,
+        "count": 3.402567
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 816.7783,
+        "count": 19.579719
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 816.7783,
+        "count": 13.84769
+      }
+    ]
   },
   {
     "id": 2204,
@@ -501,7 +1961,49 @@
     "timestamp": "2020-01-23T21:07:15.000Z",
     "paymentMethod": "PayPal",
     "KID": "889942150",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Sightsavers",
+        "unit": "Ormekurer",
+        "organization": "Sightsavers",
+        "organizationId": 6,
+        "description": "Barn behandlet med ormekur for ett år",
+        "viaFund": false,
+        "amount": 12.5,
+        "count": 1.546414
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 8.4161,
+        "count": 0.008506
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 2.0419,
+        "count": 0.048949
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 2.0419,
+        "count": 0.034619
+      }
+    ]
   },
   {
     "id": 2205,
@@ -513,7 +2015,75 @@
     "timestamp": "2020-01-24T12:35:52.000Z",
     "paymentMethod": "PayPal",
     "KID": "973593270",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 2.5,
+        "count": 0.054931
+      },
+      {
+        "recipient": "SCI Foundation",
+        "unit": null,
+        "organization": "SCI Foundation",
+        "organizationId": 2,
+        "amount": 1.0,
+        "count": null
+      },
+      {
+        "recipient": "The END Fund",
+        "unit": "Ormekurer",
+        "organization": "The End Fund",
+        "organizationId": 3,
+        "description": "Barn behandlet med ormekur for ett år",
+        "viaFund": false,
+        "amount": 1.0,
+        "count": 0.140514
+      },
+      {
+        "recipient": "Drift av gieffektivt.no",
+        "unit": null,
+        "organization": "Drift av gieffektivt.no",
+        "organizationId": 11,
+        "amount": 3.0,
+        "count": null
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 1.6832,
+        "count": 0.001701
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.00979
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.006924
+      }
+    ]
   },
   {
     "id": 2335,
@@ -525,7 +2095,75 @@
     "timestamp": "2020-02-24T13:05:18.000Z",
     "paymentMethod": "PayPal",
     "KID": "973593270",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 2.5,
+        "count": 0.052252
+      },
+      {
+        "recipient": "SCI Foundation",
+        "unit": null,
+        "organization": "SCI Foundation",
+        "organizationId": 2,
+        "amount": 1.0,
+        "count": null
+      },
+      {
+        "recipient": "The END Fund",
+        "unit": "Ormekurer",
+        "organization": "The End Fund",
+        "organizationId": 3,
+        "description": "Barn behandlet med ormekur for ett år",
+        "viaFund": false,
+        "amount": 1.0,
+        "count": 0.133661
+      },
+      {
+        "recipient": "Drift av gieffektivt.no",
+        "unit": null,
+        "organization": "Drift av gieffektivt.no",
+        "organizationId": 11,
+        "amount": 3.0,
+        "count": null
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 1.6832,
+        "count": 0.001701
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.00979
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.4084,
+        "count": 0.006924
+      }
+    ]
   },
   {
     "id": 2465,
@@ -537,7 +2175,19 @@
     "timestamp": "2020-03-20T01:00:00.000Z",
     "paymentMethod": "Vipps KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 10.278614
+      }
+    ]
   },
   {
     "id": 2562,
@@ -549,7 +2199,39 @@
     "timestamp": "2020-04-17T09:26:58.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3188,
@@ -561,7 +2243,39 @@
     "timestamp": "2020-08-05T22:32:08.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.0,
+        "count": 0.0
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.0,
+        "count": 0.0
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.0,
+        "count": 0.0
+      }
+    ]
   },
   {
     "id": 3189,
@@ -573,7 +2287,39 @@
     "timestamp": "2020-08-05T20:32:08.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3190,
@@ -585,7 +2331,39 @@
     "timestamp": "2020-08-06T19:46:53.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.0,
+        "count": 0.0
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.0,
+        "count": 0.0
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.0,
+        "count": 0.0
+      }
+    ]
   },
   {
     "id": 3191,
@@ -597,7 +2375,39 @@
     "timestamp": "2020-08-06T17:46:53.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 13.4658,
+        "count": 0.01361
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.078319
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 3.2671,
+        "count": 0.055391
+      }
+    ]
   },
   {
     "id": 3192,
@@ -609,7 +2419,39 @@
     "timestamp": "2020-08-07T07:19:58.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3194,
@@ -621,7 +2463,39 @@
     "timestamp": "2020-08-10T07:17:37.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3247,
@@ -633,7 +2507,39 @@
     "timestamp": "2020-08-11T14:22:01.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3248,
@@ -645,7 +2551,39 @@
     "timestamp": "2020-08-11T14:25:09.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3249,
@@ -657,7 +2595,39 @@
     "timestamp": "2020-08-11T14:31:49.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 3368,
@@ -669,7 +2639,39 @@
     "timestamp": "2020-08-24T16:31:09.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 3370,
@@ -681,7 +2683,39 @@
     "timestamp": "2020-08-26T10:32:39.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3371,
@@ -693,7 +2727,39 @@
     "timestamp": "2020-08-26T13:10:45.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3372,
@@ -705,7 +2771,39 @@
     "timestamp": "2020-08-26T13:12:26.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3374,
@@ -717,7 +2815,39 @@
     "timestamp": "2020-08-26T13:31:45.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3375,
@@ -729,7 +2859,39 @@
     "timestamp": "2020-08-27T13:42:39.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3376,
@@ -741,7 +2903,39 @@
     "timestamp": "2020-08-27T16:39:31.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3384,
@@ -753,7 +2947,49 @@
     "timestamp": "2020-08-27T20:25:15.000Z",
     "paymentMethod": "Vipps",
     "KID": "29563244",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 5.0,
+        "count": 0.106238
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 3.3664,
+        "count": 0.003403
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.8168,
+        "count": 0.01958
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.8168,
+        "count": 0.013848
+      }
+    ]
   },
   {
     "id": 3385,
@@ -765,7 +3001,49 @@
     "timestamp": "2020-08-27T22:31:50.000Z",
     "paymentMethod": "PayPal",
     "KID": "74289539",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 8.0,
+        "count": 0.169981
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 1.3466,
+        "count": 0.001361
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.3267,
+        "count": 0.007832
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.3267,
+        "count": 0.005539
+      }
+    ]
   },
   {
     "id": 3388,
@@ -777,7 +3055,49 @@
     "timestamp": "2020-08-27T20:52:07.000Z",
     "paymentMethod": "Vipps",
     "KID": "74289539",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 8.0,
+        "count": 0.169981
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 1.3466,
+        "count": 0.001361
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.3267,
+        "count": 0.007832
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.3267,
+        "count": 0.005539
+      }
+    ]
   },
   {
     "id": 3389,
@@ -789,7 +3109,39 @@
     "timestamp": "2020-08-28T10:05:09.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 3390,
@@ -801,7 +3153,39 @@
     "timestamp": "2020-08-28T10:17:33.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 3391,
@@ -813,7 +3197,39 @@
     "timestamp": "2020-08-28T10:22:46.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 3392,
@@ -825,7 +3241,39 @@
     "timestamp": "2020-08-28T10:28:26.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 3393,
@@ -837,7 +3285,39 @@
     "timestamp": "2020-08-26T13:31:24.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 3408,
@@ -849,7 +3329,39 @@
     "timestamp": "2020-08-28T11:53:17.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 0.6733,
+        "count": 0.000681
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.003916
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.1634,
+        "count": 0.00277
+      }
+    ]
   },
   {
     "id": 3614649,
@@ -861,7 +3373,39 @@
     "timestamp": "2020-10-02T10:34:35.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 3.3664,
+        "count": 0.003403
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 0.8168,
+        "count": 0.01958
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 0.8168,
+        "count": 0.013848
+      }
+    ]
   },
   {
     "id": 4217,
@@ -873,7 +3417,39 @@
     "timestamp": "2020-12-09T17:20:03.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 4858,
@@ -885,7 +3461,19 @@
     "timestamp": "2021-01-13T01:00:00.000Z",
     "paymentMethod": "Bank",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 10000.0,
+        "count": 240.43349
+      }
+    ]
   },
   {
     "id": 5097,
@@ -897,7 +3485,39 @@
     "timestamp": "2021-02-05T11:44:25.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 5355,
@@ -909,7 +3529,39 @@
     "timestamp": "2021-02-27T15:12:21.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 5586,
@@ -921,7 +3573,39 @@
     "timestamp": "2021-03-19T14:01:40.000Z",
     "paymentMethod": "PayPal",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 5630,
@@ -933,7 +3617,39 @@
     "timestamp": "2021-03-26T15:02:10.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 5658,
@@ -945,7 +3661,39 @@
     "timestamp": "2021-03-27T16:37:35.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 5676,
@@ -957,7 +3705,39 @@
     "timestamp": "2021-04-04T14:57:29.000Z",
     "paymentMethod": "Vipps",
     "KID": "74651480",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": true,
+        "amount": 6.7329,
+        "count": 0.006805
+      },
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.039159
+      },
+      {
+        "recipient": "Malaria Consortium",
+        "unit": "Malariabehandlinger",
+        "organization": "GiveWell Top Charities Fund",
+        "organizationId": 12,
+        "description": "Barn behandlet med en full kur med malariamedisin",
+        "viaFund": true,
+        "amount": 1.6336,
+        "count": 0.027695
+      }
+    ]
   },
   {
     "id": 6069,
@@ -969,7 +3749,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 5000.0,
+        "count": 119.859335
+      }
+    ]
   },
   {
     "id": 6070,
@@ -981,7 +3773,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6071,
@@ -993,7 +3797,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 350.0,
+        "count": 8.390153
+      }
+    ]
   },
   {
     "id": 6072,
@@ -1005,7 +3821,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 6000.0,
+        "count": 143.831201
+      }
+    ]
   },
   {
     "id": 6073,
@@ -1017,7 +3845,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 279.0,
+        "count": 6.688151
+      }
+    ]
   },
   {
     "id": 6074,
@@ -1029,7 +3869,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1000.0,
+        "count": 23.971867
+      }
+    ]
   },
   {
     "id": 6075,
@@ -1041,7 +3893,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 100.0,
+        "count": 2.397187
+      }
+    ]
   },
   {
     "id": 6076,
@@ -1053,7 +3917,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6077,
@@ -1065,7 +3941,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 250.0,
+        "count": 5.992967
+      }
+    ]
   },
   {
     "id": 6078,
@@ -1077,7 +3965,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 200.0,
+        "count": 4.794373
+      }
+    ]
   },
   {
     "id": 6079,
@@ -1089,7 +3989,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6080,
@@ -1101,7 +4013,19 @@
     "timestamp": "2021-04-19T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1000.0,
+        "count": 23.971867
+      }
+    ]
   },
   {
     "id": 6081,
@@ -1113,7 +4037,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1200.0,
+        "count": 28.76624
+      }
+    ]
   },
   {
     "id": 6082,
@@ -1125,7 +4061,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 3500.0,
+        "count": 83.901534
+      }
+    ]
   },
   {
     "id": 6083,
@@ -1137,7 +4085,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 350.0,
+        "count": 8.390153
+      }
+    ]
   },
   {
     "id": 6084,
@@ -1149,7 +4109,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 150.0,
+        "count": 3.59578
+      }
+    ]
   },
   {
     "id": 6085,
@@ -1161,7 +4133,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 300.0,
+        "count": 7.19156
+      }
+    ]
   },
   {
     "id": 6086,
@@ -1173,7 +4157,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 200.0,
+        "count": 4.794373
+      }
+    ]
   },
   {
     "id": 6087,
@@ -1185,7 +4181,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6088,
@@ -1197,7 +4205,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1760.0,
+        "count": 42.190486
+      }
+    ]
   },
   {
     "id": 6089,
@@ -1209,7 +4229,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6090,
@@ -1221,7 +4253,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 300.0,
+        "count": 7.19156
+      }
+    ]
   },
   {
     "id": 6091,
@@ -1233,7 +4277,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1000.0,
+        "count": 23.971867
+      }
+    ]
   },
   {
     "id": 6092,
@@ -1245,7 +4301,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6093,
@@ -1257,7 +4325,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 100.0,
+        "count": 2.397187
+      }
+    ]
   },
   {
     "id": 6094,
@@ -1269,7 +4349,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 200.0,
+        "count": 4.794373
+      }
+    ]
   },
   {
     "id": 6095,
@@ -1281,7 +4373,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6096,
@@ -1293,7 +4397,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 250.0,
+        "count": 5.992967
+      }
+    ]
   },
   {
     "id": 6097,
@@ -1305,7 +4421,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 350.0,
+        "count": 8.390153
+      }
+    ]
   },
   {
     "id": 6098,
@@ -1317,7 +4445,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 3500.0,
+        "count": 83.901534
+      }
+    ]
   },
   {
     "id": 6099,
@@ -1329,7 +4469,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6100,
@@ -1341,7 +4493,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 200.0,
+        "count": 4.794373
+      }
+    ]
   },
   {
     "id": 6101,
@@ -1353,7 +4517,19 @@
     "timestamp": "2021-04-20T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6102,
@@ -1365,7 +4541,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 100.0,
+        "count": 2.397187
+      }
+    ]
   },
   {
     "id": 6103,
@@ -1377,7 +4565,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 2000.0,
+        "count": 47.943734
+      }
+    ]
   },
   {
     "id": 6104,
@@ -1389,7 +4589,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 750.0,
+        "count": 17.9789
+      }
+    ]
   },
   {
     "id": 6105,
@@ -1401,7 +4613,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1500.0,
+        "count": 35.9578
+      }
+    ]
   },
   {
     "id": 6106,
@@ -1413,7 +4637,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 100.0,
+        "count": 2.397187
+      }
+    ]
   },
   {
     "id": 6107,
@@ -1425,7 +4661,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 400.0,
+        "count": 9.588747
+      }
+    ]
   },
   {
     "id": 6108,
@@ -1437,7 +4685,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1000.0,
+        "count": 23.971867
+      }
+    ]
   },
   {
     "id": 6109,
@@ -1449,7 +4709,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 250.0,
+        "count": 5.992967
+      }
+    ]
   },
   {
     "id": 6110,
@@ -1461,7 +4733,19 @@
     "timestamp": "2021-04-21T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 100.0,
+        "count": 2.397187
+      }
+    ]
   },
   {
     "id": 6111,
@@ -1473,7 +4757,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 205.0,
+        "count": 4.914233
+      }
+    ]
   },
   {
     "id": 6112,
@@ -1485,7 +4781,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 420.0,
+        "count": 10.068184
+      }
+    ]
   },
   {
     "id": 6113,
@@ -1497,7 +4805,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6114,
@@ -1509,7 +4829,19 @@
     "timestamp": "2023-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 40000.0,
+        "count": 937.514633
+      }
+    ]
   },
   {
     "id": 6115,
@@ -1521,7 +4853,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1500.0,
+        "count": 35.9578
+      }
+    ]
   },
   {
     "id": 6116,
@@ -1533,7 +4877,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 1000.0,
+        "count": 23.971867
+      }
+    ]
   },
   {
     "id": 6117,
@@ -1545,7 +4901,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 2000.0,
+        "count": 47.943734
+      }
+    ]
   },
   {
     "id": 6130,
@@ -1557,7 +4925,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 600.0,
+        "count": 14.38312
+      }
+    ]
   },
   {
     "id": 6131,
@@ -1569,7 +4949,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6132,
@@ -1581,7 +4973,19 @@
     "timestamp": "2021-04-22T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 100.0,
+        "count": 2.397187
+      }
+    ]
   },
   {
     "id": 6133,
@@ -1593,7 +4997,19 @@
     "timestamp": "2021-04-23T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 650.0,
+        "count": 15.581713
+      }
+    ]
   },
   {
     "id": 6134,
@@ -1605,7 +5021,19 @@
     "timestamp": "2021-04-23T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 11.985933
+      }
+    ]
   },
   {
     "id": 6135,
@@ -1617,7 +5045,19 @@
     "timestamp": "2021-04-23T00:00:00.000Z",
     "paymentMethod": "Bank u/KID",
     "KID": "32245953",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 300.0,
+        "count": 7.19156
+      }
+    ]
   },
   {
     "id": 6136,
@@ -1629,7 +5069,39 @@
     "timestamp": "2021-05-10T00:00:00.000Z",
     "paymentMethod": "Bank",
     "KID": "47666474",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500.0,
+        "count": 12.398107
+      },
+      {
+        "recipient": "GiveDirectly",
+        "unit": "Dollar mottatt",
+        "organization": "GiveDirectly",
+        "organizationId": 7,
+        "description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "viaFund": false,
+        "amount": 200.0,
+        "count": 20.167588
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "New Incentives",
+        "organizationId": 14,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": false,
+        "amount": 300.0,
+        "count": 0.227354
+      }
+    ]
   },
   {
     "id": 6137,
@@ -1641,7 +5113,39 @@
     "timestamp": "2021-05-10T00:00:00.000Z",
     "paymentMethod": "Bank",
     "KID": "47666474",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 5500.0,
+        "count": 136.379181
+      },
+      {
+        "recipient": "GiveDirectly",
+        "unit": "Dollar mottatt",
+        "organization": "GiveDirectly",
+        "organizationId": 7,
+        "description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "viaFund": false,
+        "amount": 2200.0,
+        "count": 221.843467
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "New Incentives",
+        "organizationId": 14,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": false,
+        "amount": 3300.0,
+        "count": 2.500897
+      }
+    ]
   },
   {
     "id": 6138,
@@ -1653,7 +5157,39 @@
     "timestamp": "2021-05-10T00:00:00.000Z",
     "paymentMethod": "Bank",
     "KID": "47666474",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 20000.0,
+        "count": 495.924293
+      },
+      {
+        "recipient": "GiveDirectly",
+        "unit": "Dollar mottatt",
+        "organization": "GiveDirectly",
+        "organizationId": 7,
+        "description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "viaFund": false,
+        "amount": 8000.0,
+        "count": 806.703517
+      },
+      {
+        "recipient": "New Incentives",
+        "unit": "Vaksinasjoner",
+        "organization": "New Incentives",
+        "organizationId": 14,
+        "description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "viaFund": false,
+        "amount": 12000.0,
+        "count": 9.094171
+      }
+    ]
   },
   {
     "id": 77081,
@@ -1665,6 +5201,26 @@
     "timestamp": "2023-03-30T10:39:31.000Z",
     "paymentMethod": "Facebook",
     "KID": "00002752162",
-    "metaOwnerId": 3
+    "metaOwnerId": 3,
+    "impact": [
+      {
+        "recipient": "Against Malaria Foundation",
+        "unit": "Myggnett",
+        "organization": "Against Malaria Foundation",
+        "organizationId": 1,
+        "description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "viaFund": false,
+        "amount": 500000.0,
+        "count": 11599.094718
+      },
+      {
+        "recipient": "SCI Foundation",
+        "unit": null,
+        "organization": "SCI Foundation",
+        "organizationId": 2,
+        "amount": 500000.0,
+        "count": null
+      }
+    ]
   }
 ]

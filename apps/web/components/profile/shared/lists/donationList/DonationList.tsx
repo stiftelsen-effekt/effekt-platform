@@ -121,7 +121,6 @@ export const DonationList: React.FC<{
           donation={donation}
           sum={donation.sum}
           distribution={distributions.get(donation.KID.trim()) as Distribution}
-          timestamp={new Date(donation.timestamp)}
           configuration={detailsConfiguration}
           organizations={organizations}
           causeAreas={causeAreas}

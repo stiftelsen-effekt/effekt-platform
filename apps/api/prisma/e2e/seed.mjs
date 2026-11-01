@@ -13,7 +13,19 @@
  * Ids, KIDs and amounts the tests assert on live in ./data.mjs (imported by the Cypress specs).
  */
 import mysql from "mysql2/promise";
-import { AGF, AMF, DONOR_ID, HKI, KIDS, NI, RESULTS, TAX_UNITS } from "./data.mjs";
+import {
+  AGF,
+  AMF,
+  DONOR_ID,
+  DRIFT,
+  HKI,
+  KIDS,
+  NI,
+  NOK_PER_USD,
+  RESULTS,
+  TAX_UNITS,
+  TCF,
+} from "./data.mjs";
 
 /** [KID, [[causeAreaId, percent, standardSplit, [[orgId, percent], ...]], ...]] */
 const DISTRIBUTIONS = [
@@ -38,7 +50,21 @@ const DISTRIBUTIONS = [
   [KIDS.avtalegiro, [[1, 100, true, [[AGF, 100]]]]],
   [KIDS.avtalegiroToCancel, [[1, 100, true, [[AGF, 100]]]]],
   [KIDS.autogiro, [[1, 100, true, [[AGF, 100]]]]],
-  [KIDS.bank, [[1, 100, true, [[AGF, 100]]]]],
+  [
+    KIDS.bank,
+    [
+      [
+        1,
+        100,
+        false,
+        [
+          [TCF, 40],
+          [AMF, 40],
+          [DRIFT, 20],
+        ],
+      ],
+    ],
+  ],
 ];
 
 // Payment method ids from prisma/devdata/reference.ts
@@ -164,11 +190,41 @@ export async function seedE2E(conn) {
       );
     }
 
+    await seedImpact(conn);
+
     await conn.commit();
   } catch (e) {
     await conn.rollback();
     throw e;
   }
+}
+
+/**
+ * What the donor's impact figures (data.mjs IMPACT) rest on: the impact tables come from the
+ * migration 20261101120000_impact_tables (fixed rows), linked to this database's organizations by
+ * abbreviation as the dev seed does; the NOK rate is one fixed row (10 kr per USD) with no later
+ * NOK rates, so a rate fetched by the exchange-rate job can't change the figures.
+ */
+async function seedImpact(conn) {
+  for (const [charity, org] of [
+    ["AMF", "AMF"],
+    ["HKI", "HKI"],
+    ["NI", "NI"],
+    ["MC", "MC"],
+    ["AGF", "AGF"],
+  ]) {
+    await conn.query(
+      `UPDATE Impact_charities c JOIN Organizations o ON o.abbriv = ?
+          SET c.Organization_ID = o.ID
+        WHERE c.abbreviation = ?`,
+      [org, charity],
+    );
+  }
+  await conn.query("DELETE FROM Exchange_rates WHERE currency = 'NOK'");
+  await conn.query(
+    "INSERT INTO Exchange_rates (date, currency, per_usd, source) VALUES ('2013-01-01', 'NOK', ?, 'e2e')",
+    [NOK_PER_USD],
+  );
 }
 
 /** The referral columns of EffektAnalysisDB.OP_ref_data (all but Year, Inserted and Updated) */
