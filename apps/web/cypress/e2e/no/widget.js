@@ -315,38 +315,6 @@ describe("Widget", () => {
       cy.interceptTrpc("site.organizations", orgs).as("getOrganizations");
     });
 
-    cy.fixture(`evaluations/evaluations.json`)
-      .then((evaluations) => {
-        cy.intercept(
-          "https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=*&currency=*&language=*&donation_year=*&donation_month=*",
-          (req) => {
-            const [, abbriv, year, month] = req.url.match(
-              /.*abbreviation=(.*)&currency.*year=(\d{4}).*month=(\d{1,2})/,
-            );
-            const filename = `${year}-${month}-${abbriv}`;
-            if (evaluations[filename]) {
-              req.reply(evaluations[filename]);
-            } else {
-              req.reply({ evaluations: [] });
-            }
-          },
-        ).as("getEvaluations");
-      })
-      .as("evaluationFixture");
-
-    cy.fixture("grants")
-      .then((grants) => {
-        cy.intercept(
-          "GET",
-          "https://impact.gieffektivt.no/api/max_impact_fund_grants?currency=*&language=*&*",
-          {
-            statusCode: 200,
-            body: grants,
-          },
-        ).as("getGrants");
-      })
-      .as("grantsFixture");
-
     cy.wait(500);
     cy.visit({
       url: "/min-side",

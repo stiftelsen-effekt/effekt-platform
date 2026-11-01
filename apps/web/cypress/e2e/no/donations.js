@@ -120,7 +120,7 @@ describe("Donations page", () => {
       .first()
       .should("contain.text", "dollar mottatt");
 
-    // Each donation's impact comes with minside.donations (fixtures/no/donations.json, made from
+    // Each donation's impact comes with minside.donations (fixtures/no/donations.json, made once from
     // the evaluation and grant fixtures with the server's rules): the Top Charities Fund part is
     // split by the grant's allotments at their own cost per output.
     cy.get("[data-cy=donation-aggregate-impact-distribution-row]")
