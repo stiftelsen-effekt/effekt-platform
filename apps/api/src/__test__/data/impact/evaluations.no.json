@@ -1,0 +1,1504 @@
+{
+  "evaluations": [
+    {
+      "id": 1,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 45.51202925045703,
+      "exchange_rate_date": "2020-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 1,
+      "cents_per_output": 518,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 3,
+      "intervention": {
+        "long_description": "Barn som får A-vitamintilskudd",
+        "short_description": "A-vitamintilskudd",
+        "id": 3
+      },
+      "converted_cost_per_output": 10.016160877513709,
+      "exchange_rate_date": "2020-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 1,
+      "cents_per_output": 114,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 3,
+        "charity_name": "Helen Keller International",
+        "abbreviation": "HKI"
+      }
+    },
+    {
+      "id": 4,
+      "intervention": {
+        "long_description": "Barn som får A-vitamintilskudd",
+        "short_description": "A-vitamintilskudd",
+        "id": 3
+      },
+      "converted_cost_per_output": 9.375143049135596,
+      "exchange_rate_date": "2021-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 1,
+      "cents_per_output": 110,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 3,
+        "charity_name": "Helen Keller International",
+        "abbreviation": "HKI"
+      }
+    },
+    {
+      "id": 5,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 41.50631513571851,
+      "exchange_rate_date": "2021-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 1,
+      "cents_per_output": 487,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1AqmTkXS8CporZ0TIWPpCcesAgc9nxqYLg9GGlTp66Ng/edit#gid=1202507677&range=B36",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 15,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 6.763031448442698,
+      "exchange_rate_date": "2013-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2013,
+      "start_month": 1,
+      "cents_per_output": 122,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 8,
+        "charity_name": "GiveDirectly",
+        "abbreviation": "GD"
+      }
+    },
+    {
+      "id": 16,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 10.575846470798995,
+      "exchange_rate_date": "2016-08-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 8,
+      "cents_per_output": 125,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 8,
+        "charity_name": "GiveDirectly",
+        "abbreviation": "GD"
+      }
+    },
+    {
+      "id": 17,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 9.524279023909292,
+      "exchange_rate_date": "2018-03-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 3,
+      "cents_per_output": 120,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 8,
+        "charity_name": "GiveDirectly",
+        "abbreviation": "GD"
+      }
+    },
+    {
+      "id": 18,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 6.763031448442698,
+      "exchange_rate_date": "2013-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2013,
+      "start_month": 1,
+      "cents_per_output": 122,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 9,
+        "charity_name": "GiveDirectly | Universial Basic Income Study",
+        "abbreviation": "UBI"
+      }
+    },
+    {
+      "id": 19,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 10.575846470798995,
+      "exchange_rate_date": "2016-08-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 8,
+      "cents_per_output": 125,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 9,
+        "charity_name": "GiveDirectly | Universial Basic Income Study",
+        "abbreviation": "UBI"
+      }
+    },
+    {
+      "id": 20,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 9.08774551303759,
+      "exchange_rate_date": "2017-08-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 8,
+      "cents_per_output": 115,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 8,
+        "charity_name": "GiveDirectly",
+        "abbreviation": "GD"
+      }
+    },
+    {
+      "id": 21,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 9.08774551303759,
+      "exchange_rate_date": "2017-08-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 8,
+      "cents_per_output": 115,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 9,
+        "charity_name": "GiveDirectly | Universial Basic Income Study",
+        "abbreviation": "UBI"
+      }
+    },
+    {
+      "id": 22,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+        "short_description": "Dollar mottatt",
+        "id": 6
+      },
+      "converted_cost_per_output": 9.524279023909292,
+      "exchange_rate_date": "2018-03-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 3,
+      "cents_per_output": 120,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 9,
+        "charity_name": "GiveDirectly | Universial Basic Income Study",
+        "abbreviation": "UBI"
+      }
+    },
+    {
+      "id": 23,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 62.64493601462522,
+      "exchange_rate_date": "2020-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 1,
+      "cents_per_output": 713,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 24,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 62.3873155633387,
+      "exchange_rate_date": "2021-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 1,
+      "cents_per_output": 732,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 25,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 61.9754816824966,
+      "exchange_rate_date": "2019-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 1,
+      "cents_per_output": 713,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 26,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 53.23499315182203,
+      "exchange_rate_date": "2018-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 1,
+      "cents_per_output": 655,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 27,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 58.84696037621937,
+      "exchange_rate_date": "2017-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 1,
+      "cents_per_output": 681,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 28,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 48.46901558805298,
+      "exchange_rate_date": "2016-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 1,
+      "cents_per_output": 549,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 30,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 39.685537414965985,
+      "exchange_rate_date": "2016-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 11,
+      "cents_per_output": 485,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 31,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 34.38289700310024,
+      "exchange_rate_date": "2017-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 11,
+      "cents_per_output": 422,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 32,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 37.83283595190029,
+      "exchange_rate_date": "2018-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 11,
+      "cents_per_output": 453,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 33,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 41.51655444833468,
+      "exchange_rate_date": "2019-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 11,
+      "cents_per_output": 455,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 34,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 8.50988843537415,
+      "exchange_rate_date": "2016-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 11,
+      "cents_per_output": 104,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 7,
+        "charity_name": "Sightsavers",
+        "abbreviation": "SS"
+      }
+    },
+    {
+      "id": 35,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 9.940079228384429,
+      "exchange_rate_date": "2017-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 11,
+      "cents_per_output": 122,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 7,
+        "charity_name": "Sightsavers",
+        "abbreviation": "SS"
+      }
+    },
+    {
+      "id": 36,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 7.934038444659001,
+      "exchange_rate_date": "2018-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 11,
+      "cents_per_output": 95,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 7,
+        "charity_name": "Sightsavers",
+        "abbreviation": "SS"
+      }
+    },
+    {
+      "id": 37,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 9.671988508842807,
+      "exchange_rate_date": "2019-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 11,
+      "cents_per_output": 106,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 7,
+        "charity_name": "Sightsavers",
+        "abbreviation": "SS"
+      }
+    },
+    {
+      "id": 38,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 8.083217550274222,
+      "exchange_rate_date": "2020-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 1,
+      "cents_per_output": 92,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 7,
+        "charity_name": "Sightsavers",
+        "abbreviation": "SS"
+      }
+    },
+    {
+      "id": 39,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 7.658749569410954,
+      "exchange_rate_date": "2017-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 11,
+      "cents_per_output": 94,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 5,
+        "charity_name": "The END Fund",
+        "abbreviation": "END"
+      }
+    },
+    {
+      "id": 40,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 6.5832586951108185,
+      "exchange_rate_date": "2018-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 1,
+      "cents_per_output": 81,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 5,
+        "charity_name": "The END Fund",
+        "abbreviation": "END"
+      }
+    },
+    {
+      "id": 41,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 9.431255230125522,
+      "exchange_rate_date": "2015-04-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2015,
+      "start_month": 4,
+      "cents_per_output": 117,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 2,
+        "charity_name": "SCI Foundation",
+        "abbreviation": "SCI"
+      }
+    },
+    {
+      "id": 42,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 7.514425297410776,
+      "exchange_rate_date": "2016-04-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 4,
+      "cents_per_output": 91,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 2,
+        "charity_name": "SCI Foundation",
+        "abbreviation": "SCI"
+      }
+    },
+    {
+      "id": 43,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 9.263200074899355,
+      "exchange_rate_date": "2017-04-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 4,
+      "cents_per_output": 108,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 2,
+        "charity_name": "SCI Foundation",
+        "abbreviation": "SCI"
+      }
+    },
+    {
+      "id": 44,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 7.916374947211125,
+      "exchange_rate_date": "2018-04-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 4,
+      "cents_per_output": 101,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 2,
+        "charity_name": "SCI Foundation",
+        "abbreviation": "SCI"
+      }
+    },
+    {
+      "id": 45,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 8.835119259522964,
+      "exchange_rate_date": "2019-04-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 4,
+      "cents_per_output": 103,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 2,
+        "charity_name": "SCI Foundation",
+        "abbreviation": "SCI"
+      }
+    },
+    {
+      "id": 46,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 4.836066019769657,
+      "exchange_rate_date": "2015-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2015,
+      "start_month": 11,
+      "cents_per_output": 57,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 6,
+        "charity_name": "Deworm the World",
+        "abbreviation": "DTW"
+      }
+    },
+    {
+      "id": 47,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 6.164437086092716,
+      "exchange_rate_date": "2016-06-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 6,
+      "cents_per_output": 74,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 6,
+        "charity_name": "Deworm the World",
+        "abbreviation": "DTW"
+      }
+    },
+    {
+      "id": 48,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 4.336770068027211,
+      "exchange_rate_date": "2016-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 11,
+      "cents_per_output": 53,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 6,
+        "charity_name": "Deworm the World",
+        "abbreviation": "DTW"
+      }
+    },
+    {
+      "id": 49,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 6.273656562177059,
+      "exchange_rate_date": "2017-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 11,
+      "cents_per_output": 77,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 6,
+        "charity_name": "Deworm the World",
+        "abbreviation": "DTW"
+      }
+    },
+    {
+      "id": 50,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 5.094487843412622,
+      "exchange_rate_date": "2018-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 11,
+      "cents_per_output": 61,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 6,
+        "charity_name": "Deworm the World",
+        "abbreviation": "DTW"
+      }
+    },
+    {
+      "id": 51,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 4.562258730586229,
+      "exchange_rate_date": "2019-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 11,
+      "cents_per_output": 50,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 6,
+        "charity_name": "Deworm the World",
+        "abbreviation": "DTW"
+      }
+    },
+    {
+      "id": 52,
+      "intervention": {
+        "long_description": "Barn behandlet med ormekur for ett år",
+        "short_description": "Ormekurer",
+        "id": 4
+      },
+      "converted_cost_per_output": 6.853926061367921,
+      "exchange_rate_date": "2020-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 11,
+      "cents_per_output": 72,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 6,
+        "charity_name": "Deworm the World",
+        "abbreviation": "DTW"
+      }
+    },
+    {
+      "id": 53,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 37.236532128154636,
+      "exchange_rate_date": "2016-06-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 6,
+      "cents_per_output": 447,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 54,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 44.966929657507336,
+      "exchange_rate_date": "2015-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2015,
+      "start_month": 11,
+      "cents_per_output": 530,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 55,
+      "intervention": {
+        "long_description": "Barn som får A-vitamintilskudd",
+        "short_description": "A-vitamintilskudd",
+        "id": 3
+      },
+      "converted_cost_per_output": 11.223156477242124,
+      "exchange_rate_date": "2019-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 11,
+      "cents_per_output": 123,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 3,
+        "charity_name": "Helen Keller International",
+        "abbreviation": "HKI"
+      }
+    },
+    {
+      "id": 56,
+      "intervention": {
+        "long_description": "Barn som får A-vitamintilskudd",
+        "short_description": "A-vitamintilskudd",
+        "id": 3
+      },
+      "converted_cost_per_output": 11.274686210831215,
+      "exchange_rate_date": "2018-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 11,
+      "cents_per_output": 135,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 3,
+        "charity_name": "Helen Keller International",
+        "abbreviation": "HKI"
+      }
+    },
+    {
+      "id": 57,
+      "intervention": {
+        "long_description": "Barn som får A-vitamintilskudd",
+        "short_description": "A-vitamintilskudd",
+        "id": 3
+      },
+      "converted_cost_per_output": 6.110704443678952,
+      "exchange_rate_date": "2017-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 11,
+      "cents_per_output": 75,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 3,
+        "charity_name": "Helen Keller International",
+        "abbreviation": "HKI"
+      }
+    },
+    {
+      "id": 58,
+      "intervention": {
+        "long_description": "Kostnaden å gi husholdninger et rentefritt lån som gir migranter muligheten til å finne arbeid utenfor landbrukssesongen",
+        "short_description": "Lån gitt",
+        "id": 8
+      },
+      "converted_cost_per_output": 152.36023079572857,
+      "exchange_rate_date": "2017-11-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2017,
+      "start_month": 11,
+      "cents_per_output": 1870,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 11,
+        "charity_name": "No Lean Season",
+        "abbreviation": "NLS"
+      }
+    },
+    {
+      "id": 63,
+      "intervention": {
+        "long_description": "Basismatvarer for en person beriket med essensielle vitaminer og mineraler i ett år i områder utsatt for feilernæring",
+        "short_description": "År med næringstilsetting",
+        "id": 7
+      },
+      "converted_cost_per_output": 0.4325615582506432,
+      "exchange_rate_date": "2016-02-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2016,
+      "start_month": 2,
+      "cents_per_output": 5,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 12,
+        "charity_name": "Project Healthy Children",
+        "abbreviation": "PHC"
+      }
+    },
+    {
+      "id": 64,
+      "intervention": {
+        "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "short_description": "Vaksinasjoner",
+        "id": 5
+      },
+      "converted_cost_per_output": 1249.2085557586838,
+      "exchange_rate_date": "2020-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 1,
+      "cents_per_output": 14218,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 4,
+        "charity_name": "New Incentives",
+        "abbreviation": "NI"
+      }
+    },
+    {
+      "id": 65,
+      "intervention": {
+        "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "short_description": "Vaksinasjoner",
+        "id": 5
+      },
+      "converted_cost_per_output": 1360.8446278686188,
+      "exchange_rate_date": "2021-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 1,
+      "cents_per_output": 15967,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 4,
+        "charity_name": "New Incentives",
+        "abbreviation": "NI"
+      }
+    },
+    {
+      "id": 68,
+      "intervention": {
+        "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger i Jemen",
+        "short_description": "Dollar mottatt som zakat",
+        "id": 9
+      },
+      "converted_cost_per_output": 10.435162477007973,
+      "exchange_rate_date": "2023-04-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 4,
+      "cents_per_output": 100,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "",
+      "source_url": "",
+      "comment": "",
+      "charity": {
+        "id": 13,
+        "charity_name": "GiveDirectly Zakat Fund",
+        "abbreviation": "GDZF"
+      }
+    },
+    {
+      "id": 69,
+      "intervention": {
+        "long_description": "Dollar mottatt som klimatilpasning",
+        "short_description": "Dollar mottatt som klimatilpasning",
+        "id": 10
+      },
+      "converted_cost_per_output": 11.32365134865135,
+      "exchange_rate_date": "2023-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 1,
+      "cents_per_output": 115,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveDirectly",
+      "source_url": "https://www.givedirectly.org/climate/\r\nhttps://www.givedirectly.org/yes-we-have-costs/",
+      "comment": "They don't say anything different than their general cost per dollar received",
+      "charity": {
+        "id": 14,
+        "charity_name": "GiveDirectly Climate Survival Fund",
+        "abbreviation": "GDCSF"
+      }
+    },
+    {
+      "id": 70,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 48.57345223042314,
+      "exchange_rate_date": "2022-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 1,
+      "cents_per_output": 551,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=386901628#gid=386901628",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 71,
+      "intervention": {
+        "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+        "short_description": "Myggnett",
+        "id": 2
+      },
+      "converted_cost_per_output": 57.60292207792208,
+      "exchange_rate_date": "2023-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 1,
+      "cents_per_output": 585,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+      "comment": "",
+      "charity": {
+        "id": 1,
+        "charity_name": "Against Malaria Foundation",
+        "abbreviation": "AMF"
+      }
+    },
+    {
+      "id": 72,
+      "intervention": {
+        "long_description": "Barn som får A-vitamintilskudd",
+        "short_description": "A-vitamintilskudd",
+        "id": 3
+      },
+      "converted_cost_per_output": 17.102086629223393,
+      "exchange_rate_date": "2022-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 1,
+      "cents_per_output": 194,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=386901628#gid=386901628",
+      "comment": "",
+      "charity": {
+        "id": 3,
+        "charity_name": "Helen Keller International",
+        "abbreviation": "HKI"
+      }
+    },
+    {
+      "id": 73,
+      "intervention": {
+        "long_description": "Barn som får A-vitamintilskudd",
+        "short_description": "A-vitamintilskudd",
+        "id": 3
+      },
+      "converted_cost_per_output": 19.988706293706294,
+      "exchange_rate_date": "2023-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 1,
+      "cents_per_output": 203,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+      "comment": "",
+      "charity": {
+        "id": 3,
+        "charity_name": "Helen Keller International",
+        "abbreviation": "HKI"
+      }
+    },
+    {
+      "id": 74,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 58.00604640221131,
+      "exchange_rate_date": "2022-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 1,
+      "cents_per_output": 658,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 75,
+      "intervention": {
+        "long_description": "Barn behandlet med en full kur med malariamedisin",
+        "short_description": "Malariabehandlinger",
+        "id": 1
+      },
+      "converted_cost_per_output": 78.87169330669332,
+      "exchange_rate_date": "2023-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 1,
+      "cents_per_output": 801,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+      "comment": "",
+      "charity": {
+        "id": 10,
+        "charity_name": "Malaria Consortium",
+        "abbreviation": "MC"
+      }
+    },
+    {
+      "id": 76,
+      "intervention": {
+        "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "short_description": "Vaksinasjoner",
+        "id": 5
+      },
+      "converted_cost_per_output": 1330.3483985650012,
+      "exchange_rate_date": "2022-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 1,
+      "cents_per_output": 15091,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=386901628#gid=386901628",
+      "comment": "",
+      "charity": {
+        "id": 4,
+        "charity_name": "New Incentives",
+        "abbreviation": "NI"
+      }
+    },
+    {
+      "id": 77,
+      "intervention": {
+        "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+        "short_description": "Vaksinasjoner",
+        "id": 5
+      },
+      "converted_cost_per_output": 1307.0447652347655,
+      "exchange_rate_date": "2023-01-01",
+      "currency": "NOK",
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 1,
+      "cents_per_output": 13274,
+      "cents_per_output_upper_bound": null,
+      "cents_per_output_lower_bound": 0,
+      "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+      "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=386901628#gid=386901628",
+      "comment": "",
+      "charity": {
+        "id": 4,
+        "charity_name": "New Incentives",
+        "abbreviation": "NI"
+      }
+    }
+  ]
+}

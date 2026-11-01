@@ -6,8 +6,9 @@ import { join } from "node:path";
 import request from "supertest";
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
-import * as currency from "../custom_modules/currency";
-import * as results from "../custom_modules/results";
+import * as exchangeRates from "../custom_modules/exchangeRates";
+import * as impactData from "../custom_modules/impact/data";
+import { buildImpactData, type ImpactRows } from "../custom_modules/impact/data";
 import { mountTrpc } from "../trpc/express";
 import { appRouter } from "../trpc/router";
 import {
@@ -84,43 +85,70 @@ const monthlySums = [
   { Org: "TCF", DonationMonth: "2024-02", TotalDonations: "3000" },
 ];
 
-const evaluation = (abbreviation: string, short_description: string, cents_per_output: number) => ({
-  charity: { abbreviation },
-  intervention: { short_description },
-  start_year: 2023,
-  start_month: 1,
-  cents_per_output,
+/** The impact tables for the sums above: AMF and Sightsavers evaluations, one TCF grant */
+const impactRows = (): ImpactRows => ({
+  charities: [
+    { ID: 1, name: "Against Malaria Foundation", abbreviation: "AMF", Organization_ID: 1 },
+    { ID: 7, name: "Sightsavers", abbreviation: "SS", Organization_ID: 6 },
+    { ID: 3, name: "Helen Keller International", abbreviation: "HKI", Organization_ID: 10 },
+  ],
+  interventions: [
+    { ID: 2, short_description: "Bednets", long_description: "" },
+    { ID: 4, short_description: "Surgeries", long_description: "" },
+    { ID: 3, short_description: "Vitamin A supplements", long_description: "" },
+  ],
+  texts: [
+    { Intervention_ID: 2, language: "no", short_description: "Myggnett", long_description: "" },
+    { Intervention_ID: 4, language: "no", short_description: "Operasjoner", long_description: "" },
+    { Intervention_ID: 3, language: "no", short_description: "Vitamin A", long_description: "" },
+  ],
+  evaluations: [
+    [1, 1, 2, 200],
+    [2, 7, 4, 5000],
+  ].map(([ID, Charity_ID, Intervention_ID, cents_per_output]) => ({
+    ID,
+    Charity_ID,
+    Intervention_ID,
+    valid_from: "2023-01-01",
+    cents_per_output,
+    cents_per_output_lower_bound: 0,
+    cents_per_output_upper_bound: null,
+    source_name: "",
+    source_url: "",
+    comment: "",
+  })),
+  grants: [{ ID: 1, fund: "TCF", valid_from: "2023-06-01", legacy_id: 1 }],
+  allotments: [
+    [1, 1, 2, 60000, 300],
+    [2, 3, 3, 40000, 400],
+  ].map(([ID, Charity_ID, Intervention_ID, sum_in_cents, number_outputs_purchased]) => ({
+    ID,
+    Grant_ID: 1,
+    Charity_ID,
+    Intervention_ID,
+    sum_in_cents,
+    number_outputs_purchased,
+    number_outputs_purchased_lower_bound: 0,
+    number_outputs_purchased_upper_bound: null,
+    source_name: "",
+    source_url: "",
+    comment: "",
+  })),
+  organizations: [
+    { ID: 1, abbriv: "AMF", full_name: "Against Malaria Foundation" },
+    { ID: 6, abbriv: "Sight", full_name: "Sightsavers" },
+    { ID: 10, abbriv: "HKI", full_name: "Helen Keller International" },
+    { ID: 12, abbriv: "TCF", full_name: "GiveWell Top Charities Fund" },
+  ],
 });
 
 const stubMonthlyOutputs = () => {
   sinon.stub(DAO.results, "getMonthlyDonationsPerOrg").resolves(monthlySums);
-  sinon.stub(results, "getEvaluations").resolves({
-    evaluations: [evaluation("amf", "Myggnett", 200), evaluation("ss", "Operasjoner", 5000)],
-  } as any);
-  sinon.stub(results, "getMaximumImpactGrants").resolves({
-    max_impact_fund_grants: [
-      {
-        start_year: 2023,
-        start_month: 6,
-        allotment_set: [
-          {
-            intervention: { short_description: "Myggnett" },
-            charity: { abbreviation: "AMF" },
-            sum_in_cents: 60000,
-            number_outputs_purchased: 300,
-          },
-          {
-            intervention: { short_description: "Vitamin A" },
-            charity: { abbreviation: "HKI" },
-            sum_in_cents: 40000,
-            number_outputs_purchased: 400,
-          },
-        ],
-      },
-    ],
-  } as any);
-  sinon.stub(currency, "getExchangeRates").resolves({} as any);
-  sinon.stub(currency, "getBestExchangeRate").returns(10);
+  sinon.stub(impactData, "getImpactData").resolves(buildImpactData(impactRows()));
+  // 10 NOK per USD
+  sinon
+    .stub(exchangeRates, "loadUsdRates")
+    .resolves({ currency: "NOK", dates: ["2023-01-02"], perUsd: [10] });
 };
 
 describe("tRPC site router", () => {

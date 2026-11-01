@@ -50,6 +50,7 @@ const testDbConfigured = [
   "REGRANTING_TEST_DB_URL",
   "REGRANTING_SEED_DB_URL",
   "TIMESTAMPS_TEST_DB_URL",
+  "IMPACT_TEST_DB_URL",
 ].some((name) => !!process.env[name]);
 
 export default defineConfig({
