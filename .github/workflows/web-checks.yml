@@ -31,7 +31,7 @@ jobs:
   # "web-checks (required)" below is the check to require: it passes when the checks passed or
   # had nothing to check. docs/dependencies.md
   changes:
-    name: Changed paths
+    name: web-checks · changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

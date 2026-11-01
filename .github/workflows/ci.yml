@@ -1,0 +1,142 @@
+name: CI
+# The pull request checks for the whole platform, one run per push (docs/ci.md). `changes` decides
+# which lanes a pull request touches; a lane without changes ends right away as "<app> · no change"
+# instead of being skipped, and "CI (required)" sums up every lane.
+run-name: "CI · ${{ github.event.pull_request.title }}"
+on:
+  pull_request:
+permissions: {}
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      admin: ${{ steps.match.outputs.admin }}
+      functions: ${{ steps.match.outputs.functions }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Match the changed files to lanes
+        id: match
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+        run: bash scripts/ci/changes.sh
+
+  admin:
+    name: ${{ needs.changes.outputs.admin == 'true' && 'admin · typecheck + test + build' || 'admin · no change' }}
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      RUN: ${{ needs.changes.outputs.admin }}
+    steps:
+      - name: No admin change
+        if: env.RUN != 'true'
+        run: echo "No change to the admin or what it is built from; nothing to check." | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The pnpm version comes from packageManager in the root package.json.
+      - name: Setup pnpm
+        if: env.RUN == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node
+        if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      # The same install as AdminDeploy (cloudbuild.admin.yaml): the admin and the backend, whose
+      # tRPC types it compiles against.
+      - name: Install dependencies
+        if: env.RUN == 'true'
+        run: pnpm install --frozen-lockfile --filter stiftelsen-effekt-backend --filter effekt-admin-v2
+      - name: Typecheck
+        if: env.RUN == 'true'
+        run: pnpm --dir apps/admin typecheck
+      - name: Test
+        if: env.RUN == 'true'
+        run: pnpm --dir apps/admin test
+      # After the typecheck: both write the generated route tree (src/routeTree.gen.ts).
+      - name: Build
+        if: env.RUN == 'true'
+        run: pnpm --dir apps/admin build
+
+  functions:
+    name: ${{ needs.changes.outputs.functions == 'true' && 'functions · test' || 'functions · no change' }}
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      RUN: ${{ needs.changes.outputs.functions }}
+    steps:
+      - name: No functions change
+        if: env.RUN != 'true'
+        run: echo "No change to functions/*; nothing to check." | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Checkout
+        if: env.RUN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        if: env.RUN == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node
+        if: env.RUN == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        if: env.RUN == 'true'
+        run: pnpm install --frozen-lockfile --filter "./functions/*"
+      # Typecheck and test where a function has them (lint and format are repository-wide, in QA)
+      - name: Typecheck and test
+        if: env.RUN == 'true'
+        run: |
+          pnpm --filter "./functions/*" --if-present typecheck
+          pnpm --filter "./functions/*" --if-present test
+
+  required:
+    name: CI (required)
+    needs: [changes, admin, functions]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Sum up the lanes
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          {
+            echo "| Lane | Result |"
+            echo "| --- | --- |"
+            echo "$RESULTS" | jq -r 'to_entries[] | "| \(.key) | \(.value.result) |"'
+          } >>"$GITHUB_STEP_SUMMARY"
+          failed=$(echo "$RESULTS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
+          if [ -n "$failed" ]; then
+            echo "::error::Not successful: $failed"
+            exit 1
+          fi

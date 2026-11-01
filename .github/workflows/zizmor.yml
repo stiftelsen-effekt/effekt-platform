@@ -32,10 +32,13 @@ jobs:
           version: "1.31.1"
           advanced-security: false
           annotations: true
-  # Uploads the same results as SARIF to the repository's code scanning alerts.
-  # Kept as a separate job so that only it gets security-events: write.
+  # Uploads the same results as SARIF to the repository's code scanning alerts, from main only:
+  # on a pull request the upload adds a second check named "zizmor" (from code scanning) next to
+  # the job above, with the same result. Kept as a separate job so that only it gets
+  # security-events: write.
   sarif:
     name: zizmor (code scanning)
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
