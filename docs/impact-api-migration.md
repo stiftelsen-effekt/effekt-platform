@@ -426,3 +426,20 @@ Settled on 2026-11-01:
   all of a donation's charities at once) have sometimes shown no figure for a charity because of
   it. The compatibility REST must not
   copy this.
+
+### Phase 3 notes
+
+- `minside.donations` sends each donation's `impact` (the Danish shape plus optional
+  `organizationId`, so Min Side matches entries to the distribution's organizations without
+  matching names, `description`, the output's long text that Min Side shows when
+  a row is opened, and `viaFund`, whether the part was split by a fund's grant). The page's year and all-time impact tables sum those entries
+  in the browser: the sum is the same as `sumImpactEntries` on the server, needs no second
+  request, and works unchanged on the Danish site, whose backend already sends per-donation
+  `impact`. A response-level aggregate would have changed the procedure's output from an array to
+  an object (and the Danish REST contract with it) for no saving.
+- A donation whose day has no exchange rate gets no `impact` field, and a failed impact lookup
+  leaves the field out on every donation instead of failing the list; Min Side then shows the
+  amounts without an estimate.
+- `site.impactCosts` refuses to be batched (its `Cache-Control: public` header would cover the
+  other answers in the batch) and answers any origin (CORS `*`, as the legacy API did), because
+  the Danish and Swedish sites call it on the Norwegian API.

@@ -112,12 +112,19 @@ export function estimateDonation(
  * One entry of a donation's `impact` in the Danish backend's shape (`minside.donations`,
  * apps/api/src/trpc/shared/minside.ts): `recipient` is the charity, `organization` the
  * organization's name as Min Side lists it, `unit` the output, `count` the number of outputs
- * (null: no estimate) and `amount` the part of the donation.
+ * (null: no estimate) and `amount` the part of the donation. `organizationId` (only our backend
+ * sends it) is the organization's ID, so Min Side can tell money given through a fund from money
+ * given directly without matching names; `description` (only ours, only with a count) is the
+ * output's long description ("Myggnett impregnert med insektmiddel levert til husholdninger"), and
+ * `viaFund` (only ours, only with a count) whether the part was split by a fund's grant.
  */
 export type DonationImpactEntry = {
   recipient: string;
   unit: string | null;
   organization: string | null;
+  organizationId: number;
+  description?: string;
+  viaFund?: boolean;
   amount: number;
   count: number | null;
 };
@@ -143,6 +150,9 @@ export function toImpactEntries(
         recipient: line.charityName,
         unit: line.unit,
         organization: data.organizationNames.get(line.organizationId) ?? null,
+        organizationId: line.organizationId,
+        description: line.longDescription,
+        viaFund: line.basis.kind === "allotment",
         amount: line.amount,
         count: line.outputs,
       });
@@ -151,7 +161,14 @@ export function toImpactEntries(
   const out = [...entries.values()];
   for (const { organizationId, amount } of estimate.withoutEstimate) {
     const name = data.organizationNames.get(organizationId) ?? null;
-    out.push({ recipient: name ?? "", unit: null, organization: name, amount, count: null });
+    out.push({
+      recipient: name ?? "",
+      unit: null,
+      organization: name,
+      organizationId,
+      amount,
+      count: null,
+    });
   }
   return out;
 }
@@ -163,7 +180,7 @@ export function toImpactEntries(
 export function sumImpactEntries(entries: Iterable<DonationImpactEntry>): DonationImpactEntry[] {
   const sums = new Map<string, DonationImpactEntry>();
   for (const e of entries) {
-    const key = `${e.organization}\u0000${e.recipient}\u0000${e.unit}`;
+    const key = `${e.organizationId}\u0000${e.recipient}\u0000${e.unit}`;
     const sum = sums.get(key);
     if (!sum) sums.set(key, { ...e });
     else {

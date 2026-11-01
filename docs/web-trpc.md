@@ -31,6 +31,10 @@ Mutations (the web helpers take the client from `useTrpcClient`):
 | `minside.updateAvtaleGiroDistribution`     | `POST /avtalegiro/:KID/distribution`                        | none                                  |
 | `minside.cancelAvtaleGiroAgreement`        | `POST /avtalegiro/:KID/status` (`active: 0`)                | none                                  |
 
+`minside.donations` also carries each donation's impact (`impact`, see
+[impact-api-migration.md](impact-api-migration.md#phase-3-notes)); the donations page reads all of
+its impact figures from it.
+
 Amounts are whole kroner (the procedures convert to øre). Still on REST:
 the stopped-agreement feedback (`/agreementfeedback`) and the
 Danish agreement routes (`useDKAgreements`, `updateDKAgreement`, `cancelDKAgreement`).

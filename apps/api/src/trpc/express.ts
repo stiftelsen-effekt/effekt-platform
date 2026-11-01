@@ -16,20 +16,39 @@ export const publicMutations = new Set(
     .map(([path]) => path),
 );
 
+/**
+ * Public reads that answer with a shared cache header (`Cache-Control: public`) and to any origin
+ * (CORS `*`): site.impactCosts, which all three websites' intervention widgets call. In a batch the
+ * header would also cover the other calls' answers, a donor's data among them, so a batch that
+ * includes one is refused too.
+ */
+export const publicCachedReads = new Set(["site.impactCosts"]);
+
+const refuseBatch = (res: Parameters<RequestHandler>[1], message: string) =>
+  res.status(400).json({
+    error: { message, code: -32600, data: { code: "BAD_REQUEST", httpStatus: 400 } },
+  });
+
 export const rejectBatchedWidgetMutations: RequestHandler = (req, res, next) => {
   const paths = decodeURIComponent(req.path.replace(/^\//, "")).split(",");
   if (paths.length > 1 && paths.some((path) => publicMutations.has(path))) {
-    res.status(400).json({
-      error: {
-        message: "Widget mutations cannot be batched",
-        code: -32600,
-        data: { code: "BAD_REQUEST", httpStatus: 400 },
-      },
-    });
+    refuseBatch(res, "Widget mutations cannot be batched");
+    return;
+  }
+  if (paths.length > 1 && paths.some((path) => publicCachedReads.has(path))) {
+    refuseBatch(res, `${paths.find((path) => publicCachedReads.has(path))} cannot be batched`);
     return;
   }
   next();
 };
+
+/**
+ * Whether a request path (`/trpc/site.impactCosts`) is a single call of a public cached read. Those
+ * answer to any origin (CORS `*`, server.ts), like the legacy impact API: the Danish and Swedish
+ * sites and their previews call site.impactCosts on the Norwegian API. No credentials are sent.
+ */
+export const isPublicCachedRead = (path: string) =>
+  path.startsWith("/trpc/") && publicCachedReads.has(decodeURIComponent(path.slice(6)));
 
 /**
  * Runs the limiter for single (unbatched) calls of the public widget mutations

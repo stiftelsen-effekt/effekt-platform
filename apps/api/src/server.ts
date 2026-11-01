@@ -38,7 +38,7 @@ import { mcpRouter } from "./routes/mcp";
 import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
-import { mountTrpc } from "./trpc/express";
+import { isPublicCachedRead, mountTrpc } from "./trpc/express";
 import { skipForTrpc } from "./trpc/reportsMultipart";
 import { isPreviewMode } from "./custom_modules/preview/previewMode";
 import { enforcePreviewEnvironment } from "./custom_modules/preview/environmentGuard";
@@ -184,7 +184,9 @@ DAO.connect(() => {
         (config.allowedProductionOrigins.includes(remoteOrigin) ||
           previewOriginRe.test(remoteOrigin));
 
-      if (allowed) {
+      if (isPublicCachedRead(req.path)) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      } else if (allowed) {
         res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
         res.setHeader("Vary", "Origin");
       }

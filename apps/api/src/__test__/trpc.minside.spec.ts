@@ -6,6 +6,7 @@ import { join } from "node:path";
 import request from "supertest";
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
+import { donorImpact } from "../custom_modules/impact/donations";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { mountTrpc } from "../trpc/express";
 import { appRouter } from "../trpc/router";
@@ -54,9 +55,12 @@ const dbDonor = {
 
 describe("tRPC minside router", () => {
   let getByID: sinon.SinonStub;
+  let getDonationImpacts: sinon.SinonStub;
 
   beforeEach(() => {
     getByID = sinon.stub(DAO.donors, "getByID").resolves(dbDonor as any);
+    // minside.donations adds impact; without figures (an empty map) the donations stay as they are
+    getDonationImpacts = sinon.stub(donorImpact, "getDonationImpacts").resolves(new Map());
   });
 
   afterEach(() => {
@@ -242,6 +246,59 @@ describe("tRPC minside router", () => {
         ],
       },
     ];
+
+    describe("donations' impact", () => {
+      const amf = {
+        recipient: "Against Malaria Foundation",
+        unit: "Myggnett",
+        organization: "Against Malaria Foundation",
+        organizationId: 6,
+        amount: 1000,
+        count: 12.5,
+      };
+      const second = { ...dbDonation, id: 102, timestamp: new Date("2023-06-06T07:08:09.000Z") };
+
+      beforeEach(() => {
+        sinon.stub(DAO.donations, "getByDonorId").resolves([dbDonation, second] as any);
+      });
+
+      it("adds each donation's impact, looked up for the caller's donor only", async () => {
+        // A map that also holds another donor's donation (id 999) must not leak into the answer
+        getDonationImpacts.resolves(
+          new Map([
+            [101, [amf]],
+            [999, [{ ...amf, amount: 5 }]],
+          ]),
+        );
+        const result = await theDonor().minside.donations({ donorId: 7 });
+        expect(getDonationImpacts.calledOnceWithExactly({ donorId: 7 })).to.be.true;
+        expect(result.map((d) => d.id)).to.deep.equal([101, 102]);
+        expect(result[0].impact).to.deep.equal([amf]);
+        // No figures for 102 (no exchange rate for its day): no impact field, Min Side falls back
+        expect(result[1]).to.not.have.property("impact");
+      });
+
+      it("never looks up another donor's impact", async () => {
+        await expectTrpcError(theDonor().minside.donations({ donorId: 8 }), "FORBIDDEN");
+        expect(getDonationImpacts.called).to.be.false;
+      });
+
+      it("looks up the requested donor's impact for an admin", async () => {
+        await callerWith({ permissions: ["read:donations", "admin"] }).minside.donations({
+          donorId: 8,
+        });
+        expect(getDonationImpacts.calledOnceWithExactly({ donorId: 8 })).to.be.true;
+      });
+
+      it("still lists the donations when the impact lookup fails", async () => {
+        const error = sinon.stub(console, "error");
+        getDonationImpacts.rejects(new Error("Impact tables unavailable"));
+        const result = await theDonor().minside.donations({ donorId: 7 });
+        expect(result.map((d) => d.id)).to.deep.equal([101, 102]);
+        expect(result.some((d) => "impact" in d)).to.be.false;
+        expect(error.calledOnce).to.be.true;
+      });
+    });
 
     for (const procedure of procedures) {
       describe(procedure.name, () => {

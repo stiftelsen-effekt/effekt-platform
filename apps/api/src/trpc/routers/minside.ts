@@ -9,6 +9,7 @@ import {
 } from "../../custom_modules/avtalegiro";
 import { DAO } from "../../custom_modules/DAO";
 import { validateDistribution } from "../../custom_modules/distribution";
+import { donorImpact } from "../../custom_modules/impact/donations";
 import {
   archiveTaxUnit,
   createTaxUnitForDonor,
@@ -153,13 +154,30 @@ export const minsideRouter = router({
     .output(donationsAggregatedOutput)
     .query(({ input }) => DAO.donations.getYearlyAggregateByDonorId(input.donorId)),
 
-  /** The donor's donations, like GET /donors/:id/donations */
+  /**
+   * The donor's donations, like GET /donors/:id/donations, each with its `impact`
+   * (docs/impact-api-migration.md, decision 4), so Min Side's donations page needs no other
+   * request for impact: it sums the entries for its year and all-time tables. A donation without
+   * figures (no exchange rate for its day yet) has no `impact`, and a failed impact lookup leaves
+   * every donation without one rather than failing the list.
+   */
   donations: donorProcedure(permissions.read_donations)
     .output(donationsOutput)
     .query(async ({ input }) => {
-      const donations = await DAO.donations.getByDonorId(input.donorId);
+      const [donations, impacts] = await Promise.all([
+        DAO.donations.getByDonorId(input.donorId),
+        donorImpact.getDonationImpacts({ donorId: input.donorId }).catch((err) => {
+          console.error("minside.donations: impact lookup failed", err);
+          return null;
+        }),
+      ]);
       // As for tax units: the DAO's Donation type marks fields optional that the query always sets
-      return donations as unknown as z.input<typeof donationsOutput>;
+      const output = donations as unknown as z.input<typeof donationsOutput>;
+      if (!impacts) return output;
+      return output.map((donation) => {
+        const impact = impacts.get(donation.id);
+        return impact ? { ...donation, impact } : donation;
+      });
     }),
 
   /**
