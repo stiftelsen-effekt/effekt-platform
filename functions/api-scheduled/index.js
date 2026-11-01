@@ -96,11 +96,20 @@ exports.default = async (req, res) => {
         if (mailchimpresponse.status !== 200) throw new Error("Failed to process mailchimp");
         res.send("OK");
         break;
+      case "exchangerates":
+        let exchangeratesresponse = await fetch(
+          "https://data.gieffektivt.no/scheduled/exchange-rates",
+          { method: "POST", headers: { authorization: "Bearer " + token } },
+        );
+        if (exchangeratesresponse.status !== 200)
+          throw new Error("Failed to process exchange rates");
+        res.send("OK");
+        break;
       default:
         res
           .status(400)
           .send(
-            "Missing query parameter {type}, or invalid value (ocr, avtalegiro, avtalegiro_retry, vipps, vipps_sync, vipps_charges, auth0check, followup, mailchimp are allowed values)",
+            "Missing query parameter {type}, or invalid value (ocr, avtalegiro, avtalegiro_retry, vipps, vipps_sync, vipps_charges, auth0check, followup, mailchimp, exchangerates are allowed values)",
           );
     }
     return;

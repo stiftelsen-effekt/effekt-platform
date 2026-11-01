@@ -6,7 +6,7 @@ Each function is a package of the pnpm workspace, with `lint`, `format` and (whe
 
 ## api-scheduled
 
-Dispatcher that Cloud Scheduler calls (as `api-scheduled@`, OIDC) with `?type=ocr|avtalegiro|avtalegiro_retry|vipps|vipps_sync|vipps_charges|auth0check|followup|mailchimp`.
+Dispatcher that Cloud Scheduler calls (as `api-scheduled@`, OIDC) with `?type=ocr|avtalegiro|avtalegiro_retry|vipps|vipps_sync|vipps_charges|auth0check|followup|mailchimp|exchangerates`.
 It fetches an Auth0 client-credentials token and calls the matching `/scheduled/*` endpoint on effektapi.
 
 Recovered on 2026-10-23 from the deployed source (it was previously deployed from the console). Deploy with `./deploy.sh`.
@@ -39,6 +39,16 @@ curl -X POST -H "Authorization: Bearer <admin token>" \
 ```
 
 `resend` must name every not superseded shipment for the due date, and it never sends a shipment that has an accepted receipt.
+
+### Exchange rates (`exchangerates`)
+
+Cloud Scheduler job `ProcessExchangeRates`, daily at 17:00 Europe/Oslo (the ECB publishes around
+16:00 CET), calls `POST /scheduled/exchange-rates`. It fetches the ECB's daily reference rates
+(SDMX API, dataset `EXR`, `D..EUR.SP00.A`) from a week before the newest stored day to today and
+upserts them into `Exchange_rates` as units per USD. On an empty table it backfills from
+2013-01-01 (about 110k rows, under a minute). `?from=YYYY-MM-DD` refetches from that day. The
+impact figures (receipts, results page, Min Side) read these rates, taking the latest day on or
+before the one they need ([impact-api-migration.md](impact-api-migration.md)).
 
 ## dmarc-report
 

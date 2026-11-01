@@ -19,6 +19,7 @@ import paymentMethods from "../enums/paymentMethods";
 import { Payment_follow_up, Payment_intent } from "@prisma/client";
 import { previewInflationRound } from "../custom_modules/inflationadjustment";
 import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
+import { updateExchangeRates } from "../custom_modules/exchangeRates";
 import {
   addMembersInBatches,
   getMemberStatuses,
@@ -368,6 +369,23 @@ router.post("/vipps/charges", authMiddleware.isAdmin, async (req, res, next) => 
     await DAO.logging.add("VippsRecurring", result);
 
     res.status(result.failed.length > 0 ? 500 : 200).json(result);
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+/**
+ * Daily at 17:00 Oslo (Cloud Scheduler `ProcessExchangeRates`, dispatcher type `exchangerates`):
+ * fetches the ECB's reference rates since a week before the newest stored day into
+ * Exchange_rates (custom_modules/exchangeRates.ts). On an empty table this is the backfill from
+ * 2013. `?from=YYYY-MM-DD` refetches from that day.
+ */
+router.post("/exchange-rates", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const from = typeof req.query.from === "string" ? req.query.from : undefined;
+    const result = await updateExchangeRates({ from });
+    await DAO.logging.add("ExchangeRates", result);
+    res.json(result);
   } catch (ex) {
     next({ ex });
   }
