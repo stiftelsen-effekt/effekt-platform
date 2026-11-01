@@ -43,6 +43,8 @@ import { Route as AppDonorsIndexRouteImport } from './routes/_app/donors/index'
 import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
+import { Route as AppImpactExchangeRatesRouteImport } from './routes/_app/impact/exchange-rates'
+import { Route as AppImpactSettingsRouteImport } from './routes/_app/impact/settings'
 import { Route as AppImportIndexRouteImport } from './routes/_app/import/index'
 import { Route as AppIntentsIndexRouteImport } from './routes/_app/intents/index'
 import { Route as AppLogsIndexRouteImport } from './routes/_app/logs/index'
@@ -57,6 +59,10 @@ import { Route as DesignDonationsIdRouteImport } from './routes/design/donations
 import { Route as AppAgreementsProviderIdRouteImport } from './routes/_app/agreements/$provider/$id'
 import { Route as AppDonationsIdIndexRouteImport } from './routes/_app/donations/$id/index'
 import { Route as AppDonationsIdEditRouteImport } from './routes/_app/donations/$id/edit'
+import { Route as AppImpactEstimatesIndexRouteImport } from './routes/_app/impact/estimates/index'
+import { Route as AppImpactEstimatesCharityIdRouteImport } from './routes/_app/impact/estimates/$charityId'
+import { Route as AppImpactGrantsIndexRouteImport } from './routes/_app/impact/grants/index'
+import { Route as AppImpactGrantsIdRouteImport } from './routes/_app/impact/grants/$id'
 import { Route as AppImportReviewIndexRouteImport } from './routes/_app/import/review/index'
 import { Route as AppImportReviewIdRouteImport } from './routes/_app/import/review/$id'
 import { Route as AppRegrantingProjectsIndexRouteImport } from './routes/_app/regranting/projects/index'
@@ -234,6 +240,16 @@ const AppFundraisersIdRoute = AppFundraisersIdRouteImport.update({
   path: '/fundraisers/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppImpactExchangeRatesRoute = AppImpactExchangeRatesRouteImport.update({
+  id: '/impact/exchange-rates',
+  path: '/impact/exchange-rates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImpactSettingsRoute = AppImpactSettingsRouteImport.update({
+  id: '/impact/settings',
+  path: '/impact/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppImportIndexRoute = AppImportIndexRouteImport.update({
   id: '/import/',
   path: '/import/',
@@ -306,6 +322,27 @@ const AppDonationsIdEditRoute = AppDonationsIdEditRouteImport.update({
   path: '/donations/$id/edit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppImpactEstimatesIndexRoute = AppImpactEstimatesIndexRouteImport.update({
+  id: '/impact/estimates/',
+  path: '/impact/estimates/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImpactEstimatesCharityIdRoute =
+  AppImpactEstimatesCharityIdRouteImport.update({
+    id: '/impact/estimates/$charityId',
+    path: '/impact/estimates/$charityId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppImpactGrantsIndexRoute = AppImpactGrantsIndexRouteImport.update({
+  id: '/impact/grants/',
+  path: '/impact/grants/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppImpactGrantsIdRoute = AppImpactGrantsIdRouteImport.update({
+  id: '/impact/grants/$id',
+  path: '/impact/grants/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppImportReviewIndexRoute = AppImportReviewIndexRouteImport.update({
   id: '/import/review/',
   path: '/import/review/',
@@ -373,6 +410,8 @@ export interface FileRoutesByFullPath {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
+  '/impact/settings': typeof AppImpactSettingsRoute
   '/logs/$id': typeof AppLogsIdRoute
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/check': typeof AppRegrantingCheckRoute
@@ -392,11 +431,15 @@ export interface FileRoutesByFullPath {
   '/regranting/': typeof AppRegrantingIndexRoute
   '/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/impact/estimates/$charityId': typeof AppImpactEstimatesCharityIdRoute
+  '/impact/grants/$id': typeof AppImpactGrantsIdRoute
   '/import/review/$id': typeof AppImportReviewIdRoute
   '/regranting/projects/$id': typeof AppRegrantingProjectsIdRoute
   '/regranting/recipients/$organizationId': typeof AppRegrantingRecipientsOrganizationIdRoute
   '/regranting/rounds/$id': typeof AppRegrantingRoundsIdRoute
   '/donations/$id/': typeof AppDonationsIdIndexRoute
+  '/impact/estimates/': typeof AppImpactEstimatesIndexRoute
+  '/impact/grants/': typeof AppImpactGrantsIndexRoute
   '/import/review/': typeof AppImportReviewIndexRoute
   '/regranting/projects/': typeof AppRegrantingProjectsIndexRoute
   '/regranting/rounds/': typeof AppRegrantingRoundsIndexRoute
@@ -427,6 +470,8 @@ export interface FileRoutesByTo {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
+  '/impact/settings': typeof AppImpactSettingsRoute
   '/logs/$id': typeof AppLogsIdRoute
   '/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/regranting/check': typeof AppRegrantingCheckRoute
@@ -446,11 +491,15 @@ export interface FileRoutesByTo {
   '/regranting': typeof AppRegrantingIndexRoute
   '/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
   '/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/impact/estimates/$charityId': typeof AppImpactEstimatesCharityIdRoute
+  '/impact/grants/$id': typeof AppImpactGrantsIdRoute
   '/import/review/$id': typeof AppImportReviewIdRoute
   '/regranting/projects/$id': typeof AppRegrantingProjectsIdRoute
   '/regranting/recipients/$organizationId': typeof AppRegrantingRecipientsOrganizationIdRoute
   '/regranting/rounds/$id': typeof AppRegrantingRoundsIdRoute
   '/donations/$id': typeof AppDonationsIdIndexRoute
+  '/impact/estimates': typeof AppImpactEstimatesIndexRoute
+  '/impact/grants': typeof AppImpactGrantsIndexRoute
   '/import/review': typeof AppImportReviewIndexRoute
   '/regranting/projects': typeof AppRegrantingProjectsIndexRoute
   '/regranting/rounds': typeof AppRegrantingRoundsIndexRoute
@@ -485,6 +534,8 @@ export interface FileRoutesById {
   '/_app/donations/register': typeof AppDonationsRegisterRoute
   '/_app/donors/$id': typeof AppDonorsIdRoute
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/_app/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
+  '/_app/impact/settings': typeof AppImpactSettingsRoute
   '/_app/logs/$id': typeof AppLogsIdRoute
   '/_app/regranting/adjustments': typeof AppRegrantingAdjustmentsRoute
   '/_app/regranting/check': typeof AppRegrantingCheckRoute
@@ -504,11 +555,15 @@ export interface FileRoutesById {
   '/_app/regranting/': typeof AppRegrantingIndexRoute
   '/_app/agreements/$provider/$id': typeof AppAgreementsProviderIdRoute
   '/_app/donations/$id/edit': typeof AppDonationsIdEditRoute
+  '/_app/impact/estimates/$charityId': typeof AppImpactEstimatesCharityIdRoute
+  '/_app/impact/grants/$id': typeof AppImpactGrantsIdRoute
   '/_app/import/review/$id': typeof AppImportReviewIdRoute
   '/_app/regranting/projects/$id': typeof AppRegrantingProjectsIdRoute
   '/_app/regranting/recipients/$organizationId': typeof AppRegrantingRecipientsOrganizationIdRoute
   '/_app/regranting/rounds/$id': typeof AppRegrantingRoundsIdRoute
   '/_app/donations/$id/': typeof AppDonationsIdIndexRoute
+  '/_app/impact/estimates/': typeof AppImpactEstimatesIndexRoute
+  '/_app/impact/grants/': typeof AppImpactGrantsIndexRoute
   '/_app/import/review/': typeof AppImportReviewIndexRoute
   '/_app/regranting/projects/': typeof AppRegrantingProjectsIndexRoute
   '/_app/regranting/rounds/': typeof AppRegrantingRoundsIndexRoute
@@ -543,6 +598,8 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/impact/exchange-rates'
+    | '/impact/settings'
     | '/logs/$id'
     | '/regranting/adjustments'
     | '/regranting/check'
@@ -562,11 +619,15 @@ export interface FileRouteTypes {
     | '/regranting/'
     | '/agreements/$provider/$id'
     | '/donations/$id/edit'
+    | '/impact/estimates/$charityId'
+    | '/impact/grants/$id'
     | '/import/review/$id'
     | '/regranting/projects/$id'
     | '/regranting/recipients/$organizationId'
     | '/regranting/rounds/$id'
     | '/donations/$id/'
+    | '/impact/estimates/'
+    | '/impact/grants/'
     | '/import/review/'
     | '/regranting/projects/'
     | '/regranting/rounds/'
@@ -597,6 +658,8 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/impact/exchange-rates'
+    | '/impact/settings'
     | '/logs/$id'
     | '/regranting/adjustments'
     | '/regranting/check'
@@ -616,11 +679,15 @@ export interface FileRouteTypes {
     | '/regranting'
     | '/agreements/$provider/$id'
     | '/donations/$id/edit'
+    | '/impact/estimates/$charityId'
+    | '/impact/grants/$id'
     | '/import/review/$id'
     | '/regranting/projects/$id'
     | '/regranting/recipients/$organizationId'
     | '/regranting/rounds/$id'
     | '/donations/$id'
+    | '/impact/estimates'
+    | '/impact/grants'
     | '/import/review'
     | '/regranting/projects'
     | '/regranting/rounds'
@@ -654,6 +721,8 @@ export interface FileRouteTypes {
     | '/_app/donations/register'
     | '/_app/donors/$id'
     | '/_app/fundraisers/$id'
+    | '/_app/impact/exchange-rates'
+    | '/_app/impact/settings'
     | '/_app/logs/$id'
     | '/_app/regranting/adjustments'
     | '/_app/regranting/check'
@@ -673,11 +742,15 @@ export interface FileRouteTypes {
     | '/_app/regranting/'
     | '/_app/agreements/$provider/$id'
     | '/_app/donations/$id/edit'
+    | '/_app/impact/estimates/$charityId'
+    | '/_app/impact/grants/$id'
     | '/_app/import/review/$id'
     | '/_app/regranting/projects/$id'
     | '/_app/regranting/recipients/$organizationId'
     | '/_app/regranting/rounds/$id'
     | '/_app/donations/$id/'
+    | '/_app/impact/estimates/'
+    | '/_app/impact/grants/'
     | '/_app/import/review/'
     | '/_app/regranting/projects/'
     | '/_app/regranting/rounds/'
@@ -929,6 +1002,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFundraisersIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/impact/exchange-rates': {
+      id: '/_app/impact/exchange-rates'
+      path: '/impact/exchange-rates'
+      fullPath: '/impact/exchange-rates'
+      preLoaderRoute: typeof AppImpactExchangeRatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/impact/settings': {
+      id: '/_app/impact/settings'
+      path: '/impact/settings'
+      fullPath: '/impact/settings'
+      preLoaderRoute: typeof AppImpactSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/import/': {
       id: '/_app/import/'
       path: '/import'
@@ -1025,6 +1112,34 @@ declare module '@tanstack/react-router' {
       path: '/donations/$id/edit'
       fullPath: '/donations/$id/edit'
       preLoaderRoute: typeof AppDonationsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/impact/estimates/': {
+      id: '/_app/impact/estimates/'
+      path: '/impact/estimates'
+      fullPath: '/impact/estimates/'
+      preLoaderRoute: typeof AppImpactEstimatesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/impact/estimates/$charityId': {
+      id: '/_app/impact/estimates/$charityId'
+      path: '/impact/estimates/$charityId'
+      fullPath: '/impact/estimates/$charityId'
+      preLoaderRoute: typeof AppImpactEstimatesCharityIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/impact/grants/': {
+      id: '/_app/impact/grants/'
+      path: '/impact/grants'
+      fullPath: '/impact/grants/'
+      preLoaderRoute: typeof AppImpactGrantsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/impact/grants/$id': {
+      id: '/_app/impact/grants/$id'
+      path: '/impact/grants/$id'
+      fullPath: '/impact/grants/$id'
+      preLoaderRoute: typeof AppImpactGrantsIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/import/review/': {
@@ -1128,6 +1243,8 @@ interface AppRouteChildren {
   AppDonationsRegisterRoute: typeof AppDonationsRegisterRoute
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
+  AppImpactExchangeRatesRoute: typeof AppImpactExchangeRatesRoute
+  AppImpactSettingsRoute: typeof AppImpactSettingsRoute
   AppLogsIdRoute: typeof AppLogsIdRoute
   AppAgreementsIndexRoute: typeof AppAgreementsIndexRoute
   AppAnalysisIndexRoute: typeof AppAnalysisIndexRoute
@@ -1140,8 +1257,12 @@ interface AppRouteChildren {
   AppLogsIndexRoute: typeof AppLogsIndexRoute
   AppAgreementsProviderIdRoute: typeof AppAgreementsProviderIdRoute
   AppDonationsIdEditRoute: typeof AppDonationsIdEditRoute
+  AppImpactEstimatesCharityIdRoute: typeof AppImpactEstimatesCharityIdRoute
+  AppImpactGrantsIdRoute: typeof AppImpactGrantsIdRoute
   AppImportReviewIdRoute: typeof AppImportReviewIdRoute
   AppDonationsIdIndexRoute: typeof AppDonationsIdIndexRoute
+  AppImpactEstimatesIndexRoute: typeof AppImpactEstimatesIndexRoute
+  AppImpactGrantsIndexRoute: typeof AppImpactGrantsIndexRoute
   AppImportReviewIndexRoute: typeof AppImportReviewIndexRoute
 }
 
@@ -1162,6 +1283,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonationsRegisterRoute: AppDonationsRegisterRoute,
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
+  AppImpactExchangeRatesRoute: AppImpactExchangeRatesRoute,
+  AppImpactSettingsRoute: AppImpactSettingsRoute,
   AppLogsIdRoute: AppLogsIdRoute,
   AppAgreementsIndexRoute: AppAgreementsIndexRoute,
   AppAnalysisIndexRoute: AppAnalysisIndexRoute,
@@ -1174,8 +1297,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppLogsIndexRoute: AppLogsIndexRoute,
   AppAgreementsProviderIdRoute: AppAgreementsProviderIdRoute,
   AppDonationsIdEditRoute: AppDonationsIdEditRoute,
+  AppImpactEstimatesCharityIdRoute: AppImpactEstimatesCharityIdRoute,
+  AppImpactGrantsIdRoute: AppImpactGrantsIdRoute,
   AppImportReviewIdRoute: AppImportReviewIdRoute,
   AppDonationsIdIndexRoute: AppDonationsIdIndexRoute,
+  AppImpactEstimatesIndexRoute: AppImpactEstimatesIndexRoute,
+  AppImpactGrantsIndexRoute: AppImpactGrantsIndexRoute,
   AppImportReviewIndexRoute: AppImportReviewIndexRoute,
 }
 

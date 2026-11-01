@@ -37,6 +37,11 @@ Regranting
   Projects                 list → project page (facts, everything sent to it)
   Adjustments              ledger entries with a reason (corrections, fees, fronted …)
   Payees & funds           payees, dated routing, own funds, holds
+Impact
+  Cost estimates           list → charity timeline (which months each GiveWell estimate covers)
+  Fund grants              list → grant: split by charity, allotments
+  Charities & interventions  link to organizations, texts per language
+  Exchange rates           ECB rates per currency, job runs, gaps (read-only)
 Analysis
   Overview                 given through time with open pledges, progress to the 200 MNOK milestone
   Pledges                  decided gifts not received yet (tilsagn): add, mark received, change amount

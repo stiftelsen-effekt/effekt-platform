@@ -2,6 +2,7 @@ import {
   CoinsIcon,
   FlagIcon,
   FolderKanbanIcon,
+  HeartPulseIcon,
   HandCoinsIcon,
   InboxIcon,
   KeyRoundIcon,
@@ -11,6 +12,7 @@ import {
 import { useMemo } from "react";
 import { projectStatus, reviewStatus, roundStatus } from "@/lib/status";
 import { formatDate, formatMoney } from "@/lib/format";
+import { formatUsdCents } from "@/features/impact/model";
 import { sourceLabel } from "@/features/review-queue/model";
 import { errorCode, useTRPCClient } from "@/lib/trpc";
 import { isDigits, isVippsAgreementId, type SearchProvider } from "./providers";
@@ -232,6 +234,34 @@ export function useApiSearchProviders(): SearchProvider[] {
               meta: p.reportDue ? `Report ${formatDate(p.reportDue)}` : undefined,
               href: `/regranting/projects/${p.id}`,
               icon: FolderKanbanIcon,
+            }));
+        },
+      },
+      {
+        // Impact charities: name or abbreviation, to their cost estimates
+        id: "impact-charity",
+        group: "Impact",
+        applies: (query) => query.trim().length >= 2,
+        async search(query, signal) {
+          const q = query.trim().toLowerCase();
+          const charities = await client.impact.charities.list.query(undefined, { signal });
+          return charities
+            .filter(
+              (c) =>
+                c.abbreviation.toLowerCase() === q ||
+                c.name.toLowerCase().includes(q) ||
+                (c.organizationName ?? "").toLowerCase().includes(q),
+            )
+            .slice(0, 4)
+            .map((c) => ({
+              id: `impact-charity-${c.id}`,
+              title: `${c.name} cost estimates`,
+              subtitle: c.currentEstimate
+                ? `${c.currentEstimate.interventionName} · ${formatUsdCents(c.currentEstimate.centsPerOutput)}`
+                : "No estimate in effect",
+              meta: c.abbreviation,
+              href: `/impact/estimates/${c.id}`,
+              icon: HeartPulseIcon,
             }));
         },
       },

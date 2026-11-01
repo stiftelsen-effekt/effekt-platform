@@ -57,6 +57,13 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   milestone; this year's total. **Pledges** (tilsagn), decided gifts not received yet: add
   (amount + decision date, nothing about the giver), mark received (optionally linked to the
   donation), lower the amount after a partial payment, reopen, delete.
+- **Impact** (GiveWell cost per output, [impact-api-migration.md](impact-api-migration.md) phase
+  4; `impact.*`): cost estimates per charity with the months each covers (a donation uses the
+  charity's latest estimate on or before its month) and the cost in NOK at today's rate; Top
+  Charities Fund / All Grants Fund grants with their split by charity and each allotment's cost
+  per output; charities (link to an organization; IDs and abbreviations never change) and
+  interventions with texts per language; exchange rates (newest per currency, the daily job's
+  runs, gaps; read-only).
 - **Records**: import log list (search file content) + entry detail (JSON result + raw file);
   reports.
 - **Home**: what needs attention (review queue, missing AvtaleGiro payments, failed charges, recent
