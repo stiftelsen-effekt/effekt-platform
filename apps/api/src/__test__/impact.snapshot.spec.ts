@@ -1,8 +1,6 @@
 import { describe, it, afterEach, expect as vexpect } from "vitest";
 import { expect } from "chai";
 import sinon from "sinon";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { DAO } from "../custom_modules/DAO";
 import * as results from "../custom_modules/results";
 import * as currency from "../custom_modules/currency";
@@ -36,14 +34,18 @@ import type { Distribution } from "../schemas/types";
  *   Deworm the World ("DtW") had no outputs on receipts.
  */
 
-const fixture = (name: string) =>
-  JSON.parse(readFileSync(join(__dirname, "data/impact", name), "utf8"));
-const ORGS: { ID: number; abbriv: string; full_name: string }[] = fixture("organizations.json");
-const EVALUATIONS = fixture("evaluations.no.json");
-const GRANTS = fixture("tcf-grants.no.json");
-const NB_MONTHLY = fixture("norges-bank-monthly.json");
-const ECB: { daily: Record<string, number>; monthly: Record<string, number> } =
-  fixture("ecb-nok.json");
+const ORGS: {
+  ID: number;
+  abbriv: string;
+  full_name: string;
+}[] = require("./data/impact/organizations.json");
+const EVALUATIONS = require("./data/impact/evaluations.no.json");
+const GRANTS = require("./data/impact/tcf-grants.no.json");
+const NB_MONTHLY = require("./data/impact/norges-bank-monthly.json");
+const ECB: {
+  daily: Record<string, number>;
+  monthly: Record<string, number>;
+} = require("./data/impact/ecb-nok.json");
 const RECEIPTS: {
   timestamp: string;
   sum: number;
@@ -51,7 +53,7 @@ const RECEIPTS: {
   evaluations: unknown;
   grant: unknown;
   norgesBankRate: string;
-}[] = fixture("receipts.json");
+}[] = require("./data/impact/receipts.json");
 
 /** The links of migration 20261101120000_impact_tables, in production's abbreviations */
 const LINKS: Record<string, string> = {
@@ -158,7 +160,7 @@ const distribution = (orgs: [number, string][]): Distribution => ({
   ],
 });
 
-const close = (a: number, b: number, what: string) =>
+const expectClose = (a: number, b: number, what: string) =>
   expect(Math.abs(a - b) / Math.max(Math.abs(b), 1e-12), `${what}: ${a} vs ${b}`).to.be.below(1e-9);
 
 afterEach(() => sinon.restore());
@@ -214,7 +216,11 @@ describe("receipts: legacy impact API vs impact tables", () => {
         ).to.deep.equal(old.outputs.map((o) => o.output));
         for (const [j, output] of org.outputs.entries()) {
           const factor = output.output === "Drift" ? 1 : rateRatio;
-          close(output.numberOfOutputs, old.outputs[j].numberOfOutputs * factor, output.output);
+          expectClose(
+            output.numberOfOutputs,
+            old.outputs[j].numberOfOutputs * factor,
+            output.output,
+          );
         }
       }
     });
@@ -325,10 +331,10 @@ describe("results page: legacy impact API vs impact tables", () => {
     const a = monthlyEntries(rebuilt);
     const b = monthlyEntries(before);
     expect([...a.keys()]).to.deep.equal([...b.keys()]);
-    for (const [key, value] of b) close(a.get(key)!, value, key);
+    for (const [key, value] of b) expectClose(a.get(key)!, value, key);
     expect(rebuilt.map((r) => r.output)).to.deep.equal(before.map((r) => r.output));
     for (const [i, r] of rebuilt.entries()) {
-      close(r.total.numberOfOutputs, before[i].total.numberOfOutputs, `${r.output} total`);
+      expectClose(r.total.numberOfOutputs, before[i].total.numberOfOutputs, `${r.output} total`);
       expect(r.monthly.map((m) => m.period)).to.deep.equal(before[i].monthly.map((m) => m.period));
     }
   });
@@ -338,7 +344,7 @@ describe("results page: legacy impact API vs impact tables", () => {
     const ecb = monthlyEntries(buildMonthlyOutputs(DATA, SUMS, legacyRules(ecbRate)));
     for (const [key, value] of nb) {
       const month = key.split("|")[1];
-      close(ecb.get(key)!, (value * nbRate(month)) / ecbRate(month), key);
+      expectClose(ecb.get(key)!, (value * nbRate(month)) / ecbRate(month), key);
     }
   });
 
@@ -381,6 +387,6 @@ describe("results page: legacy impact API vs impact tables", () => {
     const bednets = after.find((r) => r.output === "Myggnett")!;
     const jan2020 = bednets.monthly.find((m) => m.period === "2020-01")!;
     // 15 000 NOK at the January 2020 average, 518 cents per net
-    close(jan2020.numberOfOutputs, ((15000 / ECB.monthly["2020-01"]) * 100) / 518, "2020-01");
+    expectClose(jan2020.numberOfOutputs, ((15000 / ECB.monthly["2020-01"]) * 100) / 518, "2020-01");
   });
 });
