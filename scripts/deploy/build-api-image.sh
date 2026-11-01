@@ -15,11 +15,25 @@ cache="$2"
 # network=cloudbuild: the builder container reaches the registry like the build steps do
 docker buildx create --name api-builder --driver docker-container \
   --driver-opt network=cloudbuild,image=mirror.gcr.io/moby/buildkit:buildx-stable-1 --use >/dev/null
-docker buildx build \
-  --file apps/api/Dockerfile \
-  --tag "$image" \
-  --cache-from "type=registry,ref=$cache" \
-  --cache-to "type=registry,ref=$cache,mode=max,image-manifest=true,oci-mediatypes=true" \
-  --provenance=false \
-  --push \
-  .
+# The push to the registry now and then fails on its own ("failed to authorize: DeadlineExceeded:
+# context deadline exceeded" after 60s, while authorizing the push). Retry the whole build:
+# the builder keeps its local cache, so a retry rebuilds nothing and only pushes again.
+attempts=3
+for attempt in $(seq 1 "$attempts"); do
+  if docker buildx build \
+    --file apps/api/Dockerfile \
+    --tag "$image" \
+    --cache-from "type=registry,ref=$cache" \
+    --cache-to "type=registry,ref=$cache,mode=max,image-manifest=true,oci-mediatypes=true" \
+    --provenance=false \
+    --push \
+    .; then
+    exit 0
+  fi
+  if [ "$attempt" -lt "$attempts" ]; then
+    echo "build-api-image: build or push failed (attempt $attempt of $attempts), retrying in $((attempt * 15))s" >&2
+    sleep $((attempt * 15))
+  fi
+done
+echo "build-api-image: build or push failed $attempts times" >&2
+exit 1
