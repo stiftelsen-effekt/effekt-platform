@@ -45,13 +45,19 @@ while :; do
         summary "**$PROJECT**: no website change, Vercel skipped the build (Ignored Build Step)."
         exit 0
       fi
-      id=$(gh api "repos/$REPO/deployments?sha=$SHA&environment=$(jq -rn --arg e "$environment" '$e|@uri')" \
-        --jq '.[0].id // empty')
+      # Vercel posts the commit status a moment before the deployment status that carries the URL
+      # (about a second apart), so look again for a short while before giving up
       url=""
-      if [[ -n "$id" ]]; then
-        url=$(gh api "repos/$REPO/deployments/$id/statuses" \
-          --jq '[.[] | select(.state == "success")][0].environment_url // empty')
-      fi
+      for _ in $(seq 1 "${URL_ATTEMPTS:-12}"); do
+        id=$(gh api "repos/$REPO/deployments?sha=$SHA&environment=$(jq -rn --arg e "$environment" '$e|@uri')" \
+          --jq '.[0].id // empty')
+        if [[ -n "$id" ]]; then
+          url=$(gh api "repos/$REPO/deployments/$id/statuses" \
+            --jq '[.[] | select(.state == "success")][0].environment_url // empty')
+        fi
+        [[ -n "$url" ]] && break
+        sleep 5
+      done
       if [[ -z "$url" ]]; then
         echo "::error::$context reports success, but there is no deployment in \"$environment\" with a URL"
         exit 1
