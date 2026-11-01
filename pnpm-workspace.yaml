@@ -34,7 +34,7 @@ catalog:
   # The API (ts-node, Vitest's spec transform) and the website (next build, the tRPC type
   # build) use TypeScript's JavaScript API, which TypeScript 7 doesn't have yet. Packages that
   # only run `tsc` use the native compiler from the `native` catalog below.
-  typescript: 5.9.3
+  typescript: 7.0.2
   vitest: 5.0.5
   zod: 4.6.7
 
