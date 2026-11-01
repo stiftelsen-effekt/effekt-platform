@@ -12,10 +12,6 @@ console.log("--------------------------------------------------");
 import bearerToken from "express-bearer-token";
 import compression from "compression";
 import express from "express";
-// Patches Express 4 so that rejected promises from async route handlers are passed to
-// next(err) and reach the error handler instead of becoming unhandled rejections.
-// Must be imported before any routers are created.
-import "express-async-errors";
 import fileUpload from "express-fileupload";
 import honeypot from "honeypot";
 import http from "http";
@@ -39,7 +35,7 @@ import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
 import { isPublicCachedRead, mountTrpc } from "./trpc/express";
-import { skipForTrpc } from "./trpc/reportsMultipart";
+import { defaultEmptyBody, skipForTrpc } from "./trpc/reportsMultipart";
 import { isPreviewMode } from "./custom_modules/preview/previewMode";
 import { enforcePreviewEnvironment } from "./custom_modules/preview/environmentGuard";
 import {
@@ -96,6 +92,10 @@ DAO.connect(() => {
       },
     }),
   );
+  // Express 4 set req.body to {} on every request; Express 5 leaves it undefined unless a parser
+  // read a body. The REST routes read req.body.<field> without checking, so keep the Express 4
+  // default for them. /trpc is left alone: tRPC reads the request stream when req.body is unset.
+  app.use(skipForTrpc(defaultEmptyBody));
 
   // MCP OAuth discovery (RFC 9728). Claude Tag fetches these before login.
   // Must be unauthenticated and reachable from Anthropic's egress.

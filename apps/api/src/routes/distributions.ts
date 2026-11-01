@@ -69,7 +69,7 @@ router.get(
   async (req: LocaleRequest, res, next) => {
     try {
       if (!req.params.KID) res.status(400).json({ status: 400, content: "No KID provided" });
-      const distribution = await DAO.distributions.getSplitByKID(req.params.KID);
+      const distribution = await DAO.distributions.getSplitByKID(String(req.params.KID));
 
       return res.json({
         status: 200,

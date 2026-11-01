@@ -1,5 +1,4 @@
 import { describe, it } from "vitest";
-import "express-async-errors";
 import { expect } from "chai";
 import express from "express";
 import request from "supertest";

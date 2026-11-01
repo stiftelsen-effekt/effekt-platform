@@ -9,8 +9,7 @@ import {
 import express from "express";
 export const organizationsRouter = express.Router();
 
-import bodyParser from "body-parser";
-const urlEncodeParser = bodyParser.urlencoded({ extended: false });
+const urlEncodeParser = express.urlencoded({ extended: false });
 
 organizationsRouter.get("/active", urlEncodeParser, async (req, res, next) => {
   try {

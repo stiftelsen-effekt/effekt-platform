@@ -1,5 +1,4 @@
 import { describe, it, beforeEach, afterEach } from "vitest";
-import * as bodyParser from "body-parser";
 import { expect } from "chai";
 import express from "express";
 import { InvalidTokenError } from "express-oauth2-jwt-bearer";
@@ -109,8 +108,8 @@ describe("donors", () => {
 
     beforeEach(function () {
       server = express();
-      server.use(bodyParser.json());
-      server.use(bodyParser.urlencoded({ extended: true }));
+      server.use(express.json());
+      server.use(express.urlencoded({ extended: true }));
 
       // This must be stubbed before importing the routes
       sinon.stub(authMiddleware, "auth").returns([]);

@@ -70,7 +70,7 @@ export const mountTrpc = (
   options: { publicMutationLimiter?: RequestHandler } = {},
 ) => {
   // tRPC doesn't answer CORS preflights; the CORS headers are set by the global middleware
-  app.options("/trpc/*", (req, res) => {
+  app.options("/trpc/*splat", (req, res) => {
     res.sendStatus(204);
   });
 

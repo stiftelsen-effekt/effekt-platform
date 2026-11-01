@@ -14,7 +14,8 @@ const handler: ErrorRequestHandler = (err, req, res, next) => {
 
   console.error(err); //Log the error
 
-  if (!err.status) err.status = 500;
+  // Express 5's res.status() throws on anything but an integer from 100 to 999
+  if (!Number.isInteger(err.status) || err.status < 100 || err.status > 999) err.status = 500;
   if (!err.msg) err.msg = "Internal server error";
   if (config.debugReturnExceptions) err.msg = err.message;
 
