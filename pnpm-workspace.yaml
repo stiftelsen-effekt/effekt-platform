@@ -23,7 +23,7 @@ catalog:
   dotenv: 18.0.9
   katex: 0.19.1
   luxon: 3.7.2
-  node-fetch: 2.7.0
+  node-fetch: 3.3.2
   norwegian-workdays: github:stiftelsen-effekt/norwegian-workdays#v1.1.0
   oxlint: 1.90.0
   prettier: 3.9.10
