@@ -98,8 +98,9 @@ describe("agf-grants importer: parsing", () => {
 
   it("reads a grant page: month, amount, cost-effectiveness and deaths averted", () => {
     const html = `<html><head><title>ALIMA – Primary Healthcare in Far North Cameroon (June 2025) | GiveWell</title></head>
-      <body><p>Menu</p><h2>In a nutshell</h2><p>In June 2025, GiveWell recommended a $1.9 million grant to ALIMA.</p>
+      <body><p>Menu</p><h2>In a Nutshell</h2><p>In June 2025, GiveWell recommended a $1.9 million grant to ALIMA.</p>
       <p>Our funding threshold of 10 times as cost-effective as unconditional cash transfers.</p>
+      <p>We fund grants that are at least ~10x as cost-effective as cash transfers.</p>
       <p>Our best guess is that this program is 7 to 11 times as cost-effective as unconditional cash transfers.</p>
       <p>We estimate it will result in an estimated 433 deaths averted.</p><p>Published: February 2026</p></body></html>`;
     const g = parseGrantPage(html, "ALIMA-Cameroon-June-2025");

@@ -652,7 +652,7 @@ what GiveWell publishes about the fund's grants, so we can decide later how to s
 - **Coverage on 2026-11-01**: 73 portfolio rows (2022: 9, 2023: 14, 2024: 18, 2025: 32; $15.5M,
   $24.4M, $38.4M, $129.6M) and 149 grants (by month recommended 2022: 14, 2023: 31, 2024: 50,
   2025: 47, 2026: 7). GiveWell names the AGF as funder for 9 of them (1, 3, 5, 0, 0 per year);
-  81 have figures (74 a cost-effectiveness multiple, 23 deaths averted, 3 outputs and cost per
+  77 have figures (69 a cost-effectiveness multiple, 23 deaths averted, 3 outputs and cost per
   output).
 - **Loading**: the importer prints a snapshot (`fetch`), a dry-run `diff` against a database and
   upsert SQL (`sql`) for a data migration, keyed by slug and by fund + year + row. Rows edited in

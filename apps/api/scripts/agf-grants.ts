@@ -324,7 +324,7 @@ export function parseGrantPage(html, slug) {
     .replace(/\s+/g, " ")
     .trim();
   const text = htmlText(html);
-  const body = text.slice(Math.max(0, text.indexOf("In a nutshell")));
+  const body = text.slice(Math.max(0, text.toLowerCase().indexOf("in a nutshell")));
   const titleMonth = monthOf(/\(([^)]*\d{4})\)\s*$/.exec(title)?.[1]);
   const lead =
     /In ([A-Z][a-z]+ \d{4}),? GiveWell (?:recommended|made|granted)[^$]{0,80}?\$([\d.,]+)(\s*(?:million|thousand)\b|\s?(?:mil|m|k)\b)?/i.exec(
@@ -338,7 +338,14 @@ export function parseGrantPage(html, slug) {
 
   let ce: { low: number; high: number; benchmark: string } | null = null;
   for (const m of body.slice(0, 20000).matchAll(CE_RE)) {
-    if (m[1]) continue; // "our funding threshold of 10x cash", not an estimate
+    // "our funding threshold of 10x cash", "grants … at least ~10x", "moved … from 7x to 2x": not
+    // this grant's estimate
+    const before = body.slice(Math.max(0, m.index! - 60), m.index);
+    if (
+      m[1] ||
+      /at least\s*~?\s*$|from (roughly |about )?\d+(\.\d+)?x to (roughly |about )?$/i.test(before)
+    )
+      continue;
     ce = {
       low: Number(m[2]),
       high: m[3] ? Number(m[3]) : Number(m[2]),
