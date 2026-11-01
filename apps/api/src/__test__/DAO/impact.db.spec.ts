@@ -46,18 +46,19 @@ const isLocal = !!url && /@(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
   it("loads the migrated rows", async () => {
     const data = await getImpactData();
     expect(data.charities.size).to.equal(15);
-    expect([...data.evaluationsByCharity.values()].flat()).to.have.length(60);
-    expect(data.grantsByFund.get("TCF")).to.have.length(25);
+    expect([...data.evaluationsByCharity.values()].flat()).to.have.length(64); // + the 2024 estimates (20261101233000_impact_givewell_update)
+    expect(data.grantsByFund.get("TCF")).to.have.length(27);
     expect(data.grantsByFund.get("AGF")!.map((g) => [g.id, g.legacyId])).to.deep.equal([[34, 1]]);
     expect(data.interventions.get(2)!.texts.no!.shortDescription).to.equal("Myggnett");
-    // AMF: ten evaluations; the 2023 one applies from January 2023 on
-    expect(effectiveEvaluation(data, 1, "2026-10-01")!.centsPerOutput).to.equal(585);
-    expect(effectiveGrant(data, "TCF", "2026-10-01")!.validFrom).to.equal("2025-02-01");
+    // AMF: eleven evaluations; the 2024 one applies from January 2024 on
+    expect(effectiveEvaluation(data, 1, "2023-12-01")!.centsPerOutput).to.equal(585);
+    expect(effectiveEvaluation(data, 1, "2026-10-01")!.centsPerOutput).to.equal(610);
+    expect(effectiveGrant(data, "TCF", "2026-10-01")!.validFrom).to.equal("2026-01-01");
     // The dev seed links the charities whose organizations it has
     const amf = [...data.charities.values()].find((c) => c.abbreviation === "AMF")!;
     expect(amf.organizationAbbreviation).to.equal("AMF");
     const sum = [...data.grantsByFund.get("TCF")!].flatMap((g) => g.allotments);
-    expect(sum).to.have.length(45);
+    expect(sum).to.have.length(47);
     expect(Math.max(...sum.map((a) => a.sumInCents))).to.be.greaterThan(2 ** 32);
   });
 

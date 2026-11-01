@@ -175,15 +175,15 @@ describe("Intervention widget (full stack)", () => {
         currency: "NOK",
       });
       const costs = trpcData(interception, "site.impactCosts");
-      // AMF's latest evaluation (585 US cents per net, from 2023) at the seeded 10 kr per USD
+      // AMF's latest evaluation (610 US cents per net, from 2024) at the seeded 10 kr per USD
       const amf = costs.find((c) => c.abbreviation === "AMF");
-      expect(amf).to.include({ centsPerOutput: 585, currency: "NOK" });
-      expect(amf.costPerOutput).to.be.closeTo(58.5, 1e-9);
+      expect(amf).to.include({ centsPerOutput: 610, currency: "NOK" });
+      expect(amf.costPerOutput).to.be.closeTo(61, 1e-9);
       expect(amf.shortDescription).to.equal("Myggnett");
     });
 
     cy.get("[data-cy=impact-input]").scrollIntoView();
-    cy.get("[data-cy=impact-input]").clear().type("5850");
+    cy.get("[data-cy=impact-input]").clear().type("6100");
     cy.get("[data-cy=Myggnett-button]").click();
     cy.get("[data-cy=impact-output]").invoke("text").then(parseFloat).should("equal", 100);
   });

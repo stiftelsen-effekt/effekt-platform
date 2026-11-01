@@ -117,3 +117,32 @@ On Min Side, a donor who gave to the charity in a changed month sees the new fig
 environment (a PR with the `preview` label, see [preview-environments.md](preview-environments.md))
 the same can be tried on synthetic data: the steps are in
 [impact-api-migration.md › Phase 4 notes](impact-api-migration.md#phase-4-notes).
+
+## The November 2026 update
+
+Migration `20261101233000_impact_givewell_update` (history rows by
+`migration:20261101233000_impact_givewell_update` in Impact › Change log) corrected the Top
+Charities Fund grants and added GiveWell's newest figures. Sources:
+[Top Charities Fund](https://www.givewell.org/top-charities-fund) ("Using donations received in")
+and GiveWell's impact spreadsheet, linked from
+[impact-estimates](https://www.givewell.org/impact-estimates) ("Grants by funding opportunity":
+cost per output per grant; "2024 Summary": the 2024 averages). Check the result with
+`apps/api/scripts/impact-givewell-update.sql` (read-only).
+
+- **Grant months** follow "Using donations received in": Oct 2023 (new grant, MC $57M), Jan 2024,
+  Apr 2024 (AMF DRC), Jul 2024 (HKI, MC Karamoja and South Sudan, NI, AMF Q3 part), Oct 2024 (AMF
+  Q4 part), Jan 2025 (NI, HKI), Apr 2025 (MC Chad, AMF Ituri), Jan 2026 (new grant, AMF DRC
+  2027-29 at about $6 per net).
+- **Allotments** whose cost per output differed by more than 5 % from GiveWell's figure for that
+  grant, or whose sum was not the TCF amount, now hold GiveWell's sum and outputs (each row's
+  comment says what it was). Among them two lost digits (AMF 2020: $49.50 per net; MC Jan 2024:
+  $0.85 per child) and New Incentives grants of 2021–2023 at about half GiveWell's cost.
+- **Estimates from Jan 2024**: AMF $6.10, MC $7.95, NI $136.30, HKI $2.52 (2024 averages).
+- **Not changed**: SCI, DTW, SS, END, GD, UBI, NLS, PHC have no newer GiveWell estimate (GiveWell
+  no longer publishes cost per output for them; cash transfers still use the 83 % from 2018).
+  GDZF and GDCSF figures are GiveDirectly's own. The All Grants Fund is handled separately.
+- **Still to enter** when GiveWell publishes the grant pages: the TCF grants from Q3 2025 (MC
+  $5.8M, AMF $8.3M) and Q4 2025 (HKI $23.1M, AMF $8.8M + $9M). Until then those months use the
+  grant from Apr 2025. Within GiveWell's range but not checkable against a published number:
+  MC Chad (Jun 2025, $9.62 per child; the grant page gives about $8), NI Mar 2025 ($89.76;
+  page: "over 170,000" children for $19.1M) and AMF Ituri (Aug 2025, $6.37 per net).

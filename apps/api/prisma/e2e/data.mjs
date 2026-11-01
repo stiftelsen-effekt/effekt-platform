@@ -50,30 +50,30 @@ export const DRIFT = 11;
 
 /**
  * Impact (minside.donations' `impact`, docs/impact-api-migration.md) of the e2e donor's donations,
- * from the impact tables the migration 20261101120000_impact_tables writes and the NOK rate
- * seed.mjs sets (10 kr per USD). Outputs = kroner × 10 / USD cents per output.
+ * from the impact tables the migrations 20261101120000_impact_tables and
+ * 20261101233000_impact_givewell_update write and the NOK rate seed.mjs sets (10 kr per USD). Outputs = kroner × 10 / USD cents per output.
  *
  * - KIDS.bank (500 kr 2022-03, 1 000 kr 2023-06, 2 500 kr 2025-09): 40 % Top Charities Fund
- *   (split by grants 2022-01, 2023-04 and 2025-02), 40 % AMF (551 cents per net from 2022, 585
- *   from 2023), 20 % operations
- * - KIDS.vippsCustom (100 kr 2024-01 and 2024-02): AGF 30 % (no estimate), HKI 15 % (203 cents),
- *   NI 25 % (13 274 cents), AMF 30 % (585 cents)
+ *   (split by the grants from 2022-01, 2023-04 and 2025-04), 40 % AMF (551 cents per net from
+ *   2022, 585 from 2023, 610 from 2024), 20 % operations
+ * - KIDS.vippsCustom (100 kr 2024-01 and 2024-02): AGF 30 % (no estimate), HKI 15 % (252 cents),
+ *   NI 25 % (13 630 cents), AMF 30 % (610 cents)
  */
 export const NOK_PER_USD = "10.00000000";
 export const IMPACT = {
   /** All years, per output as Min Side's table shows it, rounded as it shows it */
   total: {
-    myggnett: 34.0513,
-    malariabehandlinger: 9.7674,
-    "A-vitamintilskudd": 2.5538,
-    vaksinasjoner: 0.4157,
+    myggnett: 33.3087,
+    malariabehandlinger: 10.0067,
+    "A-vitamintilskudd": 2.2664,
+    vaksinasjoner: 0.2805,
   },
   /** Operations, kroner (20 % of the bank transfers) */
   operations: 800,
   /** 2025 only */
-  year2025: { myggnett: 21.6152, malariabehandlinger: 7.4012 },
+  year2025: { myggnett: 20.9146, malariabehandlinger: 7.4012 },
   /** Donation 900006 (2 500 kr, 2025-09): its 1 000 kr to AMF directly */
-  donation900006Amf: 17.094,
+  donation900006Amf: 16.3934,
 };
 
 /**
