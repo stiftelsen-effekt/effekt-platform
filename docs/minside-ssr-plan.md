@@ -1,4 +1,4 @@
-# Min Side: server-side sessions and SSR (plan)
+# Min Side: server-side sessions and the App Router (plan)
 
 Status: **planned, not started** (decided 2026-11-01). This document is the brief for the agent or
 developer who implements it. Read it fully, then `docs/web-trpc.md`, `docs/e2e.md`, `docs/website.md`
@@ -13,8 +13,8 @@ silent login through an iframe on `login.gieffektivt.no`) and fetches data with 
 The loading work in #1041–#1049 already removed the blank screen, the layout shift, the request
 waterfall and most CORS preflights. Measured locally (mobile profile: 150 ms latency, 1.6 Mbps, 4×
 CPU slowdown): the page shell shows at ~0.85 s and content at ~2.9 s; on desktop content shows at
-~0.33 s. Production adds Auth0's silent check (~0.2–0.6 s). Raw numbers:
-`docs/` does not keep them; see the PR descriptions of #1043–#1049.
+~0.33 s. Production adds Auth0's silent check (~0.2–0.6 s). The raw numbers are in the PR
+descriptions of #1043–#1049.
 
 Speed alone does not justify SSR (~13 real Min Side sessions a day). The reason to do it is the UX
 it unlocks once **the server knows who the user is**:
@@ -41,8 +41,11 @@ they are already fast.
   giveffektivt.dk (Danish REST backend via the tRPC `restLink`, `docs/web-trpc.md`), SE
   geeffektivt.se (Min Side deprecated, must not break). Sanity's `main_locale` decides. Each
   site is its own Vercel project with its own Auth0 application settings.
-- **Pages router**, Sanity-driven routes (`pages/[state]/[[...slug]].page.tsx`). Min Side's path
-  comes from Sanity.
+- **The content site stays on the pages router** (Sanity-driven, statically generated:
+  `pages/[state]/[[...slug]].page.tsx`); that is the right fit for it. **Min Side moves to the App
+  Router** (`app/`), which can live in the same Next.js app as long as routes don't overlap. Min
+  Side's path comes from Sanity and differs per site/locale, so a middleware rewrite maps the
+  Sanity path onto the fixed `app/` route.
 - **Security posture stays at least as strong**: no tokens or donor data in browser storage;
   httpOnly, Secure, SameSite=Lax cookies; CSRF protection on any cookie-authenticated mutation;
   the API keeps authorising every call (`donorProcedure`), never trusting a donor id from the web
@@ -59,10 +62,20 @@ they are already fast.
   `login.gieffektivt.no`, one Auth0 application per site (or reuse today's SPA apps converted to
   regular web apps — decide in phase 0). Session cookie encrypted (`AUTH0_SECRET`), rolling.
   The session holds the access token for the API audience; refresh tokens stay server-side.
-- **Rendering**: pages router `getServerSideProps` for the Min Side entry pages (not the App
-  Router — it would mean rebuilding layout, Sanity data, nav and widget; revisit later). Server
-  fetches the page's batch with the user's access token and passes it into the existing `SWRConfig`
-  `fallback`, so components stay the same and client-side navigation keeps working.
+- **Rendering: App Router for Min Side** (decided 2026-11-01 — it's a dynamic, logged-in app, and
+  the App Router is where Next.js is going):
+  - `app/(minside)/…` with a persistent **layout** (Min Side nav/tabs) so moving between Min Side
+    pages doesn't re-render the frame.
+  - **React Server Components** fetch data on the server with the session's access token; **streaming
+    with Suspense** sends the shell and nav at once and fills each section (donations, aggregates,
+    impact, agreements, tax units) as its data arrives — no client waterfall and no all-or-nothing wait.
+  - Interactive parts (filters, expanding a donation, editing an agreement, modals) stay client
+    components (`"use client"`); reuse the existing components where possible.
+  - Header/footer and Sanity-driven texts for Min Side are fetched in Server Components in the
+    layout (same Sanity client, cached per request/tag).
+  - A middleware rewrite maps each site's Sanity-defined Min Side path (e.g. NO `/min-side`, DK's
+    equivalent) to the `app/` route; read the mapping from Sanity at build time (or a small cached
+    lookup), and keep old paths working.
 - **API access from the server**: tRPC client over HTTP to `data.gieffektivt.no` with
   `Authorization: Bearer <access token>` from the session. For Cloud Armor, add a signed header
   (shared secret in Secret Manager + Vercel env) that a Cloud Armor rule exempts from the per-IP
@@ -70,26 +83,34 @@ they are already fast.
   decisions.
 - **DK**: `restLink` already uses `fetch`, so it can run on the server; confirm the Danish backend
   accepts the server-side token and that nothing depends on browser cookies there.
-- **Mutations**: keep them client-side with a short-lived access token handed to the browser
-  through a same-origin route (`/api/auth/token`, protected against CSRF), or move them to
-  same-origin API routes with CSRF tokens. Decide in phase 1.
+- **Mutations**: **Server Actions** that call the API with the session's token (Next.js checks the
+  Origin header against the host for Server Actions — verify that covers our three domains and
+  previews, and add an explicit check if not). Optimistic updates with `useOptimistic` where it helps;
+  revalidate with `revalidatePath`/`revalidateTag`.
 - **Vercel functions region**: `arn1` (Stockholm), closest to the API/DB in europe-north1.
-- **Nav / personalisation**: a small session read in `_app` / middleware for the first paint
-  (name, logged-in flag) — never the whole profile on every page.
+- **Nav / personalisation on the pages-router content site**: a small session read (middleware
+  sets a non-sensitive "logged in as <first name>" hint, or `getServerSideProps`/an edge read where a
+  page is already dynamic) for a flicker-free nav at first paint — never the whole profile on every
+  page, and keep content pages static/ISR (personal bits render client-side from the session hint
+  or a tiny API call).
 
 ## Phases
 
 0. **Spike (1–2 days, local only)**: nextjs-auth0 v4 against (a) the local mock OIDC issuer in
-   the e2e stack and (b) the Auth0 dev/preview application; session cookie on localhost; one
-   `getServerSideProps` page rendering `minside.donations` server-side; DK `restLink` on the
-   server. Output: a short note on what works, the Auth0 application setup per site, and the
+   the e2e stack and (b) the Auth0 dev/preview application; session cookie on localhost; one App
+   Router page (`app/(minside)/donations`) rendering `minside.donations` in a Server Component with
+   streaming; the middleware rewrite from the Sanity path; pages-router and App Router coexisting
+   (shared styles/SCSS modules, fonts, providers); DK `restLink` on the server. Output: a short note on what works, the Auth0 application setup per site, and the
    chosen mutation approach. **Known risk**: nextjs-auth0 expects an Auth0 domain; if it can't
    talk to the mock issuer, use `openid-client` directly or add a mock-issuer mode — the local
    loop must keep working without real Auth0.
-1. **Sessions without SSR**: login/logout/callback routes per site, session cookie, nav reads the
-   session (no flicker), auth0-react removed from Min Side. Logged-out `/min-side` → 302.
-2. **SSR of Min Side pages**: donations, agreements, tax, profile via `getServerSideProps` +
-   SWR fallback; skeletons only for client navigation. Measure (the scripts in
+1. **Sessions + App Router skeleton**: login/logout/callback routes per site, session cookie, the
+   `app/(minside)` layout with nav/header/footer, middleware rewrite, logged-out → redirect to login
+   (in middleware, before rendering). The content-site nav reads the session hint (no flicker).
+   auth0-react stays only where still needed until phase 2 is done.
+2. **Min Side pages on the App Router**: donations, agreements, tax, profile as Server Components
+   with Suspense streaming; mutations as Server Actions; remove the old `pages/dashboard/**` and
+   auth0-react; skeletons only as Suspense fallbacks. Measure (the scripts in
    `scratchpad/pw` from the perf work: `measure2.mjs`, `shell.mjs` — copy them into
    `apps/web/scripts/perf/` in this phase).
 3. **Infra**: Cloud Armor exemption header, per-donor rate limit in the API, Vercel region,
@@ -117,7 +138,8 @@ pnpm exec tsc --noEmit -p .                # typecheck (incremental)
 
 - Use `pnpm e2e:fullstack --spec <spec>` / `E2E_SKIP_BUILD=1` to rerun quickly; the seed resets per
   spec (`resetE2EData`).
-- Add full-stack specs for login → SSR page → logout, logged-out redirect, mutation with CSRF, and
+- Add full-stack specs for login → streamed page → logout, logged-out redirect, a Server Action
+  mutation (incl. a cross-origin attempt being rejected), and
   a DK-locale render (restLink stubbed or a local DK fixture).
 - Before pushing: `pnpm lint`, `pnpm typecheck`, `pnpm test`, the full-stack Cypress suite locally,
   and `next build` once. Then open the PR and let CI confirm (`CI (required)`, QA, semgrep, zizmor);
@@ -138,4 +160,5 @@ pnpm exec tsc --noEmit -p .                # typecheck (incremental)
 
 ## Out of scope
 
-App Router migration; moving the API to Vercel; Swedish Min Side (deprecated).
+Moving the content site (pages router) to the App Router; moving the API to Vercel; Swedish Min
+Side (deprecated).
