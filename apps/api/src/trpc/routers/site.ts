@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { DAO } from "../../custom_modules/DAO";
 import { getRecentLtvEstimates } from "../../custom_modules/ltv";
+import { getImpactCosts } from "../../custom_modules/impact/costs";
 import { getMonthlyDonationsPerOutput } from "../../custom_modules/monthlyOutputs";
 import { publicProcedure, router } from "../trpc";
 import {
@@ -13,12 +14,19 @@ import {
   siteReferralSumsOutput,
   siteResultsHeadlineOutput,
 } from "../shared/site";
+import {
+  IMPACT_DEFAULT_CURRENCY,
+  siteImpactCostsInput,
+  siteImpactCostsOutput,
+} from "../shared/impact";
 
 /**
  * Public reads for the website outside the donation widget (no login): the results page and
- * teaser, fundraiser pages, the lifetime value estimate and the organizations Min Side names. Each runs the same DAO or service
+ * teaser, fundraiser pages, the lifetime value estimate, the organizations Min Side names and the
+ * intervention widget's costs. Each runs the same DAO or service
  * call as its REST route; the REST routes stay for the Danish site, Sanity Studio and older
- * clients. None of the REST routes is cached (no apicache), so neither are these.
+ * clients. None of the REST routes is cached (no apicache), so neither are these, except
+ * impactCosts, which has no REST route.
  */
 export const siteRouter = router({
   /** GET /results/headline */
@@ -40,6 +48,25 @@ export const siteRouter = router({
   monthlyOutputs: publicProcedure
     .output(siteMonthlyOutputsOutput)
     .query(() => getMonthlyDonationsPerOutput()),
+
+  /**
+   * What one output costs now per charity, for the intervention widget (it called the legacy
+   * impact API's /api/evaluations before; docs/impact-api-migration.md). Public and cacheable for
+   * an hour; call it on its own, not in a batch, so the header applies to it alone.
+   */
+  impactCosts: publicProcedure
+    .input(siteImpactCostsInput)
+    .output(siteImpactCostsOutput)
+    .query(async ({ input, ctx }) => {
+      const costs = await getImpactCosts({
+        abbreviations: input.abbreviations,
+        language: input.language,
+        currency: input.currency ?? IMPACT_DEFAULT_CURRENCY[input.language],
+        at: input.at,
+      });
+      ctx.res?.setHeader("Cache-Control", "public, max-age=3600");
+      return costs;
+    }),
 
   /** GET /ltv/recentestimate */
   ltvEstimate: publicProcedure.output(siteLtvEstimateOutput).query(async () => {
