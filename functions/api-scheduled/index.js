@@ -1,5 +1,3 @@
-const fetch = require("node-fetch");
-
 /**
  * Responds to any HTTP request.
  *

@@ -13,7 +13,6 @@ import { OSLO_ZONE } from "../custom_modules/osloDays";
 import mailchimp from "@mailchimp/mailchimp_marketing";
 
 import express from "express";
-import fetch from "node-fetch";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
 import { Payment_follow_up, Payment_intent } from "@prisma/client";
