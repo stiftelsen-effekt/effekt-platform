@@ -28,7 +28,9 @@ export const impactByIdInput = z.strictObject({ id: idSchema });
 /** The edit history: optionally one kind of row, one row (with entity) or one charity's */
 export const impactChangesListInput = z
   .strictObject({
-    entity: z.enum(["estimate", "grant", "charity", "intervention"]).optional(),
+    entity: z
+      .enum(["estimate", "grant", "charity", "intervention", "agf_summary", "givewell_grant"])
+      .optional(),
     entityId: idSchema.optional(),
     charityId: idSchema.optional(),
     limit: z.number().int().min(1).max(500).default(100),

@@ -67,6 +67,43 @@ Impact › Charities & interventions.
 - An **intervention**'s short text is what donors see ("Myggnett"); give it in each language. A
   language left empty shows the English.
 
+## All Grants Fund grants
+
+Impact › **All Grants Fund grants** and **AGF by year** show what GiveWell has published about
+the fund: its money per year and organisation (from GiveWell's yearly metrics report) and its
+single grants (from GiveWell's grant pages, the fund's page and the impact estimates sheet), with
+cost-effectiveness, outputs and deaths averted where GiveWell gives them. It's reference data:
+donations to the All Grants Fund still show no figure to donors, and nothing on these pages
+changes that. GiveWell names the funder for only some grants; "Funder: –" means not published,
+not "not the AGF". Background: [impact-api-migration.md › All Grants Fund
+grants](impact-api-migration.md#all-grants-fund-grants-reference-data-2026-11-01).
+
+The pages are read-only. The data comes in through `apps/api/scripts/agf-grants.ts` and a data
+migration, which a developer runs:
+
+- **Each August** (GiveWell publishes the year's metrics report): add the new year's sheet to
+  `METRICS_SHEETS` in the script (the report PDF on givewell.org/about/impact links it; the AGF
+  table is on the "Funds Directed" tab).
+- **Each quarter** (new grant pages appear 6–9 months after the grant): refresh the grants.
+- **When the funder of every grant is wanted**: on givewell.org/research/all-grants, filter the
+  grants database by funder All Grants Fund and use **Download CSV**; pass the file with
+  `--airtable-csv`. The script stops and lists the columns if they differ from what it expects.
+
+```sh
+cd apps/api
+T() { node -r ts-node/register/transpile-only scripts/agf-grants.ts "$@"; }
+T fetch --cache /tmp/agf-cache [--airtable-csv grants.csv] > /tmp/agf.json
+T report /tmp/agf.json        # rows per year, figures, totals vs the metrics reports
+DB_URL=mysql://readonly@127.0.0.1:3306/EffektDonasjonDB T diff /tmp/agf.json   # dry run
+T sql /tmp/agf.json --by migration:<timestamp>_impact_agf_refresh \
+  > prisma/migrations/<timestamp>_impact_agf_refresh/migration.sql
+```
+
+The SQL adds new rows and updates changed ones; rows corrected by hand in the database
+(`updated_by` set) keep their values, and rows GiveWell no longer lists stay (the diff lists
+both). Every new row appears in the change log with the migration as its author. Check `report`:
+each year's rows should add up to the metrics report's AGF total.
+
 ## Who changed what
 
 Every row shows who changed it last and when. **Impact › Change log** lists every change made in

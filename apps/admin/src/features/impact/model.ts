@@ -17,6 +17,26 @@ export type ImpactCharity = RouterOutputs["impact"]["charities"]["list"][number]
 export type ImpactIntervention = RouterOutputs["impact"]["interventions"]["list"][number];
 export type ImpactRates = RouterOutputs["impact"]["exchangeRates"];
 
+export type AgfPortfolioRow = RouterOutputs["impact"]["agf"]["portfolio"][number];
+export type GivewellGrant = RouterOutputs["impact"]["agf"]["grants"][number];
+export const givewellGrantTypes = ["program", "research", "scoping", "ta", "org_support"] as const;
+export const grantTypeLabels: Record<(typeof givewellGrantTypes)[number], string> = {
+  program: "Programme",
+  research: "Research",
+  scoping: "Scoping",
+  ta: "Technical assistance",
+  org_support: "Organisational support",
+};
+/** "7–11× cash transfers"; null without an estimate */
+export function formatCeMultiple(g: Pick<GivewellGrant, "ceLow" | "ceHigh" | "ceBenchmark">) {
+  if (g.ceLow === null) return null;
+  const range =
+    g.ceHigh !== null && g.ceHigh !== g.ceLow
+      ? `${formatNumber(g.ceLow)}–${formatNumber(g.ceHigh)}`
+      : formatNumber(g.ceLow);
+  return `${range}× ${g.ceBenchmark ?? ""}`.trim();
+}
+
 export const impactFunds = ["TCF", "AGF"] as const;
 export type ImpactFund = (typeof impactFunds)[number];
 export const fundLabels: Record<ImpactFund, string> = {

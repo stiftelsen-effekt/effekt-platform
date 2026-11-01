@@ -631,6 +631,8 @@ async function updateIntervention(
 }
 
 export type ImpactEntity = "estimate" | "grant" | "charity" | "intervention";
+/** What the history holds: the admin's edits, plus AGF rows from data migrations (scripts/agf-grants.mjs) */
+export type ImpactChangeEntity = ImpactEntity | "agf_summary" | "givewell_grant";
 export type ImpactChangeAction = "create" | "update" | "delete";
 
 export type ImpactChangeInput = {
@@ -664,7 +666,8 @@ async function insertChange(conn: Queryable, change: ImpactChangeInput, actor: s
   );
 }
 
-export type ImpactChangeRow = ImpactChangeInput & {
+export type ImpactChangeRow = Omit<ImpactChangeInput, "entity"> & {
+  entity: ImpactChangeEntity;
   id: number;
   changedBy: string;
   changedAt: string;
@@ -679,7 +682,7 @@ const parseJson = (value: unknown) =>
 
 /** The newest changes first, optionally of one entity, one row or one charity */
 async function readChanges(filter: {
-  entity?: ImpactEntity;
+  entity?: ImpactChangeEntity;
   entityId?: number;
   charityId?: number;
   limit: number;
@@ -696,7 +699,7 @@ async function readChanges(filter: {
   params.push(filter.limit);
   const result = await rows<{
     ID: number;
-    entity: ImpactEntity;
+    entity: ImpactChangeEntity;
     entity_id: number;
     action: ImpactChangeAction;
     Charity_ID: number | null;

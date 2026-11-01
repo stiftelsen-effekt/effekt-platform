@@ -15,6 +15,8 @@ export const entityLabels: Record<ImpactChange["entity"], string> = {
   grant: "Fund grant",
   charity: "Charity",
   intervention: "Intervention",
+  agf_summary: "AGF by year",
+  givewell_grant: "GiveWell grant",
 };
 export const actionLabels: Record<ImpactChange["action"], string> = {
   create: "Added",
@@ -78,6 +80,10 @@ export function changeHref(change: ImpactChange): string | null {
       return `/impact/estimates/${change.entityId}`;
     case "intervention":
       return "/impact/settings?section=interventions";
+    case "agf_summary":
+      return "/impact/agf-summary";
+    case "givewell_grant":
+      return "/impact/agf";
   }
 }
 

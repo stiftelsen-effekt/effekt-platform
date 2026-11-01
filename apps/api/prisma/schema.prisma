@@ -54,6 +54,8 @@ model Organizations {
   Regranting_funds                      Regranting_funds?
   Onward_allocations                    Onward_allocations[]
   Impact_charities                      Impact_charities?
+  Impact_fund_portfolio                 Impact_fund_portfolio[]
+  Impact_givewell_grants                Impact_givewell_grants[]
 }
 
 model AvtaleGiro_replaced_distributions {
@@ -1375,6 +1377,73 @@ model Impact_changes {
   @@index([entity, entity_id], map: "Impact_changes_entity_idx")
   @@index([Charity_ID], map: "Impact_changes_charity_idx")
   @@index([changed_at], map: "Impact_changes_changed_at_idx")
+}
+
+/// What a GiveWell fund granted in a metrics year, per organisation (and programme, where the
+/// report names it), from GiveWell's yearly metrics report. Reference data: no donor-facing figure
+/// reads it. Filled by scripts/agf-grants.mjs (docs/impact-givewell-numbers.md)
+model Impact_fund_portfolio {
+  ID               Int       @id @default(autoincrement())
+  fund             String    @db.VarChar(8) /// AGF
+  metrics_year     Int       @db.SmallInt
+  row_key          String    @db.VarChar(191) /// Organisation (+ programme), slugified; the importer's upsert key
+  organization     String    @db.VarChar(255) /// As GiveWell wrote it
+  organization_key String    @db.VarChar(255) /// The same organisation however GiveWell wrote it ("CHAI" = "Clinton Health Access Initiative, Inc.")
+  program          String?   @db.VarChar(255) /// 2022–2024 reports name the programme; 2025 only the organisation
+  amount_cents     BigInt    @db.UnsignedBigInt /// USD cents
+  Organization_ID  Int? /// Our organisation, when donors can give to it through us
+  source_name      String    @db.VarChar(255)
+  source_url       String    @db.Text
+  created_by       String    @db.VarChar(255)
+  created_at       DateTime  @default(now()) @db.DateTime(0)
+  updated_by       String?   @db.VarChar(255)
+  updated_at       DateTime? @db.DateTime(0)
+
+  Organizations Organizations? @relation(fields: [Organization_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Impact_fund_portfolio_to_Organizations")
+
+  @@unique([fund, metrics_year, row_key], map: "Impact_fund_portfolio_fund_year_row_key")
+  @@index([Organization_ID], map: "fk_Impact_fund_portfolio_to_Organizations_idx")
+}
+
+/// A GiveWell grant (write-up, AGF page, impact estimates sheet or grants database), recommended
+/// since the All Grants Fund started (August 2022). `funders` is null when GiveWell hasn't said
+/// which fund paid for it (grant pages don't); "AGF" when GiveWell names the All Grants Fund.
+/// Figures are what GiveWell published, null when it didn't. Reference data: no donor-facing figure
+/// reads it. Filled by scripts/agf-grants.mjs (docs/impact-givewell-numbers.md)
+model Impact_givewell_grants {
+  ID                Int       @id @default(autoincrement())
+  slug              String    @unique(map: "Impact_givewell_grants_slug_key") @db.VarChar(191) /// givewell.org/research/grants/<slug>, or a made-up key for grants without a page
+  title             String    @db.VarChar(500)
+  organization      String    @db.VarChar(255)
+  organization_key  String    @db.VarChar(255)
+  Organization_ID   Int?
+  location          String?   @db.VarChar(255)
+  grant_type        String?   @db.VarChar(16) /// program | research | scoping | ta | org_support (guessed from the title)
+  recommended_month DateTime? @db.Date /// First day of the month GiveWell recommended it
+  published_month   DateTime? @db.Date
+  amount_cents      BigInt?   @db.UnsignedBigInt /// Whole grant, all funders; USD cents
+  amount_exact      Boolean   @default(false) /// false: rounded as in the write-up ("$1.9 million")
+  funders           String?   @db.VarChar(255) /// "AGF", "AGF, Unrestricted"; null: not published
+  fund_amount_cents BigInt?   @db.UnsignedBigInt /// The All Grants Fund's part, when published
+  ce_low            Decimal?  @db.Decimal(6, 2) /// Cost-effectiveness, multiples of ce_benchmark (low = high for a point estimate)
+  ce_high           Decimal?  @db.Decimal(6, 2)
+  ce_benchmark      String?   @db.VarChar(64) /// "unconditional cash transfers", "benchmark", …
+  outputs           Int?      @db.UnsignedInt
+  output_unit       String?   @db.VarChar(255)
+  cents_per_output  Int?      @db.UnsignedInt /// USD cents
+  deaths_averted    Int?      @db.UnsignedInt
+  sources           String    @db.VarChar(255) /// grant_page, agf_page, impact_estimates, airtable
+  source_url        String?   @db.Text
+  notes             String?   @db.Text
+  created_by        String    @db.VarChar(255)
+  created_at        DateTime  @default(now()) @db.DateTime(0)
+  updated_by        String?   @db.VarChar(255)
+  updated_at        DateTime? @db.DateTime(0)
+
+  Organizations Organizations? @relation(fields: [Organization_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Impact_givewell_grants_to_Organizations")
+
+  @@index([Organization_ID], map: "fk_Impact_givewell_grants_to_Organizations_idx")
+  @@index([recommended_month], map: "Impact_givewell_grants_recommended_month_idx")
 }
 
 /// ECB reference rates as units of `currency` per US dollar (ECB publishes per euro; the job

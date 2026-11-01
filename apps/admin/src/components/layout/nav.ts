@@ -255,6 +255,26 @@ const allNavGroups: NavGroup[] = [
         keywords: ["impact", "top charities fund", "tcf", "all grants fund", "agf", "allotment"],
       },
       {
+        to: "/impact/agf",
+        label: "All Grants Fund grants",
+        icon: ScrollTextIcon,
+        keywords: [
+          "impact",
+          "givewell",
+          "all grants fund",
+          "agf",
+          "grant",
+          "tildeling",
+          "bevilling",
+        ],
+      },
+      {
+        to: "/impact/agf-summary",
+        label: "AGF by year",
+        icon: CalendarCheckIcon,
+        keywords: ["impact", "givewell", "all grants fund", "agf", "metrics report", "portfolio"],
+      },
+      {
         to: "/impact/settings",
         label: "Charities & interventions",
         icon: ShapesIcon,

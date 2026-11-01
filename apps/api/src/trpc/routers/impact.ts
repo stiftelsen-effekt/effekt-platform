@@ -47,6 +47,11 @@ import {
   impactInterventionCreateInput,
   impactInterventionUpdateInput,
 } from "../schemas/impact";
+import {
+  agfDao,
+  type AgfPortfolioRow,
+  type GivewellGrantRow,
+} from "../../custom_modules/impactAdmin/agf";
 import { adminProcedure, router } from "../trpc";
 
 /**
@@ -871,6 +876,17 @@ export const impactRouter = router({
         afterImpactEdit();
         return { id };
       }),
+  }),
+
+  /**
+   * GiveWell's All Grants Fund as reference data (read-only; filled by scripts/agf-grants.mjs
+   * through data migrations). Nothing donors see uses it
+   */
+  agf: router({
+    /** The fund's money per metrics year and organisation (and programme), from GiveWell's reports */
+    portfolio: adminProcedure.query((): Promise<AgfPortfolioRow[]> => agfDao.readPortfolio()),
+    /** GiveWell grants since the fund started, newest first; `funders` says which GiveWell named */
+    grants: adminProcedure.query((): Promise<GivewellGrantRow[]> => agfDao.readGivewellGrants()),
   }),
 
   changes: router({
