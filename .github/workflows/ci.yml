@@ -17,9 +17,9 @@ name: CI
 # On main (push) the same checks run to keep the caches that pull requests restore (pnpm store,
 # Cypress binary, Next.js and tsc build caches) and to show main's state; the website's production
 # deployments are tested by deploy.yml.
-run-name: >-
-  ${{ github.event_name == 'pull_request' && format('CI · {0}', github.event.pull_request.title)
-  || format('CI · main · {0}', github.event.head_commit.message) }}
+# Pull requests: "CI · <title>". Pushes: GitHub's default, the commit's first line (an expression
+# can't cut a multi-line commit message; a run-name of only whitespace falls back to the default).
+run-name: "${{ github.event_name == 'pull_request' && format('CI · {0}', github.event.pull_request.title) || ' ' }}"
 on:
   pull_request:
   push:

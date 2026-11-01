@@ -49,5 +49,74 @@ too: they run on `pull_request_target` with cloud credentials.
 
 On `main`, `ci.yml` runs the same lanes after each merge, which keeps the caches pull requests
 restore (pnpm store, Cypress binary, Next.js and tsc build caches); its Vercel lanes finish as
-`production is tested by Deploy`. `web-ci.yml` tests the production deployments until the Deploy
-workflow replaces it.
+`production is tested by Deploy`.
+
+## Deploy (merges to main)
+
+Every push to `main` starts one `Deploy` run (`.github/workflows/deploy.yml`). The deploys stay
+where they are, in Cloud Build (BackendDeploy, AdminDeploy, [deploy.md](deploy.md)) and Vercel;
+the workflow follows them read-only and tests what they deployed.
+
+```mermaid
+flowchart LR
+  changes --> build["api · await BackendDeploy build"]
+  build --> nom["api · NO · migrate"] --> nod["api · NO · deploy"] --> nos["api · NO · smoke"]
+  build --> sem["api · SE · migrate"] --> sed["api · SE · deploy"] --> ses["api · SE · smoke"]
+  changes --> ab["admin · await AdminDeploy"] --> as["admin · smoke"]
+  changes --> vno["web · NO · await Vercel production"] --> eno["web · NO · prod e2e"]
+  nos --> eno
+  changes --> vse["web · SE · await Vercel production"] --> sse["web · SE · prod smoke"]
+  ses --> sse
+  changes --> vdk["web · DK · await Vercel production"] --> edk["web · DK · prod e2e"]
+  nos & ses & as & eno & sse & edk --> summary["Deploy summary"]
+```
+
+- **API.** `api · await BackendDeploy build` waits for BackendDeploy's check on the commit. The
+  step nodes (`migrate`, `deploy` per country) each follow their Cloud Build step
+  (`scripts/ci/cloudbuild-steps.sh`): they read the build through the Cloud Build API with a
+  read-only identity. When the deploy guard skipped the build because a newer commit deploys
+  (`scripts/deploy/guard.sh`), the nodes are named `· skipped (newer commit deploys)` and the
+  smoke tests `· no deploy (newer commit deploys)`. When the commit doesn't touch the API (the
+  trigger reports "Changed files did not match file filter"), they end as `· no change`.
+- **API smoke** (`api · NO · smoke`, `api · SE · smoke`): `GET /` answers `status: ok` and the
+  public tRPC call `widget.causeAreas` returns cause areas, on `data.gieffektivt.no` and
+  `api.geeffektivt.se`.
+- **Admin.** `admin · await AdminDeploy` mirrors the check; `admin · smoke` loads
+  `admin.gieffektivt.no` and every asset its `index.html` references.
+- **Websites.** Each site's lane waits for Vercel's production deployment of the commit, then
+  runs its Cypress suite (`web-e2e.yml`) against production: NO on `gieffektivt.no` after the
+  Norwegian API smoke (so a commit that changes both is tested against its own API), SE's smoke
+  test on `geeffektivt.se` after the Swedish API smoke, DK on its deployment URL (Denmark's
+  backend is separate). Production runs share the site and the Min Side test account: one at a
+  time per site, and only the newest waiting one runs. GitHub cancels a replaced one, and the
+  summary lists it as cancelled without failing the run. The `api-dev` deployments of
+  giv-effektivt are not tested.
+- **`Deploy summary`**: every job with its result and duration, and links to the Cloud Build
+  logs, the Vercel deployments and Cypress Cloud.
+
+### The read-only Cloud Build identity
+
+`scripts/ci/gcp-deploy-observer.sh` (dry run by default, `--apply` to create) sets up:
+
+| What                                                        | Access                                                                                                                                                         |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Service account `effekt-deploy-observer`                    | `roles/cloudbuild.builds.viewer` (builds, steps, timing) and `roles/logging.viewAccessor` on one log view, `cloudbuild-deploy-observer`: Cloud Build logs only |
+| Workload identity pool `github-effekt-deploy`, one provider | accepts only this repository (numeric id), `refs/heads/main`, `push`, and `job_workflow_ref` = `.github/workflows/deploy.yml@refs/heads/main`                  |
+| Repository variables `DEPLOY_OBSERVER_WIF_PROVIDER`, `_SA`  | read by `deploy.yml`                                                                                                                                           |
+
+It can't start, cancel or change builds, read secrets, or reach Cloud Run, Cloud SQL or storage.
+Until the variables exist (or when the login fails), the API lane follows the whole build
+through BackendDeploy's GitHub check in `api · await BackendDeploy build`, and the step nodes
+end at once as `· see BackendDeploy (no step view)`; the guard's decision then isn't shown.
+
+## Scripts
+
+| Script                              | Used by                                                     |
+| ----------------------------------- | ----------------------------------------------------------- |
+| `scripts/ci/changes.sh`             | `changes` in both workflows                                 |
+| `scripts/ci/await-check.sh`         | the QA, BackendDeploy and AdminDeploy nodes (GitHub checks) |
+| `scripts/ci/await-vercel.sh`        | the Vercel nodes (commit statuses, deployments)             |
+| `scripts/ci/vercel-lane.sh`         | the preview lanes in `ci.yml` (what the Cypress jobs skip)  |
+| `scripts/ci/cloudbuild-steps.sh`    | the API step nodes in `deploy.yml` (Cloud Build API, logs)  |
+| `scripts/ci/summary.sh`             | `CI (required)` and `Deploy summary`                        |
+| `scripts/ci/gcp-deploy-observer.sh` | run by hand once: the read-only identity above              |

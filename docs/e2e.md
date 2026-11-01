@@ -4,7 +4,7 @@ The website (`apps/web`) has two Cypress suites:
 
 | Suite      | Config                                                                         | Runs against                                                          | Data                                                  | Login                          |
 | ---------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------ |
-| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts`, `cypress-se.config.ts` (smoke) | Vercel deployments (`ci.yml` on previews, `web-ci.yml` on production) | `cy.intercept` fixtures in `cypress/fixtures/`        | real Auth0 test user (secrets) |
+| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts`, `cypress-se.config.ts` (smoke) | Vercel deployments (`ci.yml` on previews, `deploy.yml` on production) | `cy.intercept` fixtures in `cypress/fixtures/`        | real Auth0 test user (secrets) |
 | Full stack | `cypress-fullstack.config.ts`                                                  | local web → API → MySQL (`ci.yml`)                                    | the real API and DB, seeded by `apps/api/prisma/e2e/` | local OIDC issuer, no secrets  |
 
 ## Running the full-stack suite

@@ -9,8 +9,11 @@
 # Cloud Build log), build_id (Cloud Build's build id, when the URL has one), started_at,
 # completed_at. Exits 1 unless the check succeeded or wasn't triggered.
 #
-# Env: GH_TOKEN, REPO, SHA, CHECK (the check run's name), TIMEOUT_MINUTES (default 45),
-# APPEAR_MINUTES (how long to wait for the check to show up at all, default 10),
+# With UNTIL=started it returns as soon as the check runs and names its Cloud Build build
+# (ran=true, build_id, url, conclusion empty), or with the result if it finished already.
+#
+# Env: GH_TOKEN, REPO, SHA, CHECK (the check run's name), UNTIL (completed | started),
+# TIMEOUT_MINUTES (default 45), APPEAR_MINUTES (how long to wait for the check to show up at all, default 10),
 # INTERVAL (seconds, default 15).
 set -euo pipefail
 
@@ -33,6 +36,15 @@ while :; do
   if [[ "$status/$conclusion" != "$last" ]]; then
     echo "$(date -u +%H:%M:%S) $CHECK: $status${conclusion:+ ($conclusion)}${url:+ $url}"
     last="$status/$conclusion"
+  fi
+
+  if [[ "${UNTIL:-completed}" == started && "$status" == in_progress && "$url" == */builds/* ]]; then
+    out ran true
+    out conclusion ""
+    out url "$url"
+    out build_id "$(sed -nE 's#.*/builds/([0-9a-f-]+).*#\1#p' <<<"$url")"
+    out started_at "$(jq -r '.started_at // ""' <<<"$run")"
+    exit 0
   fi
 
   if [[ "$status" == completed ]]; then
