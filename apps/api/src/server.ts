@@ -34,7 +34,8 @@ import { mcpRouter } from "./routes/mcp";
 import { oauthRouter, sendAuthorizationServerMetadata } from "./routes/oauth";
 import { getProtectedResourceMetadata } from "./custom_modules/mcp/oauthProtectedResource";
 import { startWebSocketServer } from "./websocket";
-import { isPublicCachedRead, mountTrpc } from "./trpc/express";
+import { mountTrpc } from "./trpc/express";
+import { corsHeaders } from "./middleware/cors";
 import { defaultEmptyBody, skipForTrpc } from "./trpc/reportsMultipart";
 import { isPreviewMode } from "./custom_modules/preview/previewMode";
 import { enforcePreviewEnvironment } from "./custom_modules/preview/environmentGuard";
@@ -174,35 +175,13 @@ DAO.connect(() => {
     }),
   );
 
-  //Set cross origin as allowed
-  app.use(function (req, res, next) {
-    if (config.env === "production") {
-      const remoteOrigin = req.get("Origin");
-      const previewOriginRe = /^https:\/\/main-site-.*-effective-altruism-norway\.vercel\.app$/;
-
-      const allowed =
-        !!remoteOrigin &&
-        (config.allowedProductionOrigins.includes(remoteOrigin) ||
-          previewOriginRe.test(remoteOrigin));
-
-      if (isPublicCachedRead(req.path)) {
-        res.setHeader("Access-Control-Allow-Origin", "*");
-      } else if (allowed) {
-        res.setHeader("Access-Control-Allow-Origin", remoteOrigin);
-        res.setHeader("Vary", "Origin");
-      }
-    } else {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-    }
-
-    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, baggage, sentry-trace, trpc-accept",
-    );
-    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
-    next();
-  });
+  //Set cross origin as allowed (middleware/cors.ts)
+  app.use(
+    corsHeaders({
+      env: config.env,
+      allowedProductionOrigins: config.allowedProductionOrigins,
+    }),
+  );
 
   //Look for bearer tokens
   app.use(bearerToken());
