@@ -64,7 +64,12 @@ export function SourceLinks({
     .filter((u) => /^https?:\/\//i.test(u));
   if (urls.length === 0) return name ? <span>{name}</span> : <span>–</span>;
   return (
-    <span className="grid gap-0.5">
+    <span
+      className={cn(
+        "grid gap-0.5",
+        truncate && "max-w-72 grid-cols-[minmax(0,1fr)] overflow-hidden",
+      )}
+    >
       {urls.map((href, i) => (
         <a
           key={href + i}

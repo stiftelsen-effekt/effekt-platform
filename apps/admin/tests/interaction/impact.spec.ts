@@ -323,3 +323,76 @@ test("a charity's abbreviation is fixed once created", async ({ page }) => {
     { id: 1, name: "Against Malaria Foundation (AMF)", organizationId: 12 },
   ]);
 });
+
+const changesFixture = [
+  {
+    id: 8,
+    entity: "estimate",
+    entityId: 71,
+    action: "update",
+    charityId: 1,
+    summary: "AMF estimate from Jan 2023",
+    changedBy: "ops@example.org",
+    changedAt: "2026-11-01T14:42:45.000Z",
+    fields: [
+      { field: "centsPerOutput", before: 585, after: 610 },
+      { field: "validFrom", before: "2023-01-01", after: "2023-02-01" },
+    ],
+  },
+  {
+    id: 7,
+    entity: "grant",
+    entityId: 33,
+    action: "delete",
+    charityId: null,
+    summary: "TCF grant from Feb 2025",
+    changedBy: "finance@example.org",
+    changedAt: "2026-11-01T13:00:00.000Z",
+    fields: [],
+  },
+];
+
+test("the change log shows who changed what, before → after, filtered by kind", async ({
+  page,
+}) => {
+  const inputs: unknown[] = [];
+  await signIn(page, {
+    overrides: {
+      "impact.changes.list": (input) => {
+        inputs.push(input);
+        return changesFixture;
+      },
+    },
+  });
+  await page.goto("/impact/changes");
+  const table = page.getByRole("table", { name: "Change log" });
+  const row = table.getByRole("row", { name: /AMF estimate/ });
+  await expect(row).toContainText("ops@example.org");
+  await expect(row).toContainText("Cost per output: 5,85 USD → 6,10 USD");
+  await expect(row).toContainText("From month: Jan 2023 → Feb 2023");
+  await expect(row.getByRole("link", { name: "AMF estimate from Jan 2023" })).toHaveAttribute(
+    "href",
+    "/impact/estimates/1",
+  );
+  // A deleted grant has no page to link to
+  await expect(table.getByRole("row", { name: /TCF grant/ }).getByRole("link")).toHaveCount(0);
+  await page.goto("/impact/changes?entity=grant");
+  await expect.poll(() => inputs.at(-1)).toEqual({ entity: "grant", limit: 500 });
+});
+
+test("a charity's page lists its history", async ({ page }) => {
+  const inputs: unknown[] = [];
+  await signIn(page, {
+    overrides: {
+      "impact.changes.list": (input) => {
+        inputs.push(input);
+        return changesFixture.slice(0, 1);
+      },
+    },
+  });
+  await page.goto("/impact/estimates/1");
+  await expect(page.getByRole("table", { name: "History" })).toContainText(
+    "Cost per output: 5,85 USD → 6,10 USD",
+  );
+  expect(inputs).toContainEqual({ charityId: 1 });
+});

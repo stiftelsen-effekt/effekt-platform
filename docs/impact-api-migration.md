@@ -1,6 +1,6 @@
 # Moving the impact API into the platform
 
-Status: **phases 0–3 done** (decisions settled 2026-11-01, see [Decisions](#decisions);
+Status: **phases 0–4 done** (decisions settled 2026-11-01, see [Decisions](#decisions);
 phase 0 runs as scripts by hand). The website no longer calls the impact API. Written
 2026-10-30 from read-only inspection of the code, the GCP config, the load balancer logs and the
 public API. No database was queried (the `Impact` schema needs the `impactapi` credentials, which
@@ -482,3 +482,26 @@ Settled on 2026-11-01:
   `created_by`/`updated_by` (`adminIdentity`), and then clears `getImpactData`'s cache, the
   widget memo and the results-page memo on that instance (`afterImpactEdit`); other instances
   follow within 15 minutes.
+- Audit: no admin table had a history pattern to follow (other admin writes keep `created_by`
+  only), so the impact tables keep `created_by`/`updated_by` on rows plus `Impact_changes`
+  (migration `20261101200000_impact_changes`): one row per create/update/delete with the row
+  before and after as JSON, who and when, written in the edit's transaction (a failed history
+  write fails the edit). No foreign keys, so a deleted row's history stays.
+  `impact.changes.list` → Impact › Change log and the History sections.
+- **Exit criterion, verified 2026-11-01 on the preview of #1036** (synthetic data, `preview`
+  label, see [preview-environments.md](preview-environments.md)):
+  1. Open the preview link from the PR comment, continue as **Ops**.
+  2. Pick a donor who gave to AMF since January 2023: Donations, filter Organization = Against
+     Malaria Foundation, open a donation, note the donor id. Min Side's figures for that donor are
+     what `minside.donations({donorId})` returns as `impact` (a preview token from
+     `POST /preview/session {"as":"ops"}`, which is an admin token and may read any donor). The
+     main site's Vercel previews still talk to production, so the preview's own API is the Min
+     Side to check (see "Later: the main site" in preview-environments.md).
+  3. Impact › Cost estimates › Against Malaria Foundation › edit the estimate from Jan 2023:
+     5,85 → 11,70 USD. The page and the confirmation said "From Jan 2023 (47 months so far),
+     2 614 donations from 840 donors"; **Save estimate**.
+  4. `minside.donations` again: the donor's AMF line went from 2,99 to 1,50 bed nets (half, as
+     the cost doubled), at once, without a redeploy. The charity's History section and Impact ›
+     Change log show the edit with Ops as its author (from #1037 on).
+     The preview scales to at most two instances; the other instance shows the change within 15
+     minutes (the cache's lifetime), as in production.

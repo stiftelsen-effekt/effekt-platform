@@ -43,6 +43,7 @@ import { Route as AppDonorsIndexRouteImport } from './routes/_app/donors/index'
 import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
+import { Route as AppImpactChangesRouteImport } from './routes/_app/impact/changes'
 import { Route as AppImpactExchangeRatesRouteImport } from './routes/_app/impact/exchange-rates'
 import { Route as AppImpactSettingsRouteImport } from './routes/_app/impact/settings'
 import { Route as AppImportIndexRouteImport } from './routes/_app/import/index'
@@ -244,6 +245,11 @@ const AppFundraisersIdRoute = AppFundraisersIdRouteImport.update({
   path: '/fundraisers/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppImpactChangesRoute = AppImpactChangesRouteImport.update({
+  id: '/impact/changes',
+  path: '/impact/changes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppImpactExchangeRatesRoute = AppImpactExchangeRatesRouteImport.update({
   id: '/impact/exchange-rates',
   path: '/impact/exchange-rates',
@@ -436,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/impact/changes': typeof AppImpactChangesRoute
   '/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
   '/impact/settings': typeof AppImpactSettingsRoute
   '/logs/$id': typeof AppLogsIdRoute
@@ -500,6 +507,7 @@ export interface FileRoutesByTo {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/impact/changes': typeof AppImpactChangesRoute
   '/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
   '/impact/settings': typeof AppImpactSettingsRoute
   '/logs/$id': typeof AppLogsIdRoute
@@ -568,6 +576,7 @@ export interface FileRoutesById {
   '/_app/donations/register': typeof AppDonationsRegisterRoute
   '/_app/donors/$id': typeof AppDonorsIdRoute
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/_app/impact/changes': typeof AppImpactChangesRoute
   '/_app/impact/exchange-rates': typeof AppImpactExchangeRatesRoute
   '/_app/impact/settings': typeof AppImpactSettingsRoute
   '/_app/logs/$id': typeof AppLogsIdRoute
@@ -636,6 +645,7 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/impact/changes'
     | '/impact/exchange-rates'
     | '/impact/settings'
     | '/logs/$id'
@@ -700,6 +710,7 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/impact/changes'
     | '/impact/exchange-rates'
     | '/impact/settings'
     | '/logs/$id'
@@ -767,6 +778,7 @@ export interface FileRouteTypes {
     | '/_app/donations/register'
     | '/_app/donors/$id'
     | '/_app/fundraisers/$id'
+    | '/_app/impact/changes'
     | '/_app/impact/exchange-rates'
     | '/_app/impact/settings'
     | '/_app/logs/$id'
@@ -1052,6 +1064,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFundraisersIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/impact/changes': {
+      id: '/_app/impact/changes'
+      path: '/impact/changes'
+      fullPath: '/impact/changes'
+      preLoaderRoute: typeof AppImpactChangesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/impact/exchange-rates': {
       id: '/_app/impact/exchange-rates'
       path: '/impact/exchange-rates'
@@ -1321,6 +1340,7 @@ interface AppRouteChildren {
   AppDonationsRegisterRoute: typeof AppDonationsRegisterRoute
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
+  AppImpactChangesRoute: typeof AppImpactChangesRoute
   AppImpactExchangeRatesRoute: typeof AppImpactExchangeRatesRoute
   AppImpactSettingsRoute: typeof AppImpactSettingsRoute
   AppLogsIdRoute: typeof AppLogsIdRoute
@@ -1365,6 +1385,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonationsRegisterRoute: AppDonationsRegisterRoute,
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
+  AppImpactChangesRoute: AppImpactChangesRoute,
   AppImpactExchangeRatesRoute: AppImpactExchangeRatesRoute,
   AppImpactSettingsRoute: AppImpactSettingsRoute,
   AppLogsIdRoute: AppLogsIdRoute,

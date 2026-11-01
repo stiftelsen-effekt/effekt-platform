@@ -14,6 +14,10 @@ import {
   type AdminIntervention,
   type ExchangeRateCurrency,
   type ExchangeRateJobRun,
+  type ImpactChangeAction,
+  type ImpactChangeRow,
+  type ImpactEntity,
+  type RowMeta,
   type Queryable,
 } from "../../custom_modules/impactAdmin/dao";
 import {
@@ -29,6 +33,7 @@ import { OSLO_ZONE } from "../../custom_modules/osloDays";
 import { adminIdentity } from "../identity";
 import {
   impactByIdInput,
+  impactChangesListInput,
   impactCharityCreateInput,
   impactCharityInput,
   impactCharityUpdateInput,
@@ -350,6 +355,118 @@ export type ImpactEstimatePreview = {
   nokRate: ImpactNokRate;
 };
 
+//region History
+
+/** A row as the history stores it: its fields, without IDs and who/when */
+function snapshot(tables: AdminImpactTables, entity: ImpactEntity, id: number): unknown {
+  const strip = <T extends object>(row: T) => {
+    const {
+      createdAt: _a,
+      createdBy: _b,
+      updatedAt: _c,
+      updatedBy: _d,
+      ...rest
+    } = row as T & RowMeta;
+    return rest;
+  };
+  switch (entity) {
+    case "estimate": {
+      const e = tables.evaluations.find((x) => x.id === id);
+      return e ? strip(e) : null;
+    }
+    case "grant": {
+      const g = tables.grants.find((x) => x.id === id);
+      return g ? strip(g) : null;
+    }
+    case "charity": {
+      const c = tables.charities.find((x) => x.id === id);
+      return c ? strip(c) : null;
+    }
+    case "intervention": {
+      const i = tables.interventions.find((x) => x.id === id);
+      return i ? strip(i) : null;
+    }
+  }
+}
+
+/** "AMF estimate from Jan 2023", "TCF grant from Feb 2025", "Charity AMF", "Intervention Bednets" */
+function summarize(tables: AdminImpactTables, entity: ImpactEntity, id: number): string {
+  switch (entity) {
+    case "estimate": {
+      const e = tables.evaluations.find((x) => x.id === id);
+      const charity = tables.charities.find((c) => c.id === e?.charityId);
+      return e
+        ? `${charity?.abbreviation ?? "?"} estimate from ${monthName(e.validFrom)}`
+        : `Estimate ${id}`;
+    }
+    case "grant": {
+      const g = tables.grants.find((x) => x.id === id);
+      return g ? `${g.fund} grant from ${monthName(g.validFrom)}` : `Grant ${id}`;
+    }
+    case "charity": {
+      const c = tables.charities.find((x) => x.id === id);
+      return c ? `Charity ${c.abbreviation} (${c.name})` : `Charity ${id}`;
+    }
+    case "intervention": {
+      const i = tables.interventions.find((x) => x.id === id);
+      return i ? `Intervention ${i.shortDescription}` : `Intervention ${id}`;
+    }
+  }
+}
+
+/**
+ * Writes the edit to the history (Impact_changes) in the same transaction: the row before (from
+ * the tables read at the start) and after (read again now).
+ */
+async function recordEdit(
+  conn: Queryable,
+  before: AdminImpactTables,
+  entity: ImpactEntity,
+  id: number,
+  action: ImpactChangeAction,
+  actor: string,
+) {
+  const after = action === "delete" ? null : await dao.readTables(conn);
+  const tables = after ?? before;
+  const charityId =
+    entity === "charity"
+      ? id
+      : entity === "estimate"
+        ? (tables.evaluations.find((e) => e.id === id)?.charityId ?? null)
+        : null;
+  await dao.insertChange(
+    conn,
+    {
+      entity,
+      entityId: id,
+      action,
+      charityId,
+      summary: summarize(tables, entity, id),
+      before: action === "create" ? null : snapshot(before, entity, id),
+      after: after ? snapshot(after, entity, id) : null,
+    },
+    actor,
+  );
+}
+
+export type ImpactFieldChange = { field: string; before: unknown; after: unknown };
+export type ImpactChange = Omit<ImpactChangeRow, "before" | "after"> & {
+  /** Fields that differ (all fields for a create or delete); allotments and texts as a whole */
+  fields: ImpactFieldChange[];
+};
+
+/** The fields that differ between two snapshots */
+export function changedFields(before: unknown, after: unknown): ImpactFieldChange[] {
+  const b = (before ?? {}) as Record<string, unknown>;
+  const a = (after ?? {}) as Record<string, unknown>;
+  const keys = [...new Set([...Object.keys(b), ...Object.keys(a)])].filter((k) => k !== "id");
+  return keys
+    .filter((k) => JSON.stringify(b[k]) !== JSON.stringify(a[k]))
+    .map((field) => ({ field, before: b[field] ?? null, after: a[field] ?? null }));
+}
+
+//endregion
+
 const notFound = (what: string, id: number) =>
   new TRPCError({ code: "NOT_FOUND", message: `${what} ${id} not found` });
 
@@ -495,7 +612,10 @@ export const impactRouter = router({
           const charity = assertCharity(tables, charityId);
           assertIntervention(tables, values.interventionId);
           assertFreeMonth(tables, charity, values.validFrom);
-          return dao.insertEstimate(conn, charityId, values, adminIdentity(ctx.auth));
+          const actor = adminIdentity(ctx.auth);
+          const newId = await dao.insertEstimate(conn, charityId, values, actor);
+          await recordEdit(conn, tables, "estimate", newId, "create", actor);
+          return newId;
         });
         afterImpactEdit();
         return { id };
@@ -513,7 +633,9 @@ export const impactRouter = router({
           const charity = assertCharity(tables, existing.charityId);
           assertIntervention(tables, values.interventionId);
           assertFreeMonth(tables, charity, values.validFrom, id);
-          await dao.updateEstimate(conn, id, values, adminIdentity(ctx.auth));
+          const actor = adminIdentity(ctx.auth);
+          await dao.updateEstimate(conn, id, values, actor);
+          await recordEdit(conn, tables, "estimate", id, "update", actor);
         });
         afterImpactEdit();
         return { id };
@@ -522,12 +644,13 @@ export const impactRouter = router({
     /** Removes an estimate: its months fall back to the one before (or to no estimate) */
     delete: adminProcedure
       .input(impactByIdInput)
-      .mutation(async ({ input }): Promise<{ id: number }> => {
+      .mutation(async ({ input, ctx }): Promise<{ id: number }> => {
         await dao.inTransaction(async (conn) => {
           const tables = await dao.readTables(conn);
           if (!tables.evaluations.some((e) => e.id === input.id))
             throw notFound("Estimate", input.id);
           await dao.deleteEstimate(conn, input.id);
+          await recordEdit(conn, tables, "estimate", input.id, "delete", adminIdentity(ctx.auth));
         });
         afterImpactEdit();
         return { id: input.id };
@@ -594,6 +717,7 @@ export const impactRouter = router({
           assertAllotments(tables, input.allotments, null);
           const grantId = await dao.insertGrant(conn, input, actor);
           await dao.replaceAllotments(conn, grantId, input.allotments, actor);
+          await recordEdit(conn, tables, "grant", grantId, "create", actor);
           return grantId;
         });
         afterImpactEdit();
@@ -616,6 +740,7 @@ export const impactRouter = router({
           assertAllotments(tables, input.allotments, grant);
           await dao.updateGrant(conn, grant.id, input.validFrom, actor);
           await dao.replaceAllotments(conn, grant.id, input.allotments, actor);
+          await recordEdit(conn, tables, "grant", grant.id, "update", actor);
         });
         afterImpactEdit();
         return { id: input.id };
@@ -624,11 +749,12 @@ export const impactRouter = router({
     /** Removes a grant and its allotments: its months use the fund's grant before it */
     delete: adminProcedure
       .input(impactByIdInput)
-      .mutation(async ({ input }): Promise<{ id: number }> => {
+      .mutation(async ({ input, ctx }): Promise<{ id: number }> => {
         await dao.inTransaction(async (conn) => {
           const tables = await dao.readTables(conn);
           if (!tables.grants.some((g) => g.id === input.id)) throw notFound("Grant", input.id);
           await dao.deleteGrant(conn, input.id);
+          await recordEdit(conn, tables, "grant", input.id, "delete", adminIdentity(ctx.auth));
         });
         afterImpactEdit();
         return { id: input.id };
@@ -674,7 +800,10 @@ export const impactRouter = router({
           if (tables.charities.some((c) => c.abbreviation === input.abbreviation))
             throw fieldError("abbreviation", `${input.abbreviation} is already taken`);
           await assertOrganization(conn, tables, input.organizationId);
-          return dao.insertCharity(conn, input, adminIdentity(ctx.auth));
+          const actor = adminIdentity(ctx.auth);
+          const newId = await dao.insertCharity(conn, input, actor);
+          await recordEdit(conn, tables, "charity", newId, "create", actor);
+          return newId;
         });
         afterImpactEdit();
         return { id };
@@ -688,7 +817,9 @@ export const impactRouter = router({
           const tables = await dao.readTables(conn);
           if (!tables.charities.some((c) => c.id === input.id)) throw notFound("Charity", input.id);
           await assertOrganization(conn, tables, input.organizationId, input.id);
-          await dao.updateCharity(conn, input.id, input, adminIdentity(ctx.auth));
+          const actor = adminIdentity(ctx.auth);
+          await dao.updateCharity(conn, input.id, input, actor);
+          await recordEdit(conn, tables, "charity", input.id, "update", actor);
         });
         afterImpactEdit();
         return { id: input.id };
@@ -715,7 +846,10 @@ export const impactRouter = router({
         const id = await dao.inTransaction(async (conn) => {
           const tables = await dao.readTables(conn);
           assertFreeInterventionName(tables, input.shortDescription);
-          return dao.insertIntervention(conn, input, adminIdentity(ctx.auth));
+          const actor = adminIdentity(ctx.auth);
+          const newId = await dao.insertIntervention(conn, input, actor);
+          await recordEdit(conn, tables, "intervention", newId, "create", actor);
+          return newId;
         });
         afterImpactEdit();
         return { id };
@@ -730,11 +864,25 @@ export const impactRouter = router({
           const tables = await dao.readTables(conn);
           if (!tables.interventions.some((i) => i.id === id)) throw notFound("Intervention", id);
           assertFreeInterventionName(tables, values.shortDescription, id);
-          await dao.updateIntervention(conn, id, values, adminIdentity(ctx.auth));
+          const actor = adminIdentity(ctx.auth);
+          await dao.updateIntervention(conn, id, values, actor);
+          await recordEdit(conn, tables, "intervention", id, "update", actor);
         });
         afterImpactEdit();
         return { id };
       }),
+  }),
+
+  changes: router({
+    /** Who changed what and when, newest first; for one entity, one row or one charity */
+    list: adminProcedure
+      .input(impactChangesListInput)
+      .query(async ({ input }): Promise<ImpactChange[]> =>
+        (await dao.readChanges(input)).map(({ before, after, ...row }) => ({
+          ...row,
+          fields: changedFields(before, after),
+        })),
+      ),
   }),
 
   /**

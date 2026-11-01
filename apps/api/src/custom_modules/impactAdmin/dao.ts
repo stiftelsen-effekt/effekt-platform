@@ -630,6 +630,101 @@ async function updateIntervention(
   await writeTexts(conn, id, v.texts);
 }
 
+export type ImpactEntity = "estimate" | "grant" | "charity" | "intervention";
+export type ImpactChangeAction = "create" | "update" | "delete";
+
+export type ImpactChangeInput = {
+  entity: ImpactEntity;
+  entityId: number;
+  action: ImpactChangeAction;
+  charityId: number | null;
+  summary: string;
+  before: unknown;
+  after: unknown;
+};
+
+/** One row of the edit history, in the edit's transaction */
+async function insertChange(conn: Queryable, change: ImpactChangeInput, actor: string) {
+  await exec(
+    conn,
+    `INSERT INTO Impact_changes (entity, entity_id, action, Charity_ID, summary, \`before\`, \`after\`,
+       changed_by, changed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      change.entity,
+      change.entityId,
+      change.action,
+      change.charityId,
+      change.summary.slice(0, 255),
+      change.before === null ? null : JSON.stringify(change.before),
+      change.after === null ? null : JSON.stringify(change.after),
+      actor,
+      new Date(),
+    ],
+  );
+}
+
+export type ImpactChangeRow = ImpactChangeInput & {
+  id: number;
+  changedBy: string;
+  changedAt: string;
+};
+
+const parseJson = (value: unknown) =>
+  value === null || value === undefined
+    ? null
+    : typeof value === "string"
+      ? JSON.parse(value)
+      : value;
+
+/** The newest changes first, optionally of one entity, one row or one charity */
+async function readChanges(filter: {
+  entity?: ImpactEntity;
+  entityId?: number;
+  charityId?: number;
+  limit: number;
+}): Promise<ImpactChangeRow[]> {
+  const where: string[] = [];
+  const params: unknown[] = [];
+  const add = (clause: string, value: unknown) => {
+    where.push(clause);
+    params.push(value);
+  };
+  if (filter.entity) add("entity = ?", filter.entity);
+  if (filter.entityId) add("entity_id = ?", filter.entityId);
+  if (filter.charityId) add("Charity_ID = ?", filter.charityId);
+  params.push(filter.limit);
+  const result = await rows<{
+    ID: number;
+    entity: ImpactEntity;
+    entity_id: number;
+    action: ImpactChangeAction;
+    Charity_ID: number | null;
+    summary: string;
+    before: unknown;
+    after: unknown;
+    changed_by: string;
+    changed_at: Date | string;
+  }>(
+    `SELECT ID, entity, entity_id, action, Charity_ID, summary, \`before\`, \`after\`, changed_by, changed_at
+       FROM Impact_changes ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+      ORDER BY changed_at DESC, ID DESC LIMIT ?`,
+    params,
+  );
+  return result.map((r) => ({
+    id: r.ID,
+    entity: r.entity,
+    entityId: r.entity_id,
+    action: r.action,
+    charityId: r.Charity_ID,
+    summary: r.summary,
+    before: parseJson(r.before),
+    after: parseJson(r.after),
+    changedBy: r.changed_by,
+    changedAt: iso(r.changed_at),
+  }));
+}
+
 //endregion
 
 /** Kept on one object so tests can stub single reads and writes */
@@ -653,4 +748,6 @@ export const impactAdminDao = {
   organizationExists,
   insertIntervention,
   updateIntervention,
+  insertChange,
+  readChanges,
 };

@@ -1356,6 +1356,27 @@ model Impact_grant_allotments {
   @@index([Intervention_ID], map: "fk_Impact_grant_allotments_to_Impact_interventions_idx")
 }
 
+/// History of admin edits to the impact data: the row before and after each create, update or
+/// delete (`entity` estimate | grant | charity | intervention; `action` create | update | delete).
+/// No foreign keys, so a deleted row's history stays. `Charity_ID`: the charity an estimate
+/// belongs to (or the charity itself), for its page
+model Impact_changes {
+  ID         Int      @id @default(autoincrement())
+  entity     String   @db.VarChar(16)
+  entity_id  Int
+  action     String   @db.VarChar(8)
+  Charity_ID Int?
+  summary    String   @db.VarChar(255) /// What changed, in words: "AMF estimate from Jan 2023"
+  before     Json?
+  after      Json?
+  changed_by String   @db.VarChar(255)
+  changed_at DateTime @db.DateTime(0) /// App clock (UTC), written by the API
+
+  @@index([entity, entity_id], map: "Impact_changes_entity_idx")
+  @@index([Charity_ID], map: "Impact_changes_charity_idx")
+  @@index([changed_at], map: "Impact_changes_changed_at_idx")
+}
+
 /// ECB reference rates as units of `currency` per US dollar (ECB publishes per euro; the job
 /// divides by the day's USD rate). Business days only: readers take the latest date on or
 /// before the one they need. Filled by POST /scheduled/exchange-rates
