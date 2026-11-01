@@ -4,6 +4,18 @@ Every push to a pull request starts one `CI` run (`.github/workflows/ci.yml`) wh
 the whole platform: one lane per app and, for the websites, one lane per country. Deploys stay in
 Cloud Build and Vercel.
 
+Real runs to compare with:
+
+| Run                                                                                                        | Shows                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [CI on a website PR](https://github.com/stiftelsen-effekt/effekt-platform/actions/runs/41317238573)        | every lane running, with the NO and DK e2e shards and the SE smoke test against the previews                            |
+| [CI on a Dependabot PR](https://github.com/stiftelsen-effekt/effekt-platform/actions/runs/41317750357)     | the Cypress lanes ending as `no secrets on Dependabot PRs; full-stack e2e covers it`                                    |
+| [CI with no website change](https://github.com/stiftelsen-effekt/effekt-platform/actions/runs/41317280793) | the previews skipped by the Ignored Build Step (`no web change`)                                                        |
+| [Deploy](https://github.com/stiftelsen-effekt/effekt-platform/actions/runs/41317590684)                    | an API deploy (step nodes without the step view, see below), the admin not deployed, production e2e for all three sites |
+
+The run's summary page (below the graph) has the table of every lane with its result, duration
+and links.
+
 ## CI (pull requests)
 
 ```mermaid
