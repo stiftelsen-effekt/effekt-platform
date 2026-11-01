@@ -59,11 +59,17 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   donation), lower the amount after a partial payment, reopen, delete.
 - **Impact** (GiveWell cost per output, [impact-api-migration.md](impact-api-migration.md) phase
   4; `impact.*`): cost estimates per charity with the months each covers (a donation uses the
-  charity's latest estimate on or before its month) and the cost in NOK at today's rate; Top
-  Charities Fund / All Grants Fund grants with their split by charity and each allotment's cost
-  per output; charities (link to an organization; IDs and abbreviations never change) and
-  interventions with texts per language; exchange rates (newest per currency, the daily job's
-  runs, gaps; read-only).
+  charity's latest estimate on or before its month) and the cost in NOK at today's rate; add,
+  correct and delete estimates on an edit page that shows, before saving, the cost before → after,
+  the months whose figure changes and how many donations and donors that is
+  (`impact.estimates.preview`), and confirms it. Top Charities Fund / All Grants Fund grants with
+  their split by charity (each allotment's sum over the grant's total, as the impact module
+  computes it) and each allotment's cost per output; add, edit (allotments keep their IDs) and
+  delete grants. Charities (name, link to an organization; the abbreviation is fixed once created,
+  IDs never change) and interventions with texts per language. Exchange rates (newest per
+  currency, the daily job's runs, gaps; read-only). Every write runs in one transaction, records
+  who changed it, and clears the impact cache. Ops guide:
+  [impact-givewell-numbers.md](impact-givewell-numbers.md).
 - **Records**: import log list (search file content) + entry detail (JSON result + raw file);
   reports.
 - **Home**: what needs attention (review queue, missing AvtaleGiro payments, failed charges, recent

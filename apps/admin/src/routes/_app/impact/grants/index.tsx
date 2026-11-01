@@ -1,4 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { PlusIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
 import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { ErrorState } from "@/components/domain/error-state";
@@ -102,6 +104,14 @@ function GrantsPage() {
     <ListPage
       title="Fund grants"
       description="How GiveWell's funds granted their money. Donations to the Top Charities Fund are split like the fund's latest grant on or before their month."
+      actions={
+        <Button asChild variant="primary">
+          <Link to="/impact/grants/new">
+            <PlusIcon />
+            New grant
+          </Link>
+        </Button>
+      }
       filters={
         <FilterBar list={list}>
           <ChoiceFilter

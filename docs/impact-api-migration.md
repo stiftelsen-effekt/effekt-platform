@@ -462,3 +462,23 @@ Settled on 2026-11-01:
   month), now the donation day's ECB rate and the grant's own month; (3) the old table dropped a
   fund grant's outputs for a charity when no evaluation matched that month, and rounded each
   part to whole kroner.
+
+### Phase 4 notes
+
+- Admin: Impact › Cost estimates, Fund grants, Charities & interventions, Exchange rates
+  (`apps/admin/src/routes/_app/impact/`, procedures `impact.*` in
+  `apps/api/src/trpc/routers/impact.ts`, reads and writes in `custom_modules/impactAdmin/`).
+  Ops guide: [impact-givewell-numbers.md](impact-givewell-numbers.md).
+- Validation (`trpc/schemas/impact.ts` + the router): one estimate per charity and month,
+  cost > 0, low ≤ cost ≤ high, months as `YYYY-MM-01` from 2000 to two years ahead, source links
+  http(s) (one per line; required for new estimates), an estimate can't move to another charity;
+  grants: at least one allotment, every sum and output count > 0 (the split is sum ÷ total, as
+  `grantSplit` computes it, so shares always add up to 100 %), one grant per fund and month,
+  allotment IDs must belong to the grant, the fund can't change; charities: abbreviation
+  `[A-Z0-9]{1,10}`, unique and fixed once created, one charity per organization; interventions:
+  unique English short text, texts for `no`/`sv`/`et`/`dk` only. No procedure takes or changes an
+  ID; a new grant gets its fund's next `legacy_id`.
+- Every write runs in one transaction (grant + allotments, intervention + texts), sets
+  `created_by`/`updated_by` (`adminIdentity`), and then clears `getImpactData`'s cache, the
+  widget memo and the results-page memo on that instance (`afterImpactEdit`); other instances
+  follow within 15 minutes.

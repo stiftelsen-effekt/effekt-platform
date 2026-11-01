@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { HeartPulseIcon } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { HeartPulseIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { Callout } from "@/components/domain/callout";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
@@ -9,6 +9,8 @@ import { Stat, StatGroup } from "@/components/domain/stat";
 import { useRecordParams } from "@/components/panels";
 import { DetailPage, PageSection } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DeleteEstimate } from "@/features/impact/delete-estimate";
 import { Pending } from "@/components/ui/pending";
 import { SkeletonText } from "@/components/ui/skeleton";
 import { EstimateTimeline } from "@/features/impact/timeline";
@@ -18,7 +20,7 @@ import { formatDate } from "@/lib/format";
 import { loadPage } from "@/lib/route-data";
 import { errorCode, useTRPC } from "@/lib/trpc";
 
-export const Route = createFileRoute("/_app/impact/estimates/$charityId")({
+export const Route = createFileRoute("/_app/impact/estimates/$charityId/")({
   loader: ({ context: { queryClient, trpc }, params, cause }) => {
     const charityId = Number(params.charityId);
     if (!Number.isInteger(charityId) || charityId <= 0) return;
@@ -73,6 +75,16 @@ function CharityEstimatesPage({ charityId }: { charityId: number }) {
   return (
     <DetailPage
       breadcrumbs={[{ label: "Cost estimates", to: "/impact/estimates" }]}
+      actions={
+        charity && (
+          <Button asChild variant="primary">
+            <Link to="/impact/estimates/$charityId/new" params={{ charityId: String(charityId) }}>
+              <PlusIcon />
+              New estimate
+            </Link>
+          </Button>
+        )
+      }
       title={charity?.name ?? <SkeletonText>Against Malaria Foundation</SkeletonText>}
       adornment={charity && <Badge>{charity.abbreviation}</Badge>}
       meta={
@@ -166,6 +178,9 @@ function CharityEstimatesPage({ charityId }: { charityId: number }) {
                         </th>
                         <th scope="col">Source</th>
                         <th scope="col">Last changed</th>
+                        <th scope="col" className="w-20">
+                          <span className="sr-only">Actions</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -214,6 +229,27 @@ function CharityEstimatesPage({ charityId }: { charityId: number }) {
                             <DateTime value={e.updatedAt ?? e.createdAt} />
                             <div className="max-w-40 truncate text-xs">
                               {e.updatedBy ?? e.createdBy}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="flex gap-0.5">
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Edit the estimate from ${formatDate(e.validFrom, "month")}`}
+                              >
+                                <Link
+                                  to="/impact/estimates/$charityId/edit/$estimateId"
+                                  params={{
+                                    charityId: String(charityId),
+                                    estimateId: String(e.id),
+                                  }}
+                                >
+                                  <PencilIcon />
+                                </Link>
+                              </Button>
+                              <DeleteEstimate estimate={e} charity={page.charity} />
                             </div>
                           </td>
                         </tr>

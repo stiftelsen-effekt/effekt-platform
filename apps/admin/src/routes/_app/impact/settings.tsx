@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { PencilIcon, PlusIcon } from "lucide-react";
 import { SettingsPage, useScrollTopOn } from "@/components/templates";
+import { Button } from "@/components/ui/button";
+import { CharityDialog, InterventionDialog } from "@/features/impact/record-dialogs";
 import { CharitiesSection, InterventionsSection } from "@/features/impact/settings-sections";
 import { useTRPC } from "@/lib/trpc";
 
@@ -39,8 +42,58 @@ function ImpactSettings() {
         })
       }
     >
-      {section === "charities" && <CharitiesSection />}
-      {section === "interventions" && <InterventionsSection />}
+      {section === "charities" && (
+        <CharitiesSection
+          actions={
+            <CharityDialog
+              trigger={
+                <Button>
+                  <PlusIcon />
+                  New charity
+                </Button>
+              }
+            />
+          }
+          rowActions={(charity) => (
+            <CharityDialog
+              charity={charity}
+              trigger={
+                <Button variant="ghost" size="icon-sm" aria-label={`Edit ${charity.name}`}>
+                  <PencilIcon />
+                </Button>
+              }
+            />
+          )}
+        />
+      )}
+      {section === "interventions" && (
+        <InterventionsSection
+          actions={
+            <InterventionDialog
+              trigger={
+                <Button>
+                  <PlusIcon />
+                  New intervention
+                </Button>
+              }
+            />
+          }
+          rowActions={(intervention) => (
+            <InterventionDialog
+              intervention={intervention}
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Edit ${intervention.shortDescription}`}
+                >
+                  <PencilIcon />
+                </Button>
+              }
+            />
+          )}
+        />
+      )}
     </SettingsPage>
   );
 }
