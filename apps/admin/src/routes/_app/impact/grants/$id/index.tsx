@@ -20,6 +20,7 @@ import {
   formatUsdCents,
   fundLabels,
 } from "@/features/impact/model";
+import { ChangeHistory } from "@/features/impact/history";
 import { GrantSplit } from "@/features/impact/split";
 import {
   CharityLink,
@@ -287,6 +288,9 @@ function GrantPage({ grantId }: { grantId: number }) {
                 </tbody>
               </table>
             </div>
+          </PageSection>
+          <PageSection title="History" description="Changes to this grant made in the admin.">
+            <ChangeHistory filter={{ entity: "grant", entityId: g.id }} label="History" />
           </PageSection>
         </>
       )}

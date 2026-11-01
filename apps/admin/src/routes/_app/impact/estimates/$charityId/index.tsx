@@ -11,6 +11,7 @@ import { DetailPage, PageSection } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DeleteEstimate } from "@/features/impact/delete-estimate";
+import { ChangeHistory } from "@/features/impact/history";
 import { Pending } from "@/components/ui/pending";
 import { SkeletonText } from "@/components/ui/skeleton";
 import { EstimateTimeline } from "@/features/impact/timeline";
@@ -259,6 +260,12 @@ function CharityEstimatesPage({ charityId }: { charityId: number }) {
                 </div>
               </>
             )}
+          </PageSection>
+          <PageSection
+            title="History"
+            description="Changes to this charity and its estimates made in the admin."
+          >
+            <ChangeHistory filter={{ charityId }} label="History" />
           </PageSection>
         </>
       )}

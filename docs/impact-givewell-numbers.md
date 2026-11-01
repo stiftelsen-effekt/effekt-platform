@@ -69,7 +69,10 @@ Impact › Charities & interventions.
 
 ## Who changed what
 
-Every row shows who changed it last and when.
+Every row shows who changed it last and when. **Impact › Change log** lists every change made in
+the admin (newest first): who, when, what, and the values before → after. A charity's page and a
+grant's page show their own history. Rows migrated from the old impact API show
+"impact-api migration" as their creator; its own edit log was archived with the old database.
 
 ## Checking the result
 

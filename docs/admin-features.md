@@ -68,7 +68,8 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   delete grants. Charities (name, link to an organization; the abbreviation is fixed once created,
   IDs never change) and interventions with texts per language. Exchange rates (newest per
   currency, the daily job's runs, gaps; read-only). Every write runs in one transaction, records
-  who changed it, and clears the impact cache. Ops guide:
+  who changed it (`updated_by`, and a before/after row in `Impact_changes`, shown in Impact ›
+  Change log and on the charity and grant pages), and clears the impact cache. Ops guide:
   [impact-givewell-numbers.md](impact-givewell-numbers.md).
 - **Records**: import log list (search file content) + entry detail (JSON result + raw file);
   reports.

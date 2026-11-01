@@ -25,6 +25,16 @@ export const impactGrantsListInput = z
 
 export const impactByIdInput = z.strictObject({ id: idSchema });
 
+/** The edit history: optionally one kind of row, one row (with entity) or one charity's */
+export const impactChangesListInput = z
+  .strictObject({
+    entity: z.enum(["estimate", "grant", "charity", "intervention"]).optional(),
+    entityId: idSchema.optional(),
+    charityId: idSchema.optional(),
+    limit: z.number().int().min(1).max(500).default(100),
+  })
+  .default({ limit: 100 });
+
 //region Writes
 
 const UINT_MAX = 4_294_967_295;

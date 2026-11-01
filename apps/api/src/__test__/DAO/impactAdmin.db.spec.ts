@@ -44,6 +44,9 @@ const admin = () =>
     await pool.query(
       "DELETE E FROM Impact_evaluations E JOIN Impact_charities C ON C.ID = E.Charity_ID WHERE C.abbreviation = 'ZZTEST'",
     );
+    await pool.query(
+      "DELETE FROM Impact_changes WHERE summary LIKE 'ZZTEST%' OR summary LIKE '%(Test charity)' OR summary LIKE '% from Jun 2028' OR summary LIKE '% from Jul 2028'",
+    );
     await pool.query("DELETE FROM Impact_charities WHERE abbreviation = 'ZZTEST'");
   };
 
@@ -118,6 +121,21 @@ const admin = () =>
 
     await admin().estimates.delete({ id });
     expect(effectiveEvaluation(await getImpactData(), charityId, "2026-10-01")).to.equal(null);
+
+    // The history has the charity's creation and the estimate's three edits, newest first
+    const history = await admin().changes.list({ charityId });
+    expect(history.map((c) => [c.entity, c.action])).to.deep.equal([
+      ["estimate", "delete"],
+      ["estimate", "update"],
+      ["estimate", "create"],
+      ["charity", "create"],
+    ]);
+    expect(history[1]!.fields).to.deep.include({
+      field: "centsPerOutput",
+      before: 500,
+      after: 550,
+    });
+    expect(history[1]!.changedBy).to.equal("ops@example.org");
   });
 
   it("gives a new grant the fund's next legacy ID and keeps allotment IDs on edit", async () => {
@@ -190,6 +208,11 @@ const admin = () =>
       expect(err.code).to.equal("INTERNAL_SERVER_ERROR");
     }
     sinon.restore();
+    const changes = await admin().changes.list({ entity: "grant", entityId: grant!.id });
+    expect(
+      changes.map((c) => c.action),
+      "no history for the rolled-back edit",
+    ).to.deep.equal(["update", "create"]);
     const after = await admin().grants.get({ id: grant!.id });
     expect(after.validFrom).to.equal("2028-07-01");
     expect(after.allotments.map((a) => a.id)).to.deep.equal(before.allotments.map((a) => a.id));

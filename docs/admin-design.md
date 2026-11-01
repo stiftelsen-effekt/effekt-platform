@@ -42,6 +42,7 @@ Impact
   Fund grants              list → grant: split by charity, allotments
   Charities & interventions  link to organizations, texts per language
   Exchange rates           ECB rates per currency, job runs, gaps (read-only)
+  Change log               who changed which impact row, before → after
 Analysis
   Overview                 given through time with open pledges, progress to the 200 MNOK milestone
   Pledges                  decided gifts not received yet (tilsagn): add, mark received, change amount

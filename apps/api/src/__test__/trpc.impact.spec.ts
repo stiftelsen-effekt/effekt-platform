@@ -800,3 +800,78 @@ describe("impact admin writes", () => {
     });
   });
 });
+
+describe("impact admin history", () => {
+  afterEach(() => sinon.restore());
+
+  const estimateValues = {
+    interventionId: 2,
+    validFrom: "2023-01-01",
+    centsPerOutput: 600,
+    sourceName: "GiveWell",
+    sourceUrl: "https://www.givewell.org/x",
+  };
+
+  it("records who changed what, before and after, in the edit's transaction", async () => {
+    const conn = { query: async () => [[]] };
+    sinon.stub(impactAdminDao, "inTransaction").callsFake(async (fn: any) => fn(conn));
+    const after = tablesFixture();
+    after.evaluations[2] = {
+      ...after.evaluations[2]!,
+      centsPerOutput: 600,
+      sourceName: "GiveWell",
+    };
+    const read = sinon.stub(impactAdminDao, "readTables");
+    read.onFirstCall().resolves(tablesFixture());
+    read.onSecondCall().resolves(after);
+    sinon.stub(impactAdminDao, "updateEstimate").resolves();
+    const insert = sinon.stub(impactAdminDao, "insertChange").resolves();
+    await admin().impact.estimates.update({ id: 71, ...estimateValues });
+    const [txConn, change, actor] = insert.firstCall.args;
+    expect(txConn).to.equal(conn);
+    expect(actor).to.equal("ops@example.org");
+    expect(change).to.deep.include({
+      entity: "estimate",
+      entityId: 71,
+      action: "update",
+      charityId: 1,
+      summary: "AMF estimate from Jan 2023",
+    });
+    expect(change.before).to.include({ centsPerOutput: 585, sourceName: "" });
+    expect(change.after).to.include({ centsPerOutput: 600, sourceName: "GiveWell" });
+    expect(change.after).to.not.have.property("updatedBy");
+
+    // A delete keeps the row as it was; a failed history write fails the edit
+    read.resetBehavior();
+    read.resolves(tablesFixture());
+    sinon.stub(impactAdminDao, "deleteEstimate").resolves();
+    await admin().impact.estimates.delete({ id: 5 });
+    expect(insert.secondCall.args[1]).to.deep.include({ action: "delete", after: null });
+    expect(insert.secondCall.args[1].before).to.include({ centsPerOutput: 487 });
+    insert.rejects(new Error("disk full"));
+    await expectCode(admin().impact.estimates.delete({ id: 5 }), "INTERNAL_SERVER_ERROR");
+  });
+
+  it("lists changes with the fields that differ", async () => {
+    sinon.stub(impactAdminDao, "readChanges").resolves([
+      {
+        id: 3,
+        entity: "estimate",
+        entityId: 71,
+        action: "update",
+        charityId: 1,
+        summary: "AMF estimate from Jan 2023",
+        before: { id: 71, centsPerOutput: 585, sourceName: "", comment: "" },
+        after: { id: 71, centsPerOutput: 600, sourceName: "GiveWell", comment: "" },
+        changedBy: "ops@example.org",
+        changedAt: "2026-11-01T15:00:00.000Z",
+      },
+    ]);
+    const [change] = await admin().impact.changes.list({ charityId: 1 });
+    expect(change!.fields).to.deep.equal([
+      { field: "centsPerOutput", before: 585, after: 600 },
+      { field: "sourceName", before: "", after: "GiveWell" },
+    ]);
+    await expectCode(callerWith(["read:profile"]).impact.changes.list(), "FORBIDDEN");
+  });
+});
