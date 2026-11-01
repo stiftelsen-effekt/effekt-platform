@@ -2,7 +2,7 @@ import { User } from "@auth0/auth0-react";
 import useSWR from "swr";
 import { apiResult, getAccessToken, getAccessTokenSilently } from "./hooks/useApi";
 import { getUserId } from "./lib/user";
-import { widgetContentQuery } from "./components/shared/components/Widget/components/Widget";
+import { widgetContentQuery } from "./components/shared/components/Widget/widgetStaticProps";
 import { TRPCClientError } from "@trpc/client";
 import { useTrpcClient } from "./lib/trpc/useTrpcClient";
 import { publicTrpcFor } from "./lib/trpc/client";

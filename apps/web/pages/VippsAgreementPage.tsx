@@ -14,13 +14,6 @@ import { token } from "../token";
 import { ConsentState } from "../proxy.page";
 import { CookieBannerQueryResult, GeneralBannerQueryResult } from "../studio/sanity.types";
 
-export const getVippsAgreementPagePath = async () => {
-  const result = await getClient().fetch<FetchVippsResult>(fetchVipps);
-  const vipps = result.vipps?.[0];
-  const slug = vipps?.agreement_page?.slug?.current;
-  return slug?.split("/") || null;
-};
-
 export const VippsAgreementPage = withStaticProps(
   async ({
     draftMode = false,

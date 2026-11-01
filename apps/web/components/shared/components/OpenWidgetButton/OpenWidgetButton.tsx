@@ -3,6 +3,7 @@ import { WidgetContext } from "../../../main/layout/layout";
 import { EffektButton, EffektButtonVariant } from "../EffektButton/EffektButton";
 import { ctaButtonStyleOverrides } from "../../../main/layout/PageHeader/PageHeader";
 import { usePlausible } from "next-plausible";
+import { preloadDonationWidgetProps } from "../../../main/layout/WidgetPane/loadWidget";
 
 export const OpenWidgetButton: React.FC<{
   label?: string;
@@ -53,6 +54,7 @@ export const OpenWidgetButton: React.FC<{
           },
         });
       }}
+      {...preloadDonationWidgetProps}
       style={{
         ...ctaButtonStyleOverrides,
         ...giveButtonStyle,

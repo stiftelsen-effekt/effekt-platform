@@ -19,8 +19,7 @@ describe("Navigation", () => {
         "x-vercel-skip-toolbar": "1",
       },
     });
-
-    cy.wait(["@getCauseAreas", "@getReferrals"]);
+    cy.waitForHydration();
   });
 
   it("Should initialize correctly", () => {

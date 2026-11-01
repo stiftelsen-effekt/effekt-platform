@@ -11,12 +11,11 @@ const API = Cypress.expose("E2E_API_ORIGIN");
 
 const openWidget = () => {
   cy.visit({ url: "/", headers: { "x-vercel-skip-toolbar": "1" } });
+  // The widget loads its cause areas and referral types once the pane opens
+  cy.openWidgetPane();
   cy.wait(["@causeAreas", "@referralTypes"], { timeout: 30000 }).then(([causeAreas]) => {
     expect(trpcData(causeAreas, "widget.causeAreas")).to.have.length.at.least(1);
   });
-
-  cy.get("[data-cy=gi-button]").should("be.visible").click();
-  cy.get("[data-cy=widget-pane]").should("be.visible");
 };
 
 const fillDonor = (email) => {

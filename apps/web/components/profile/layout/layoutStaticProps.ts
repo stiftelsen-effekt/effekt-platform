@@ -1,5 +1,5 @@
 import Footer from "../../shared/layout/Footer/Footer";
-import { Widget } from "../../shared/components/Widget/components/Widget";
+import { getWidgetStaticProps } from "../../shared/components/Widget/widgetStaticProps";
 import { getClient } from "../../../lib/sanity.client";
 import { token } from "../../../token";
 import { ConsentState } from "../../../proxy.page";
@@ -44,7 +44,7 @@ export const getProfileLayoutStaticProps = async ({
 
   return {
     footerData: await Footer.getStaticProps({ draftMode }),
-    widgetData: await Widget.getStaticProps({ draftMode }),
+    widgetData: await getWidgetStaticProps({ draftMode }),
     profileData: result.data,
     consentState,
     draftMode,

@@ -24,16 +24,14 @@ describe("Widget referral code", () => {
         "x-vercel-skip-toolbar": "1",
       },
     });
+    cy.openWidgetPane();
     cy.wait("@getCauseAreas");
-    cy.get("[data-cy=gi-button]").should("be.visible").click();
-    cy.get("[data-cy=widget-pane]").should("be.visible");
   });
 
   it("preserves the referral query param for the session", () => {
     cy.visit("/");
+    cy.openWidgetPane();
     cy.wait("@getCauseAreas");
-    cy.get("[data-cy=gi-button]").should("be.visible").click();
-    cy.get("[data-cy=widget-pane]").should("be.visible");
 
     cy.pickSingleDonation();
     cy.get("[data-cy^=donation-sum-input]").type("500");

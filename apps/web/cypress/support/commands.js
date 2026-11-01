@@ -128,6 +128,37 @@ const pickAnonymous = () => {
   cy.get("[data-cy=anon-checkbox]").click();
 };
 
+/**
+ * Waits until React has hydrated the page, so a click isn't lost. React attaches each element's
+ * props to its DOM node (`__reactProps$…`) as it hydrates it. Content pages make no request on
+ * load that could tell a test this instead (the donation widget only loads when opened).
+ */
+const waitForHydration = () =>
+  cy.get("#__next > *", { timeout: 30000 }).should(($el) => {
+    expect(Object.keys($el[0]).some((key) => key.startsWith("__reactProps$"))).to.equal(true);
+  });
+
+const clickUntilWidgetPaneOpens = (selector, attempts) => {
+  cy.get(selector).should("be.visible").click();
+  cy.get("[data-cy=widget-pane]").then(($pane) => {
+    if ($pane.is(":visible")) return;
+    if (attempts <= 1) throw new Error(`The widget pane did not open from ${selector}`);
+    cy.wait(250);
+    clickUntilWidgetPaneOpens(selector, attempts - 1);
+  });
+};
+
+/**
+ * Opens the donation widget pane with a give button. The widget, and its cause areas and referral
+ * types, only load once the pane opens, so wait for those requests after this, not before.
+ */
+const openWidgetPane = (selector = "[data-cy=gi-button]") => {
+  waitForHydration();
+  clickUntilWidgetPaneOpens(selector, 10);
+};
+
+Cypress.Commands.add("waitForHydration", waitForHydration);
+Cypress.Commands.add("openWidgetPane", openWidgetPane);
 Cypress.Commands.add("nextWidgetPane", nextWidgetPane);
 Cypress.Commands.add("prevWidgetPane", prevWidgetPane);
 Cypress.Commands.add("checkNextIsDisabled", checkNextIsDisabled);

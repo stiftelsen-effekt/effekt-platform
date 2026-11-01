@@ -19,22 +19,6 @@ import { ConsentState } from "../proxy.page";
 import { FetchResultsResult } from "../studio/sanity.types";
 import { publicTrpcFor } from "../lib/trpc/client";
 
-const fetchResultsPageSlug = groq`
-{
-  "page": *[_type == "results"] {
-    "slug": slug.current,
-  }[0]
-}
-`;
-
-// Sites without a results page in Sanity (e.g. geeffektivt.se) get null, so no results page is
-// built and the results API isn't called.
-export const getResultsPagePath = async () => {
-  const { page } = await getClient().fetch<{ page: { slug: string } | null }>(fetchResultsPageSlug);
-  if (!page?.slug) return null;
-  return stegaClean(page.slug).split("/");
-};
-
 export type ResultsGraphData = {
   dailyDonations: DailyDonations;
   referralSums: ReferralSumsResult[];

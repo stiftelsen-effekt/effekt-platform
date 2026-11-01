@@ -3,7 +3,10 @@ import { groq } from "next-sanity";
 import { Dispatch, SetStateAction, createContext, useState, useMemo } from "react";
 import { getClient } from "../../../lib/sanity.client";
 import { withStaticProps } from "../../../util/withStaticProps";
-import { Widget } from "../../shared/components/Widget/components/Widget";
+import {
+  getWidgetStaticProps,
+  type WidgetStaticProps,
+} from "../../shared/components/Widget/widgetStaticProps";
 import Footer from "../../shared/layout/Footer/Footer";
 import styles from "../../shared/layout/Layout/Layout.module.scss";
 import { GiveButton } from "./GiveButton/GiveButton";
@@ -98,7 +101,7 @@ export const Layout = withStaticProps(
     const settings = result.settings;
     return {
       footer: await Footer.getStaticProps({ draftMode }),
-      widget: await Widget.getStaticProps({ draftMode }),
+      widget: await getWidgetStaticProps({ draftMode }),
       // isPreview: preview,
       giveButton: {
         donate_label_short: settings.donate_label_short,
@@ -206,9 +209,7 @@ const PreviewFooter: React.FC<Awaited<ReturnType<typeof Footer.getStaticProps>>>
   );
 };
 
-const PreviewWidgetPane: React.FC<
-  Awaited<ReturnType<typeof Widget.getStaticProps>> & WidgetPaneProps
-> = (props) => {
+const PreviewWidgetPane: React.FC<WidgetStaticProps & WidgetPaneProps> = (props) => {
   return (
     <LiveQuery data={props.data}>
       {(data) => <WidgetPane {...(props as any)} data={data} />}

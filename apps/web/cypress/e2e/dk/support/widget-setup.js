@@ -46,12 +46,10 @@ export const setupWidgetTest = ({ fixture = "cause_areas", query = {} } = {}) =>
     },
   });
 
-  // Clicking before React has hydrated silently does nothing. Wait for the cause areas
-  // to have loaded (client-side only) before interacting, then assert the widget actually
-  // opened so a lost click fails right here instead of deep inside a test.
+  // The widget loads its cause areas once its pane opens. openWidgetPane retries a click lost
+  // before React hydrated, and fails right here if the pane never opens.
+  cy.openWidgetPane();
   cy.wait("@getCauseAreas");
-  cy.get("[data-cy=gi-button]").should("be.visible").click();
-  cy.get("[data-cy=widget-pane]").should("be.visible");
 };
 
 export const registerDonationResponse = {

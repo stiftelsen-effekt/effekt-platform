@@ -1,9 +1,9 @@
 /**
- * Expands the first agreement and waits for the cause areas its details need. Two components load
- * them through `widget.causeAreas`: the donation widget, which the beforeEach waits for, and the
- * agreement details (useCauseAreas), which render a spinner until theirs arrives. The details mount
- * when the row scrolls into view or is expanded, so their request comes either with the widget's
- * or after the click; this second wait covers both. Asserting right after the click raced it.
+ * Expands the first agreement and waits for the cause areas its details need (`widget.causeAreas`
+ * through useCauseAreas; the donation widget only loads them once it is opened). The details render
+ * a spinner until they arrive, and mount when the row scrolls into view or is expanded, so the
+ * request comes either on load or after the click; cy.wait takes either. Asserting right after
+ * the click raced it.
  */
 const expandFirstAgreement = () => {
   cy.get("[data-cy=generic-list-table]")
@@ -58,7 +58,7 @@ describe("Agreements page", () => {
     /**
      * Wait for initial data load
      */
-    cy.wait(["@getDonor", "@getCauseAreas", "@getVipps", "@getAvtalegiro", "@getDistribution"], {
+    cy.wait(["@getDonor", "@getVipps", "@getAvtalegiro", "@getDistribution"], {
       timeout: 30000,
     });
   });
