@@ -1,0 +1,79 @@
+name: Cypress against a Vercel deployment
+description: >-
+  Runs one shard of a deployment Cypress suite (cypress-no/dk/se.config.ts) against a deployed
+  website, recorded to Cypress Cloud. Used by ci.yml (previews) and deploy.yml (production). The
+  job checks the repository out first.
+inputs:
+  config-file:
+    description: The Cypress config, e.g. cypress-no.config.ts
+    required: true
+  base-url:
+    description: The deployment to test
+    required: true
+  group:
+    description: The Cypress Cloud group (one per suite)
+    required: true
+  ci-build-id:
+    description: Ties the shards of one run together in Cypress Cloud
+    required: true
+  record-key:
+    description: CYPRESS_RECORD_KEY
+    required: true
+  auth-domain:
+    description: CYPRESS_AUTH_DOMAIN (the Min Side test user)
+    required: true
+  auth-username:
+    description: CYPRESS_AUTH_USERNAME
+    required: true
+  auth-password:
+    description: CYPRESS_AUTH_PASSWORD
+    required: true
+outputs:
+  results-url:
+    description: The run in Cypress Cloud
+    value: ${{ steps.cypress.outputs.resultsUrl }}
+runs:
+  using: composite
+  steps:
+    # The pnpm version comes from packageManager in the root package.json.
+    - name: Setup pnpm
+      uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+    # Cypress 16 requires Node 22/24: install from .nvmrc
+    - name: Setup Node
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+    # The Cypress binary lives outside the pnpm store (~/.cache/Cypress). Its install script
+    # skips the download when the right version is already there.
+    - name: Restore the Cypress binary
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/Cypress
+        key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: cypress-${{ runner.os }}-
+    # Only the website: these tests run against a deployment, nothing is built here. This also
+    # downloads the Cypress binary (allowBuilds: cypress).
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pnpm install --frozen-lockfile --filter main-site
+        pnpm --filter main-site exec cypress cache prune
+    - name: Run Cypress
+      id: cypress
+      uses: cypress-io/github-action@bc982daf1fc26474fa0cf2c355d6c910616ce411 # v7.4.7
+      with:
+        working-directory: apps/web
+        install: false
+        config-file: ${{ inputs.config-file }}
+        record: true
+        parallel: true
+        group: ${{ inputs.group }}
+        ci-build-id: ${{ inputs.ci-build-id }}
+      env:
+        CYPRESS_BASE_URL: ${{ inputs.base-url }}
+        CYPRESS_AUTH_DOMAIN: ${{ inputs.auth-domain }}
+        CYPRESS_AUTH_USERNAME: ${{ inputs.auth-username }}
+        CYPRESS_AUTH_PASSWORD: ${{ inputs.auth-password }}
+        CYPRESS_RECORD_KEY: ${{ inputs.record-key }}

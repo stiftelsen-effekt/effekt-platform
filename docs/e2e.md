@@ -2,10 +2,10 @@
 
 The website (`apps/web`) has two Cypress suites:
 
-| Suite      | Config                                                                         | Runs against                                             | Data                                                  | Login                          |
-| ---------- | ------------------------------------------------------------------------------ | -------------------------------------------------------- | ----------------------------------------------------- | ------------------------------ |
-| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts`, `cypress-se.config.ts` (smoke) | Vercel deployments (`web-ci.yml` → `web-e2e.yml`)        | `cy.intercept` fixtures in `cypress/fixtures/`        | real Auth0 test user (secrets) |
-| Full stack | `cypress-fullstack.config.ts`                                                  | local web → API → MySQL (`web-e2e-fullstack.yml` on PRs) | the real API and DB, seeded by `apps/api/prisma/e2e/` | local OIDC issuer, no secrets  |
+| Suite      | Config                                                                         | Runs against                                                          | Data                                                  | Login                          |
+| ---------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------ |
+| Deployment | `cypress-no.config.ts`, `cypress-dk.config.ts`, `cypress-se.config.ts` (smoke) | Vercel deployments (`ci.yml` on previews, `web-ci.yml` on production) | `cy.intercept` fixtures in `cypress/fixtures/`        | real Auth0 test user (secrets) |
+| Full stack | `cypress-fullstack.config.ts`                                                  | local web → API → MySQL (`ci.yml`)                                    | the real API and DB, seeded by `apps/api/prisma/e2e/` | local OIDC issuer, no secrets  |
 
 ## Running the full-stack suite
 
@@ -53,7 +53,7 @@ starts. The fundraiser pages read the API, so the e2e build leaves them out
 first request (`fallback: "blocking"`), when the API is up. The results page's API reads already
 fall back to rendering without the figures.
 
-In CI (`web-e2e-fullstack.yml`) the backend services run from the plain `node:24.22.1` image with
+In CI (`ci.yml`, `web · full-stack e2e`) the backend services run from the plain `node:24.22.1` image with
 the runner's own install mounted (`E2E_BACKEND_FROM_HOST=1`, `compose.e2e-ci.yml`) instead of from
 the `effekt-backend-dev:local` image, read-only, with `scripts/e2e/pnpm-exec.sh` as their `pnpm`
 (real pnpm would reinstall the workspace into the mount): the runner's `pnpm install` already includes the API

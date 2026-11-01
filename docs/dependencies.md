@@ -129,27 +129,25 @@ Merges by the machine user start the usual `push` workflows on `main` (a merge w
 Auto-merge waits only for the checks that branch protection requires. These are the ones to
 require; each reports on every pull request:
 
-| Check                                                                   | Source                                                                                                     |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `QualityAssurance (hidden-display-243419)`                              | Cloud Build (`cloud.qa.yaml`): typecheck and tests of the API; Prettier and Oxlint on the whole repository |
-| `CI (required)`                                                         | `ci.yml`: typecheck, tests and build of the admin; tests of `functions/*` ([ci.md](ci.md))                 |
-| `web-checks (required)`                                                 | `web-checks.yml`: lint, typecheck and unit tests of the website                                            |
-| `web-e2e-fullstack (required)`                                          | `web-e2e-fullstack.yml`: Cypress against a local API and MySQL                                             |
-| `semgrep/ci`                                                            | `semgrep.yml`                                                                                              |
-| `zizmor`                                                                | `zizmor.yml`                                                                                               |
-| `Vercel – main-site`, `Vercel – giv-effektivt`, `Vercel – ge-effektivt` | The website builds on Vercel ("Canceled by Ignored Build Step" counts as passing)                          |
+| Check                                      | Source                                                                                                                                                                                                     |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QualityAssurance (hidden-display-243419)` | Cloud Build (`cloud.qa.yaml`): typecheck and tests of the API; Prettier and Oxlint on the whole repository                                                                                                 |
+| `CI (required)`                            | `ci.yml`: every lane of the CI graph ([ci.md](ci.md)): the admin, functions, the website's checks and full-stack e2e, the Studio, the Vercel previews of all three sites and the Cypress runs against them |
+| `semgrep/ci`                               | `semgrep.yml`                                                                                                                                                                                              |
+| `zizmor`                                   | `zizmor.yml`                                                                                                                                                                                               |
 
-`web-checks.yml` and `web-e2e-fullstack.yml` used to be skipped by a `paths` filter, and a
-required check that never reports blocks a PR forever. They now start on every pull request:
-a `Changed paths` job decides whether the change touches what they cover, and the
-`(required)` job passes when the checks passed or were skipped for that reason.
+`ci.yml` starts on every pull request, so `CI (required)` always reports: a lane the change
+doesn't touch finishes as `<app> · no change`, and one whose Vercel preview was skipped by the
+Ignored Build Step as `no web change`. A failed Vercel build fails its `await Vercel preview`
+lane, so the `Vercel – <project>` statuses don't need to be required separately.
 
-QA covers neither the admin nor the website: the admin is checked by `ci.yml` (and again by
-AdminDeploy after the merge), the website by `web-checks.yml`.
+QA covers neither the admin nor the website: `ci.yml` checks them (and AdminDeploy checks the
+admin again after the merge).
 
-The Cypress runs against the Vercel previews (`web-ci.yml`, started by Vercel's
-`deployment_status`) can't be required: they only exist when a preview was built. Dependency
-PRs that touch the website still get the full-stack e2e run.
+Dependabot and fork pull requests get no Actions secrets, so their Cypress runs against the
+Vercel previews finish as `no secrets on Dependabot PRs; full-stack e2e covers it` (the
+full-stack e2e needs no secrets and runs as usual). The Cypress secrets are deliberately not
+Dependabot secrets.
 
 Dependabot runs don't get Actions secrets, so `semgrep/ci` runs only the repository rules on
 them. To include the Semgrep app rules (and Supply Chain) on dependency PRs, add

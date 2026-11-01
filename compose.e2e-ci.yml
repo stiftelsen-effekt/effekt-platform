@@ -1,5 +1,5 @@
-# CI override for the full-stack e2e (web-e2e-fullstack.yml, on top of compose.dev.yml and
-# compose.e2e.yml): migrate, seed-e2e and api run from the plain Node image with the runner's own
+# CI override for the full-stack e2e (`web · full-stack e2e` in ci.yml, on top of compose.dev.yml
+# and compose.e2e.yml): migrate, seed-e2e and api run from the plain Node image with the runner's own
 # install mounted at /app, instead of from the effekt-backend-dev:local image. Getting that image
 # from the GitHub Actions layer cache and loading it into Docker took ~45s of every run, even with
 # every layer cached.

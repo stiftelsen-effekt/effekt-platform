@@ -8,8 +8,8 @@
 // Vercel.
 //
 // The studio is a package of the pnpm workspace (effekt-studio). The website's install (Vercel's
-// install command, web-checks.yml) leaves it out, so its dependencies are only installed here,
-// when it is built.
+// install command, the web lane of ci.yml) leaves it out, so its dependencies are only installed
+// here, when it is built.
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
