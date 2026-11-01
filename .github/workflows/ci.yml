@@ -316,9 +316,13 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      # The Studio's types (React's among them) resolve through the website's install, as in
+      # the website's Vercel build
       - name: Install dependencies
         if: env.RUN == 'true'
-        run: pnpm install --frozen-lockfile --filter effekt-studio
+        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend --filter effekt-studio
+        env:
+          CYPRESS_INSTALL_BINARY: "0"
       - name: Typecheck and test
         if: env.RUN == 'true'
         run: pnpm typecheck && pnpm test
