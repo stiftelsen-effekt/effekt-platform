@@ -9,7 +9,8 @@
     },
     "./minside": "./minside.ts",
     "./widget": "./widget.ts",
-    "./site": "./site.ts"
+    "./site": "./site.ts",
+    "./impact": "./impact.ts"
   },
   "scripts": {
     "build": "pnpm --dir ../../apps/api build:types"
