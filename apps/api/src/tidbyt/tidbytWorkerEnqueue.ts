@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import * as config from "../config";
 
 export type DonationConfirmedPayload = {
@@ -20,7 +19,7 @@ export function enqueueTidbytDonationConfirmed(payload: DonationConfirmedPayload
   // Fire-and-forget: do not block donation insertion on this side-effect.
   fetch(url, {
     method: "POST",
-    signal: controller.signal as any,
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       ...(config.tidbyt_worker_auth_token
