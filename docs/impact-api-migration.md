@@ -502,6 +502,6 @@ Settled on 2026-11-01:
      2 614 donations from 840 donors"; **Save estimate**.
   4. `minside.donations` again: the donor's AMF line went from 2,99 to 1,50 bed nets (half, as
      the cost doubled), at once, without a redeploy. The charity's History section and Impact ›
-     Change log show the edit with Ops as its author (from #1037 on).
+     Change log show the edit with Ops as its author (from #1038 on).
      The preview scales to at most two instances; the other instance shows the change within 15
      minutes (the cache's lifetime), as in production.
