@@ -380,7 +380,259 @@ async function countDonations(
   return { donations: Number(row?.donations ?? 0), donors: Number(row?.donors ?? 0) };
 }
 
-/** Kept on one object so tests can stub single reads */
+//region Writes
+
+/** Runs fn in a transaction; commits if it resolves, rolls back if it throws */
+async function inTransaction<T>(fn: (conn: Queryable) => Promise<T>): Promise<T> {
+  const conn = await DAO.startTransaction();
+  try {
+    const result = await fn(conn as unknown as Queryable);
+    await DAO.commitTransaction(conn);
+    return result;
+  } catch (ex) {
+    await DAO.rollbackTransaction(conn);
+    throw ex;
+  }
+}
+
+type Header = { insertId: number; affectedRows: number };
+async function exec(conn: Queryable, sql: string, params: unknown[]): Promise<Header> {
+  const [result] = (await conn.query(sql, params)) as [Header];
+  return result;
+}
+
+export type EstimateValues = {
+  interventionId: number;
+  validFrom: string;
+  centsPerOutput: number;
+  centsPerOutputLowerBound: number;
+  centsPerOutputUpperBound: number | null;
+  sourceName: string;
+  sourceUrl: string;
+  comment: string;
+};
+
+const estimateParams = (v: EstimateValues) => [
+  v.interventionId,
+  v.validFrom,
+  v.centsPerOutput,
+  v.centsPerOutputLowerBound,
+  v.centsPerOutputUpperBound,
+  v.sourceName,
+  v.sourceUrl,
+  v.comment,
+];
+
+async function insertEstimate(
+  conn: Queryable,
+  charityId: number,
+  v: EstimateValues,
+  actor: string,
+): Promise<number> {
+  const result = await exec(
+    conn,
+    `INSERT INTO Impact_evaluations (Charity_ID, Intervention_ID, valid_from, cents_per_output,
+       cents_per_output_lower_bound, cents_per_output_upper_bound, source_name, source_url, comment,
+       created_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [charityId, ...estimateParams(v), actor, new Date()],
+  );
+  return result.insertId;
+}
+
+async function updateEstimate(conn: Queryable, id: number, v: EstimateValues, actor: string) {
+  await exec(
+    conn,
+    `UPDATE Impact_evaluations SET Intervention_ID = ?, valid_from = ?, cents_per_output = ?,
+       cents_per_output_lower_bound = ?, cents_per_output_upper_bound = ?, source_name = ?,
+       source_url = ?, comment = ?, updated_by = ?, updated_at = ?
+     WHERE ID = ?`,
+    [...estimateParams(v), actor, new Date(), id],
+  );
+}
+
+async function deleteEstimate(conn: Queryable, id: number) {
+  await exec(conn, "DELETE FROM Impact_evaluations WHERE ID = ?", [id]);
+}
+
+export type AllotmentValues = Omit<AdminAllotment, "id"> & { id?: number };
+
+const allotmentParams = (a: AllotmentValues) => [
+  a.charityId,
+  a.interventionId,
+  a.sumInCents,
+  a.numberOutputsPurchased,
+  a.numberOutputsPurchasedLowerBound,
+  a.numberOutputsPurchasedUpperBound,
+  a.sourceName,
+  a.sourceUrl,
+  a.comment,
+];
+
+/** The next legacy_id of a fund: the compatibility REST shows it as the grant's `id` */
+async function nextLegacyId(conn: Queryable, fund: ImpactFundCode): Promise<number> {
+  const [row] = await rows<{ next: number }>(
+    "SELECT COALESCE(MAX(legacy_id), 0) + 1 AS next FROM Impact_grants WHERE fund = ? FOR UPDATE",
+    [fund],
+    conn,
+  );
+  return Number(row!.next);
+}
+
+async function insertGrant(
+  conn: Queryable,
+  grant: { fund: ImpactFundCode; validFrom: string },
+  actor: string,
+): Promise<number> {
+  const legacyId = await nextLegacyId(conn, grant.fund);
+  const result = await exec(
+    conn,
+    `INSERT INTO Impact_grants (fund, valid_from, legacy_id, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [grant.fund, grant.validFrom, legacyId, actor, new Date()],
+  );
+  return result.insertId;
+}
+
+async function updateGrant(conn: Queryable, id: number, validFrom: string, actor: string) {
+  await exec(
+    conn,
+    "UPDATE Impact_grants SET valid_from = ?, updated_by = ?, updated_at = ? WHERE ID = ?",
+    [validFrom, actor, new Date(), id],
+  );
+}
+
+async function deleteGrant(conn: Queryable, id: number) {
+  await exec(conn, "DELETE FROM Impact_grant_allotments WHERE Grant_ID = ?", [id]);
+  await exec(conn, "DELETE FROM Impact_grants WHERE ID = ?", [id]);
+}
+
+/**
+ * Makes the grant's allotments these: rows with an id are updated in place (IDs are kept), rows
+ * without one inserted, and the grant's other allotments deleted.
+ */
+async function replaceAllotments(
+  conn: Queryable,
+  grantId: number,
+  allotments: AllotmentValues[],
+  actor: string,
+) {
+  const keep = allotments.flatMap((a) => (a.id ? [a.id] : []));
+  await exec(
+    conn,
+    `DELETE FROM Impact_grant_allotments WHERE Grant_ID = ?${keep.length ? " AND ID NOT IN (?)" : ""}`,
+    keep.length ? [grantId, keep] : [grantId],
+  );
+  for (const a of allotments) {
+    if (a.id)
+      await exec(
+        conn,
+        `UPDATE Impact_grant_allotments SET Charity_ID = ?, Intervention_ID = ?, sum_in_cents = ?,
+           number_outputs_purchased = ?, number_outputs_purchased_lower_bound = ?,
+           number_outputs_purchased_upper_bound = ?, source_name = ?, source_url = ?, comment = ?,
+           updated_by = ?, updated_at = ?
+         WHERE ID = ? AND Grant_ID = ?`,
+        [...allotmentParams(a), actor, new Date(), a.id, grantId],
+      );
+    else
+      await exec(
+        conn,
+        `INSERT INTO Impact_grant_allotments (Grant_ID, Charity_ID, Intervention_ID, sum_in_cents,
+           number_outputs_purchased, number_outputs_purchased_lower_bound,
+           number_outputs_purchased_upper_bound, source_name, source_url, comment, created_by,
+           created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [grantId, ...allotmentParams(a), actor, new Date()],
+      );
+  }
+}
+
+async function insertCharity(
+  conn: Queryable,
+  c: { name: string; abbreviation: string; organizationId: number | null },
+  actor: string,
+): Promise<number> {
+  const result = await exec(
+    conn,
+    `INSERT INTO Impact_charities (name, abbreviation, Organization_ID, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [c.name, c.abbreviation, c.organizationId, actor, new Date()],
+  );
+  return result.insertId;
+}
+
+async function updateCharity(
+  conn: Queryable,
+  id: number,
+  c: { name: string; organizationId: number | null },
+  actor: string,
+) {
+  await exec(
+    conn,
+    `UPDATE Impact_charities SET name = ?, Organization_ID = ?, updated_by = ?, updated_at = ?
+      WHERE ID = ?`,
+    [c.name, c.organizationId, actor, new Date(), id],
+  );
+}
+
+async function organizationExists(conn: Queryable, id: number): Promise<boolean> {
+  return (await rows("SELECT ID FROM Organizations WHERE ID = ?", [id], conn)).length > 0;
+}
+
+export type InterventionValues = {
+  shortDescription: string;
+  longDescription: string;
+  texts: Partial<Record<TextLanguage, InterventionText>>;
+};
+
+async function writeTexts(conn: Queryable, id: number, texts: InterventionValues["texts"]) {
+  await exec(conn, "DELETE FROM Impact_intervention_texts WHERE Intervention_ID = ?", [id]);
+  for (const language of TEXT_LANGUAGES) {
+    const text = texts[language];
+    if (!text) continue;
+    await exec(
+      conn,
+      `INSERT INTO Impact_intervention_texts (Intervention_ID, language, short_description, long_description)
+       VALUES (?, ?, ?, ?)`,
+      [id, language, text.shortDescription, text.longDescription],
+    );
+  }
+}
+
+async function insertIntervention(
+  conn: Queryable,
+  v: InterventionValues,
+  actor: string,
+): Promise<number> {
+  const result = await exec(
+    conn,
+    `INSERT INTO Impact_interventions (short_description, long_description, created_by, created_at)
+     VALUES (?, ?, ?, ?)`,
+    [v.shortDescription, v.longDescription, actor, new Date()],
+  );
+  await writeTexts(conn, result.insertId, v.texts);
+  return result.insertId;
+}
+
+async function updateIntervention(
+  conn: Queryable,
+  id: number,
+  v: InterventionValues,
+  actor: string,
+) {
+  await exec(
+    conn,
+    `UPDATE Impact_interventions SET short_description = ?, long_description = ?, updated_by = ?,
+       updated_at = ?
+     WHERE ID = ?`,
+    [v.shortDescription, v.longDescription, actor, new Date(), id],
+  );
+  await writeTexts(conn, id, v.texts);
+}
+
+//endregion
+
+/** Kept on one object so tests can stub single reads and writes */
 export const impactAdminDao = {
   readTables,
   readLatestRates,
@@ -388,4 +640,17 @@ export const impactAdminDao = {
   readRateOn,
   readJobRuns,
   countDonations,
+  inTransaction,
+  insertEstimate,
+  updateEstimate,
+  deleteEstimate,
+  insertGrant,
+  updateGrant,
+  deleteGrant,
+  replaceAllotments,
+  insertCharity,
+  updateCharity,
+  organizationExists,
+  insertIntervention,
+  updateIntervention,
 };

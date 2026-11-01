@@ -1,6 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { LandmarkIcon } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { LandmarkIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { ConfirmDialog } from "@/components/domain/confirm-dialog";
+import { Button } from "@/components/ui/button";
+import { notify } from "@/lib/notify";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -30,7 +33,7 @@ import { loadPage } from "@/lib/route-data";
 import { errorCode, useTRPC } from "@/lib/trpc";
 import { osloCurrentMonth } from "@/features/impact/model";
 
-export const Route = createFileRoute("/_app/impact/grants/$id")({
+export const Route = createFileRoute("/_app/impact/grants/$id/")({
   loader: ({ context: { queryClient, trpc }, params, cause }) => {
     const id = Number(params.id);
     if (!Number.isInteger(id) || id <= 0) return;
@@ -60,6 +63,9 @@ const td = "[&>td]:border-t [&>td]:border-border [&>td]:px-3 [&>td]:py-1.5 [&>td
 function GrantPage({ grantId }: { grantId: number }) {
   const trpc = useTRPC();
   const query = useQuery(trpc.impact.grants.get.queryOptions({ id: grantId }));
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const remove = useMutation(trpc.impact.grants.delete.mutationOptions());
 
   if (query.isError)
     return (
@@ -91,6 +97,41 @@ function GrantPage({ grantId }: { grantId: number }) {
         )
       }
       adornment={g && <CoverageStatus row={g} currentMonth={currentMonth} />}
+      actions={
+        g && (
+          <>
+            <Button asChild>
+              <Link to="/impact/grants/$id/edit" params={{ id: String(g.id) }}>
+                <PencilIcon />
+                Edit
+              </Link>
+            </Button>
+            <ConfirmDialog
+              trigger={
+                <Button variant="ghost" aria-label="Delete grant">
+                  <Trash2Icon />
+                </Button>
+              }
+              tone="danger"
+              title={`Delete the ${g.fund} grant from ${formatDate(g.validFrom, "month")}?`}
+              consequences={[
+                `Its ${g.allotments.length} allotments are deleted with it`,
+                g.previousId
+                  ? "Donations to the fund in its months are split like the grant before it"
+                  : "Donations to the fund in its months get no estimate",
+                "Third parties reading the old impact API's grant list no longer see it",
+              ]}
+              confirmLabel="Delete grant"
+              onConfirm={async () => {
+                await remove.mutateAsync({ id: g.id });
+                await queryClient.invalidateQueries({ queryKey: trpc.impact.pathKey() });
+                notify.success("Grant deleted", `${g.fund}, ${formatDate(g.validFrom, "month")}`);
+                void navigate({ to: "/impact/grants" });
+              }}
+            />
+          </>
+        )
+      }
       meta={
         g
           ? [

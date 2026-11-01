@@ -10,7 +10,12 @@ import { SettingsSection } from "@/components/templates";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
 import { useTRPC } from "@/lib/trpc";
-import { languageLabels, textLanguages } from "./model";
+import {
+  languageLabels,
+  textLanguages,
+  type ImpactCharity,
+  type ImpactIntervention,
+} from "./model";
 import { CharityLink, UsdCents } from "./ui";
 
 const th =
@@ -43,7 +48,13 @@ function Loading<T>({
   return <>{children(query.data)}</>;
 }
 
-export function CharitiesSection({ actions }: { actions?: ReactNode }) {
+export function CharitiesSection({
+  actions,
+  rowActions,
+}: {
+  actions?: ReactNode;
+  rowActions?: (charity: ImpactCharity) => ReactNode;
+}) {
   const trpc = useTRPC();
   const charities = useQuery(trpc.impact.charities.list.queryOptions());
   return (
@@ -86,6 +97,11 @@ export function CharitiesSection({ actions }: { actions?: ReactNode }) {
                 <th scope="col" className="text-right">
                   Estimates
                 </th>
+                {rowActions && (
+                  <th scope="col" className="w-12">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -117,6 +133,7 @@ export function CharitiesSection({ actions }: { actions?: ReactNode }) {
                     )}
                   </td>
                   <td className="num text-right">{c.estimates}</td>
+                  {rowActions && <td>{rowActions(c)}</td>}
                 </tr>
               ))}
             </tbody>
@@ -132,7 +149,7 @@ export function InterventionsSection({
   rowActions,
 }: {
   actions?: ReactNode;
-  rowActions?: (id: number) => ReactNode;
+  rowActions?: (intervention: ImpactIntervention) => ReactNode;
 }) {
   const trpc = useTRPC();
   const interventions = useQuery(trpc.impact.interventions.list.queryOptions());
@@ -222,7 +239,7 @@ export function InterventionsSection({
                       {i.allotments} {i.allotments === 1 ? "allotment" : "allotments"}
                     </div>
                   </td>
-                  {rowActions && <td>{rowActions(i.id)}</td>}
+                  {rowActions && <td>{rowActions(i)}</td>}
                 </tr>
               ))}
             </tbody>

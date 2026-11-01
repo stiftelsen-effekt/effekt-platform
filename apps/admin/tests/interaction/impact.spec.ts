@@ -134,3 +134,192 @@ test("exchange rates warn when the newest rate is more than four days old", asyn
   await expect(page.getByText("The rates are behind")).toBeVisible();
   await expect(page.getByText("(8 days)")).toBeVisible();
 });
+
+const previewFixture = {
+  charityId: 1,
+  before: {
+    validFrom: "2023-01-01",
+    centsPerOutput: 585,
+    interventionName: "Bednets",
+    costPerOutputNok: "58.50",
+  },
+  after: {
+    validFrom: "2023-01-01",
+    centsPerOutput: 610,
+    interventionName: "Bednets",
+    costPerOutputNok: "61.00",
+  },
+  changedMonths: [{ from: "2023-01-01", to: null }],
+  monthsChanged: 47,
+  donations: 2614,
+  donors: 840,
+  organizationLinked: true,
+  nokRate: { date: "2026-10-30", perUsd: 10 },
+};
+
+test("editing an estimate validates inline, shows the effect and confirms before → after", async ({
+  page,
+}) => {
+  const updates: unknown[] = [];
+  const previews: unknown[] = [];
+  await signIn(page, {
+    overrides: {
+      "impact.estimates.preview": (input) => {
+        previews.push(input);
+        return previewFixture;
+      },
+      "impact.estimates.update": (input) => {
+        updates.push(input);
+        return { id: 71 };
+      },
+    },
+  });
+  await page.goto("/impact/estimates/1");
+  await page.getByRole("link", { name: "Edit the estimate from Jan 2023" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Edit estimate" })).toBeVisible();
+
+  const cost = page.getByRole("textbox", { name: /Cost per output/ });
+  await cost.fill("6,10");
+  await page.getByRole("textbox", { name: /High end/ }).fill("5");
+  await page.getByRole("button", { name: "Save estimate…" }).click();
+  await expect(page.getByText("The high end can't be below the estimate")).toBeVisible();
+  await expect(page.getByRole("alertdialog")).toBeHidden();
+
+  await page.getByRole("textbox", { name: /High end/ }).fill("");
+  const preview = page.getByTestId("estimate-preview");
+  await expect(preview).toContainText("5,85 USD → 6,10 USD");
+  await expect(preview).toContainText("2 614 donations from 840 donors");
+  expect(previews.at(-1)).toEqual({
+    id: 71,
+    charityId: 1,
+    interventionId: 2,
+    validFrom: "2023-01-01",
+    centsPerOutput: 610,
+  });
+
+  await page.getByRole("button", { name: "Save estimate…" }).click();
+  const confirm = page.getByRole("alertdialog");
+  await expect(confirm).toContainText("Change AMF's estimate from Jan 2023?");
+  await expect(confirm).toContainText("5,85 USD → 6,10 USD");
+  await expect(confirm).toContainText("From Jan 2023 (47 months so far)");
+  expect(updates).toEqual([]);
+  await confirm.getByRole("button", { name: "Save estimate" }).click();
+  await expect(page).toHaveURL(/\/impact\/estimates\/1$/);
+  expect(updates).toEqual([
+    {
+      id: 71,
+      interventionId: 2,
+      validFrom: "2023-01-01",
+      centsPerOutput: 610,
+      centsPerOutputLowerBound: 0,
+      centsPerOutputUpperBound: null,
+      sourceName: "GiveWell directed grants",
+      sourceUrl: "https://docs.google.com/spreadsheets/d/example",
+      comment: "",
+    },
+  ]);
+});
+
+test("a month that already has an estimate is refused, and the reason shown", async ({ page }) => {
+  await signIn(page, {
+    overrides: {
+      "impact.estimates.preview": () => previewFixture,
+      "impact.estimates.create": () => ({
+        error: {
+          code: "BAD_REQUEST",
+          httpStatus: 400,
+          message: "AMF already has an estimate from Jan 2023; edit that one instead",
+        },
+      }),
+    },
+  });
+  await page.goto("/impact/estimates/1/new");
+  await page.getByRole("textbox", { name: /From month/ }).fill("01.2023");
+  await page.getByRole("textbox", { name: /Cost per output/ }).fill("6");
+  await page.getByRole("textbox", { name: /^Source/ }).fill("GiveWell");
+  await page.getByRole("textbox", { name: /^Link/ }).fill("https://www.givewell.org/x");
+  await page.getByRole("button", { name: "Add estimate…" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Add estimate" }).click();
+  await expect(page.getByRole("alertdialog")).toContainText(
+    "already has an estimate from Jan 2023",
+  );
+});
+
+test("deleting an estimate says what its months fall back to", async ({ page }) => {
+  const deleted: unknown[] = [];
+  await signIn(page, {
+    overrides: {
+      "impact.estimates.preview": () => ({
+        ...previewFixture,
+        before: previewFixture.before,
+        after: { ...previewFixture.before, validFrom: "2021-01-01", centsPerOutput: 487 },
+      }),
+      "impact.estimates.delete": (input) => {
+        deleted.push(input);
+        return input;
+      },
+    },
+  });
+  await page.goto("/impact/estimates/1");
+  await page.getByRole("button", { name: "Delete the estimate from Jan 2023" }).click();
+  const confirm = page.getByRole("alertdialog");
+  await expect(confirm).toContainText("Its months use 4,87 USD (the estimate from Jan 2021)");
+  await confirm.getByRole("button", { name: "Delete estimate" }).click();
+  await expect(confirm).toBeHidden();
+  expect(deleted).toEqual([{ id: 71 }]);
+});
+
+test("editing a grant keeps allotment ids, recomputes the split and confirms it", async ({
+  page,
+}) => {
+  const updates: unknown[] = [];
+  await signIn(page, {
+    overrides: {
+      "impact.grants.update": (input) => {
+        updates.push(input);
+        return { id: 33 };
+      },
+    },
+  });
+  await page.goto("/impact/grants/33/edit");
+  await expect(page.getByTestId("share-0")).toHaveText("71,2 %");
+  const second = page.getByRole("listitem", { name: "Allotment 2" });
+  await second.getByRole("textbox", { name: /Sum/ }).fill("8900000");
+  await expect(page.getByTestId("share-0")).toHaveText("50,0 %");
+  await page.getByRole("button", { name: "Save grant…" }).click();
+  const confirm = page.getByRole("alertdialog");
+  await expect(confirm).toContainText("Against Malaria Foundation: 28,8 % → 50,0 %");
+  await confirm.getByRole("button", { name: "Save grant" }).click();
+  await expect(page).toHaveURL(/\/impact\/grants\/33$/);
+  expect(
+    (updates[0] as { allotments: { id?: number; sumInCents: number }[] }).allotments.map((a) => [
+      a.id,
+      a.sumInCents,
+    ]),
+  ).toEqual([
+    [48, 890000000],
+    [49, 890000000],
+  ]);
+});
+
+test("a charity's abbreviation is fixed once created", async ({ page }) => {
+  const updates: unknown[] = [];
+  await signIn(page, {
+    overrides: {
+      "impact.charities.update": (input) => {
+        updates.push(input);
+        return { id: 1 };
+      },
+    },
+  });
+  await page.goto("/impact/settings");
+  await page.getByRole("button", { name: "Edit Against Malaria Foundation" }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit Against Malaria Foundation" });
+  await expect(dialog.getByRole("textbox", { name: /Abbreviation/ })).toBeDisabled();
+  await dialog.getByRole("textbox", { name: /Name/ }).fill("Against Malaria Foundation (AMF)");
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+  await expect(dialog).toBeHidden();
+  expect(updates).toEqual([
+    { id: 1, name: "Against Malaria Foundation (AMF)", organizationId: 12 },
+  ]);
+});

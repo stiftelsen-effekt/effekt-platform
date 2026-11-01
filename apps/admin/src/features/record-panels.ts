@@ -64,13 +64,13 @@ export const recordPanels: PanelRoute[] = [
 
   {
     kind: "impact-charity",
-    routeId: "/_app/impact/estimates/$charityId",
+    routeId: "/_app/impact/estimates/$charityId/",
     path: "/impact/estimates/$charityId",
     label: ([id]) => `Charity #${id} estimates`,
   },
   {
     kind: "impact-grant",
-    routeId: "/_app/impact/grants/$id",
+    routeId: "/_app/impact/grants/$id/",
     path: "/impact/grants/$id",
     label: ([id]) => `Fund grant #${id}`,
   },
