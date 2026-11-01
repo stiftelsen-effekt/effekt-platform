@@ -1,7 +1,7 @@
 # Moving the impact API into the platform
 
-Status: **phases 0–2 done in code** (decisions settled 2026-11-01, see [Decisions](#decisions);
-phase 0 runs as scripts by hand). Written
+Status: **phases 0–3 done** (decisions settled 2026-11-01, see [Decisions](#decisions);
+phase 0 runs as scripts by hand). The website no longer calls the impact API. Written
 2026-10-30 from read-only inspection of the code, the GCP config, the load balancer logs and the
 public API. No database was queried (the `Impact` schema needs the `impactapi` credentials, which
 this plan did not read); row counts below come from the public API, which returns every row.
@@ -443,3 +443,22 @@ Settled on 2026-11-01:
 - `site.impactCosts` refuses to be batched (its `Cache-Control: public` header would cover the
   other answers in the batch) and answers any origin (CORS `*`, as the legacy API did), because
   the Danish and Swedish sites call it on the Norwegian API.
+- The intervention widget calls `site.impactCosts` on the Norwegian API from all three sites
+  (`impactTrpcFor`, docs/web-trpc.md). Sweden's own API has no exchange rates and the Danish
+  backend no impact data, so pointing the Swedish widget at the Norwegian API was simpler than
+  keeping it on the legacy API until phase 5. Swedish Min Side shows no impact (decision 5).
+- Measured on the local e2e stack with the dev data and ECB rates (2026-11-01), the donations
+  page went from `1 + Σ_org (months with a donation)` impact requests (19 for the e2e donor; 140,
+  328 and 421 for three dev donors, 8.2 s and 13.1 s for the first two against production at 50 in
+  parallel) to none: the figures come with `minside.donations`, whose p95 was 48 ms (7 donations),
+  187 ms (63) and 375 ms (3,250; 100 KB gzipped).
+- Min Side's numbers changed against the legacy page for three reasons, all per the decisions
+  or bugs in the old browser code: (1) for money given directly, the old table took the _oldest_
+  evaluation among those it had fetched for any month (a sort-then-`find` bug), so donors who
+  gave across several GiveWell updates were shown older, mostly cheaper, costs: −48 % vitamin A
+  for one dev donor, −13 % bednets for the e2e donor; with that bug fixed, old and new agree
+  within 0–6 %; (2) the Top Charities Fund's share was converted at today's rate (the grants
+  request had no donation date) and, before the grant, a month later than its start (a 0-based
+  month), now the donation day's ECB rate and the grant's own month; (3) the old table dropped a
+  fund grant's outputs for a charity when no evaluation matched that month, and rounded each
+  part to whole kroner.
