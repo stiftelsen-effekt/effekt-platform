@@ -439,6 +439,38 @@ describe("tRPC minside router", () => {
       expect(taxUnits.called).to.be.false;
     });
 
+    it("answers all of the donor's distributions (no KIDs) in Min Side's first batch, and only the donor's", async () => {
+      const donations = sinon.stub(DAO.donations, "getByDonorId").resolves([]);
+      const distributions = sinon.stub(DAO.distributions, "getAllByDonor").resolves({
+        donorID: 7,
+        distributions: ["111", "222"].map((kid) => ({
+          kid,
+          donorId: 7,
+          taxUnitId: null,
+          causeAreas: [],
+        })),
+      } as any);
+
+      const res = await request(app)
+        .get(
+          `/trpc/minside.donations,minside.distributions,minside.distributions?batch=1&input=${batchInput(
+            { donorId: 7 },
+            { donorId: 7 },
+            { donorId: 8 },
+          )}`,
+        )
+        .expect(207);
+
+      expect(res.body[0].result.data).to.deep.equal([]);
+      expect(res.body[1].result.data.map((d: { kid: string }) => d.kid)).to.deep.equal([
+        "111",
+        "222",
+      ]);
+      expect(res.body[2].error.data.code).to.equal("FORBIDDEN");
+      expect(donations.calledOnceWith(7)).to.be.true;
+      expect(distributions.calledOnceWith(7)).to.be.true;
+    });
+
     it("rejects the other donor's id in either position of a batch", async () => {
       const donations = sinon.stub(DAO.donations, "getByDonorId").resolves([]);
 

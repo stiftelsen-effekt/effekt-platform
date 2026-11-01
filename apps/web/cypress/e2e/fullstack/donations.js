@@ -13,7 +13,7 @@ import {
   AMF,
   IMPACT,
 } from "../../../../../apps/api/prisma/e2e/data.mjs";
-import { trpcData, trpcUrl } from "../../support/trpc";
+import { trpcData, trpcQueryInput, trpcUrl } from "../../support/trpc";
 
 // The seeded donations (apps/api/prisma/e2e/seed.mjs): 7 donations, 5 200 kr in total, 2022–2025
 const TOTAL = 5200;
@@ -58,10 +58,15 @@ describe("Donations page (full stack)", () => {
 
     cy.get("@distributions").then((interception) => {
       const distributions = trpcData(interception, "minside.distributions");
-      // Requested for the KIDs of the donations only: bank, Vipps (custom) and AvtaleGiro
-      expect(distributions.map((d) => d.kid).sort()).to.deep.equal(
-        [KIDS.bank, KIDS.vippsCustom, KIDS.avtalegiro].sort(),
-      );
+      // All of the donor's distributions, fetched without a KID list in the page's first batch:
+      // those of the donations (bank, Vipps (custom) and AvtaleGiro) among them, and only the donor's
+      expect(trpcQueryInput(interception, "minside.distributions")).to.deep.equal({
+        donorId: DONOR_ID,
+      });
+      const kids = distributions.map((d) => d.kid);
+      expect(kids).to.include.members([KIDS.bank, KIDS.vippsCustom, KIDS.avtalegiro]);
+      expect(Object.values(KIDS)).to.include.members(kids);
+      distributions.forEach((d) => expect(d.donorId).to.equal(DONOR_ID));
       const custom = distributions.find((d) => d.kid === KIDS.vippsCustom);
       expect(custom.taxUnitId).to.equal(TAX_UNITS.main.id);
       expect(custom.causeAreas).to.have.length(1);

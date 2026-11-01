@@ -5,7 +5,13 @@ import { getUserId } from "./lib/user";
 import { widgetContentQuery } from "./components/shared/components/Widget/widgetStaticProps";
 import { TRPCClientError } from "@trpc/client";
 import { useTrpcClient } from "./lib/trpc/useTrpcClient";
-import { publicTrpcFor } from "./lib/trpc/client";
+import { apiFlavorFor, publicTrpcFor } from "./lib/trpc/client";
+import {
+  allDistributionsKey,
+  distributionsInput,
+  distributionsKey,
+  distributionsQuery,
+} from "./lib/trpc/distributionsQuery";
 import { toCauseArea, toOrganization } from "./lib/trpc/causeAreas";
 import { useMainLocale } from "./context/MainLocaleContext";
 
@@ -46,8 +52,9 @@ export const minsideKeys = {
   taxUnits: (donorId: number) => ["minside.taxUnits", donorId] as const,
   donationsAggregated: (donorId: number) => ["minside.donationsAggregated", donorId] as const,
   donations: (donorId: number) => ["minside.donations", donorId] as const,
-  distributions: (donorId: number, kids: string[]) =>
-    ["minside.distributions", donorId, kids.join(",")] as const,
+  distributions: distributionsKey,
+  /** All of the donor's distributions (no KID list; our API, not the Danish one) */
+  allDistributions: allDistributionsKey,
   vippsAgreements: (donorId: number) => ["minside.vippsAgreements", donorId] as const,
   avtaleGiroAgreements: (donorId: number) => ["minside.avtaleGiroAgreements", donorId] as const,
   taxReports: (donorId: number) => ["minside.taxReports", donorId] as const,
@@ -150,12 +157,12 @@ export const useDonations = (user: User | undefined, fetchToken: getAccessTokenS
 /**
  * Gets distribution of money between organizations in a donation. Through tRPC
  * (minside.distributions); on the Danish site the REST link maps it to
- * GET /donors/:id/distributions/?kids=….
+ * GET /donors/:id/distributions/?kids=…. See distributionsQuery.
  *
  * @param {User} user - Which user's data to fetch
  * @param {String} fetchToken - Access token
- * @param {boolean} condition -
- * @param {kids} string[] -
+ * @param {boolean} condition - The KIDs are known (only waited for on the Danish site)
+ * @param {kids} string[] - The KIDs to fetch on the Danish site
  * */
 export const useDistributions = (
   user: User | undefined,
@@ -164,15 +171,11 @@ export const useDistributions = (
   kids: string[],
 ) => {
   const trpc = useTrpcClient(fetchToken);
+  const flavor = apiFlavorFor(useMainLocale());
   const { data, error, isValidating } = useSWR(
-    condition && user ? minsideKeys.distributions(getUserId(user), Array.from(kids)) : null,
+    distributionsQuery(flavor, user ? getUserId(user) : null, condition, kids),
     ([, donorId, kidList]) =>
-      trpcFetch(() =>
-        trpc.minside.distributions.query({
-          donorId,
-          kids: kidList ? kidList.split(",") : [],
-        }),
-      ),
+      trpcFetch(() => trpc.minside.distributions.query(distributionsInput(donorId, kidList))),
   );
 
   const loading = isPending(data, error);
@@ -185,33 +188,8 @@ export const useDistributions = (
   };
 };
 
-export const useAgreementsDistributions = (
-  user: User | undefined,
-  fetchToken: getAccessTokenSilently,
-  condition: boolean,
-  kids: string[],
-) => {
-  const trpc = useTrpcClient(fetchToken);
-  const { data, error, isValidating } = useSWR(
-    condition && user ? minsideKeys.distributions(getUserId(user), Array.from(kids)) : null,
-    ([, donorId, kidList]) =>
-      trpcFetch(() =>
-        trpc.minside.distributions.query({
-          donorId,
-          kids: kidList ? kidList.split(",") : [],
-        }),
-      ),
-  );
-
-  const loading = isPending(data, error);
-
-  return {
-    loading,
-    isValidating,
-    data,
-    error,
-  };
-};
+/** The agreements page's distributions: the same query (and cache entry) as useDistributions */
+export const useAgreementsDistributions = useDistributions;
 
 /**
  * The donor's AvtaleGiro agreements. Through tRPC (minside.avtaleGiroAgreements); not available on
