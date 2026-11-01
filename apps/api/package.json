@@ -33,7 +33,7 @@
   "homepage": "https://github.com/stiftelsen-effekt/effekt-platform#readme",
   "dependencies": {
     "@mailchimp/mailchimp_marketing": "^3.0.80",
-    "@navikt/fnrvalidator": "^1.2.0",
+    "@navikt/fnrvalidator": "^2.2.1",
     "@prisma/client": "^7.10.1",
     "@trpc/server": "catalog:",
     "@types/luxon": "catalog:",
