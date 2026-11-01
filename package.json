@@ -38,7 +38,7 @@
     "web:typecheck": "pnpm --filter main-site typecheck",
     "web:test": "pnpm --filter main-site test",
     "web:lint": "pnpm --filter main-site lint",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -46,7 +46,7 @@
   },
   "license": "ISC",
   "devDependencies": {
-    "husky": "^8.0.3",
+    "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "oxlint": "catalog:",
     "prettier": "catalog:"
