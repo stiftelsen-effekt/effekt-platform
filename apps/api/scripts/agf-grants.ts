@@ -526,6 +526,9 @@ async function fetchAll({ cache, airtableCsv }: { cache?: string; airtableCsv?: 
       notes: null,
     });
   }
+  /** Replaces a grant in the map with the facts added (no in-place mutation) */
+  const update = (grant, patch: Record<string, unknown>) =>
+    grants.set(grant.slug.toLowerCase(), { ...grant, ...patch });
   const byOrgMonth = (key, month) =>
     [...grants.values()].filter((g) => g.organizationKey === key && g.recommendedMonth === month);
 
@@ -548,7 +551,7 @@ async function fetchAll({ cache, airtableCsv }: { cache?: string; airtableCsv?: 
       amountCents: item.amountCents,
       amountExact: true,
     };
-    if (grant) Object.assign(grant, facts, { sources: [...grant.sources, "agf_page"] });
+    if (grant) update(grant, { ...facts, sources: [...grant.sources, "agf_page"] });
     else
       grants.set(`agf-page-${slugify(`${key} ${item.month}`)}`, {
         ...emptyGrant(`agf-page-${slugify(`${key} ${item.month}`)}`),
@@ -579,7 +582,8 @@ async function fetchAll({ cache, airtableCsv }: { cache?: string; airtableCsv?: 
     const note = `Impact estimates sheet: "${ie.name}"${ie.fundingGap ? `, ${ie.fundingGap}` : ""}`;
     if (matches.length === 1) {
       const g = matches[0];
-      Object.assign(g, facts, {
+      update(g, {
+        ...facts,
         deathsAverted: ie.deathsAverted ?? g.deathsAverted,
         sources: [...g.sources, "impact_estimates"],
         notes: [g.notes, note].filter(Boolean).join("\n"),
@@ -617,7 +621,7 @@ async function fetchAll({ cache, airtableCsv }: { cache?: string; airtableCsv?: 
               ? "Unrestricted"
               : f,
       );
-      if (g) Object.assign(g, { funders, sources: [...new Set([...g.sources, "airtable"])] });
+      if (g) update(g, { funders, sources: [...new Set([...g.sources, "airtable"])] });
       else if (funders.includes("AGF")) {
         const slug = `airtable-${slugify(a.name)}`;
         grants.set(slug, {
