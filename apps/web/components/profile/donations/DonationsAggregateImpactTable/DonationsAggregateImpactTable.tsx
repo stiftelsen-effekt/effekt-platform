@@ -1,25 +1,17 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import AnimateHeight from "react-animate-height";
 import { ChevronDown } from "react-feather";
 import style from "./DonationsAggregateImpactTable.module.scss";
-import useSWR from "swr";
-import { Distribution, Donation, GiveWellGrant, ImpactEvaluation } from "../../../../models";
+import { Donation } from "../../../../models";
+import { useMainLocale } from "../../../../context/MainLocaleContext";
 import { DistributionsRow } from "./DistributionsRow";
 import { LoadingButtonSpinner } from "../../../shared/components/Spinner/LoadingButtonSpinner";
 import {
-  AggregatedImpact,
+  aggregateDanishImpact,
   aggregateImpact,
-  aggregateOrgSumByYearAndMonth,
   DK_OPERATIONS_KEY,
   GIVEWELL_ALL_GRANTS_FUND_KEY,
 } from "./_util";
-import { mapNameToOrgAbbriv } from "../../../../util/mappings";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-const multiFetcher = (urls: string[]) => {
-  const f = (u: string) => fetch(u).then((r) => r.json());
-  return Promise.all(urls.map(f));
-};
 
 export type AggregatedImpactTableConfiguration = {
   title: string;
@@ -32,11 +24,12 @@ export type AggregatedImpactTableConfiguration = {
 
 export const DonationsAggregateImpactTable: React.FC<{
   donations: Donation[];
-  distributionMap: Map<string, Distribution>;
   configuration: AggregatedImpactTableConfiguration;
   defaultExpanded?: boolean;
-}> = ({ donations, distributionMap, configuration, defaultExpanded = true }) => {
+}> = ({ donations, configuration, defaultExpanded = true }) => {
   const isDK = configuration.locale === "dk";
+  // Sweden's database has no impact figures (docs/impact-api-migration.md, decision 5)
+  const isSE = useMainLocale() === "sv" || configuration.locale === "sv";
   const [expanded, setExpanded] = useState(
     defaultExpanded || (typeof window !== "undefined" && window.innerWidth > 1180),
   );
@@ -46,115 +39,30 @@ export const DonationsAggregateImpactTable: React.FC<{
   const [currentTimeoutId, setCurrentTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  const {
-    data: impactdata,
-    error: impacterror,
-    isValidating: impactvalidating,
-  } = useSWR<{ max_impact_fund_grants: GiveWellGrant[] }>(
-    isDK
-      ? null
-      : `https://impact.gieffektivt.no/api/max_impact_fund_grants?currency=${configuration.currency}&language=${configuration.locale}`,
-    fetcher,
-    {
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-    },
+  // The impact comes with the donations (minside.donations): nothing to fetch
+  const impact = useMemo(
+    () =>
+      isSE
+        ? {}
+        : isDK
+          ? aggregateDanishImpact(donations)
+          : aggregateImpact(donations, {
+              org_direct_template_string: configuration.org_direct_template_string,
+              org_grant_template_string: configuration.org_grant_template_string,
+            }),
+    [
+      isSE,
+      isDK,
+      donations,
+      configuration.org_direct_template_string,
+      configuration.org_grant_template_string,
+    ],
   );
-
-  const aggregated = aggregateOrgSumByYearAndMonth(
-    donations,
-    distributionMap,
-    impactdata ? impactdata.max_impact_fund_grants : null,
-  );
-
-  const urls: string[] = [];
-  for (const orgKey of Object.keys(aggregated)) {
-    if (orgKey.toLowerCase().indexOf("drift") !== -1) continue;
-    const abbriv = mapNameToOrgAbbriv(orgKey);
-    for (const key of Object.keys(aggregated[orgKey].periods)) {
-      const year = key.split("-")[0];
-      const month = key.split("-")[1];
-      urls.push(
-        `https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=${abbriv}&currency=${
-          configuration.currency
-        }&language=${configuration.locale}&donation_year=${year}&donation_month=${
-          parseInt(month) + 1
-        }`,
-      );
-    }
-  }
-
-  const {
-    data: evaluationdata,
-    error: evaluationerror,
-    isValidating: evaluationvalidating,
-  } = useSWR<{ evaluations: ImpactEvaluation[] }[]>(
-    isDK ? null : urls,
-    (urls) => multiFetcher(urls),
-    {
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-    },
-  );
+  const loading = false;
 
   useLayoutEffect(() => {
-    if (
-      (typeof evaluationdata !== "undefined" &&
-        typeof impactdata !== "undefined" &&
-        !evaluationvalidating &&
-        !impactvalidating) ||
-      donations.length == 0 ||
-      urls.length == 0
-    ) {
-      setTimeout(() => setLoadedClass(style.loaded), 50);
-    } else {
-      setTimeout(() => setLoadedClass(""));
-    }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- runs when the data arrives, not on every validation flag change
-  }, [impactdata, evaluationdata]);
-
-  let impact: AggregatedImpact = {};
-  let loading = true;
-  let mappedEvaluations = [];
-  let templateStrings = {
-    org_direct_template_string: configuration.org_direct_template_string,
-    org_grant_template_string: configuration.org_grant_template_string,
-  };
-  if (isDK) {
-    donations.forEach((donation) => {
-      donation.impact?.forEach((entry) => {
-        if (entry.recipient === "Giv Effektivt") {
-          impact[DK_OPERATIONS_KEY] ??= { outputs: 0, constituents: {} };
-          impact[DK_OPERATIONS_KEY].outputs += entry.amount;
-        } else {
-          const unit = entry.unit ?? "";
-          impact[unit] ??= { outputs: 0, constituents: {} };
-          impact[unit].outputs += entry.count ?? 0;
-          impact[unit].constituents[entry.recipient] ??= 0;
-          impact[unit].constituents[entry.recipient] += entry.amount;
-        }
-      });
-    });
-    loading = false;
-  } else if (impactdata && !impactvalidating && evaluationdata && !evaluationvalidating) {
-    mappedEvaluations = evaluationdata.map((d) => d.evaluations).flat();
-    impact = aggregateImpact(aggregated, mappedEvaluations, templateStrings);
-    loading = false;
-  } else if (urls.length == 0) {
-    impact = aggregateImpact(aggregated, [], templateStrings);
-    loading = false;
-  }
-
-  if (impacterror || evaluationerror) {
-    return (
-      <div>
-        {JSON.stringify(impacterror)}
-        {JSON.stringify(evaluationerror)}
-      </div>
-    );
-  }
+    setTimeout(() => setLoadedClass(style.loaded), 50);
+  }, []);
 
   const currentImpactCount = Object.keys(impact).length;
   if (!loading && lastimpactCount !== currentImpactCount) {
@@ -181,6 +89,8 @@ export const DonationsAggregateImpactTable: React.FC<{
       }
     }
   }
+
+  if (isSE) return null;
 
   return (
     <div

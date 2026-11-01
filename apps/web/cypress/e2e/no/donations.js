@@ -42,38 +42,6 @@ describe("Donations page", () => {
       cy.interceptTrpc("minside.taxUnits", units).as("getTaxUnits");
     });
 
-    cy.fixture(`evaluations/evaluations.json`)
-      .then((evaluations) => {
-        // Match any language/currency casing: the app sends language=no, so a
-        // hardcoded language=NO would miss and hit the live API instead.
-        cy.intercept(
-          "https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=*&currency=*&language=*&donation_year=*&donation_month=*",
-          (req) => {
-            const [, abbriv, year, month] = req.url.match(
-              /.*abbreviation=(.*)&currency.*year=(\d{4}).*month=(\d{1,2})/,
-            );
-            const filename = `${year}-${month}-${abbriv}`;
-            if (evaluations[filename]) {
-              req.reply(evaluations[filename]);
-            } else {
-              req.reply({ evaluations: [] });
-            }
-          },
-        ).as("getEvaluations");
-      })
-      .as("evaluationFixture");
-
-    cy.fixture("grants")
-      .then((grants) => {
-        // Match every grants request; the aggregate table fetches without
-        // donation_year/month params, which a stricter glob would miss.
-        cy.intercept("GET", "https://impact.gieffektivt.no/api/max_impact_fund_grants*", {
-          statusCode: 200,
-          body: grants,
-        }).as("getGrants");
-      })
-      .as("grantsFixture");
-
     cy.visit({
       url: `/min-side/`,
       headers: {
@@ -152,9 +120,9 @@ describe("Donations page", () => {
       .first()
       .should("contain.text", "dollar mottatt");
 
-    // The grant fixture predates the GiveWell-fund donations, so the fund portion
-    // is smart-distributed using the grant's cost-per-output. These values only
-    // hold with the grant-based fix (evaluations alone would give 17 and 12).
+    // Each donation's impact comes with minside.donations (fixtures/no/donations.json, made from
+    // the evaluation and grant fixtures with the server's rules): the Top Charities Fund part is
+    // split by the grant's allotments at their own cost per output.
     cy.get("[data-cy=donation-aggregate-impact-distribution-row]")
       .eq(1)
       .should("contain.text", "18");
@@ -180,9 +148,11 @@ describe("Donations page", () => {
 
     cy.get("[data-cy=generic-list-header]").should("have.length", 1, { timeout: 5000 });
 
+    // Dollars, bednets, vaccinations, and the malaria treatments the Top Charities Fund's grant
+    // bought (the legacy table dropped those when no evaluation matched that month)
     cy.get("[data-cy=donation-aggregate-impact-distribution-row]", {
       timeout: 15000,
-    }).should("have.length", 3);
+    }).should("have.length", 4);
     cy.get("[data-cy=aggregated-donation-totals]").should("contain.text", "I 2021");
     cy.get("[data-cy=aggregated-donation-totals]").should("contain.text", "108\u00A0574 kr");
   });
@@ -219,7 +189,7 @@ describe("Donations page", () => {
 
     // Check that the graph information is correct
 
-    // 3 evaluations
+    // 3 estimates
     cy.get("[data-cy=generic-list-table]")
       .first()
       .find("tbody")

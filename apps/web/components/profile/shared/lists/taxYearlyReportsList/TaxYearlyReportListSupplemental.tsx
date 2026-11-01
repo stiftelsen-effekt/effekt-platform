@@ -1,5 +1,5 @@
 import { FileText } from "react-feather";
-import { Distribution, Donation, TaxYearlyReport } from "../../../../../models";
+import { Donation, TaxYearlyReport } from "../../../../../models";
 import { thousandize } from "../../../../../util/formatting";
 
 import style from "./TaxYearlyReportListSupplemental.module.scss";
@@ -11,9 +11,8 @@ import {
 export const TaxYearlyReportListSupplemental: React.FC<{
   report: TaxYearlyReport;
   donations: Donation[];
-  distribtionMap: Map<string, Distribution>;
   aggregateImpactConfig: AggregatedImpactTableConfiguration;
-}> = ({ report, donations, distribtionMap, aggregateImpactConfig: aggregateImpactTexts }) => {
+}> = ({ report, donations, aggregateImpactConfig: aggregateImpactTexts }) => {
   if (report.sumDonations == 0) return null;
   return (
     <>
@@ -27,7 +26,6 @@ export const TaxYearlyReportListSupplemental: React.FC<{
       <div className={style.impactWrapper}>
         <DonationsAggregateImpactTable
           donations={donations}
-          distributionMap={distribtionMap}
           configuration={aggregateImpactTexts}
           defaultExpanded={false}
         ></DonationsAggregateImpactTable>

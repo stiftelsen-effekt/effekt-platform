@@ -473,7 +473,6 @@ export const DonationsPage = withStaticProps(
                         new Date(donation.timestamp).getFullYear() === parseInt(filterYear),
                     )
               }
-              distributionMap={distributionsMap}
               configuration={page.aggregate_estimated_impact}
             ></DonationsAggregateImpactTable>
           ) : (

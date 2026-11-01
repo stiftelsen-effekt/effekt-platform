@@ -1,9 +1,4 @@
-import {
-  Distribution,
-  Donation,
-  TaxYearlyReport,
-  TaxYearlyReportUnits,
-} from "../../../../../models";
+import { Donation, TaxYearlyReport, TaxYearlyReportUnits } from "../../../../../models";
 import { thousandize } from "../../../../../util/formatting";
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
@@ -16,9 +11,8 @@ import { AggregatedImpactTableConfiguration } from "../../../donations/Donations
 export const TaxYearlyReportList: React.FC<{
   report: TaxYearlyReport;
   donations: Donation[];
-  distribtionMap: Map<string, Distribution>;
   aggregateImpactConfig: AggregatedImpactTableConfiguration;
-}> = ({ report, donations, distribtionMap, aggregateImpactConfig }) => {
+}> = ({ report, donations, aggregateImpactConfig }) => {
   const headers = [
     { label: "Skatteenhet", width: "25%" },
     { label: "Enhetsnummer", width: "25%" },
@@ -93,7 +87,6 @@ export const TaxYearlyReportList: React.FC<{
           <TaxYearlyReportListSupplemental
             report={report}
             donations={donations}
-            distribtionMap={distribtionMap}
             aggregateImpactConfig={aggregateImpactConfig}
           />
         }

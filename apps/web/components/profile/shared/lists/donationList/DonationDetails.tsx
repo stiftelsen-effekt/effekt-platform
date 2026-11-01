@@ -1,4 +1,5 @@
 import React from "react";
+import { useMainLocale } from "../../../../../context/MainLocaleContext";
 import style from "./DonationDetails.module.scss";
 import { Distribution, Donation } from "../../../../../models";
 import { Organization } from "../../../../shared/components/Widget/types/Organization";
@@ -23,12 +24,14 @@ export const DonationDetails: React.FC<{
   sum: string | number;
   donation: Donation;
   distribution: Distribution;
-  timestamp: Date;
   configuration: DonationDetailsConfiguration;
   organizations: Organization[];
   causeAreas: CauseArea[];
-}> = ({ donation, distribution, timestamp, configuration, organizations, causeAreas }) => {
-  if (!distribution && !donation.impact?.length)
+}> = ({ donation, distribution, configuration, organizations, causeAreas }) => {
+  // The Danish backend's impact is grouped by cause area here; Norway's (minside.donations) is
+  // shown along the distribution, as before
+  const hasPrecomputedImpact = useMainLocale() === "dk" && Boolean(donation.impact?.length);
+  if (!distribution && !hasPrecomputedImpact)
     return <span>Ingen distribusjon funnet for donasjon med KID {donation.KID}</span>;
 
   const distributionCauseAreas = distribution?.causeAreas ?? [];
@@ -37,7 +40,6 @@ export const DonationDetails: React.FC<{
     organizations,
     causeAreas,
   );
-  const hasPrecomputedImpact = Boolean(donation.impact?.length);
   const visibleCauseAreas = hasPrecomputedImpact
     ? impactGroups.map((group) => group.causeArea)
     : distributionCauseAreas;
@@ -70,7 +72,6 @@ export const DonationDetails: React.FC<{
               <DonationImpact
                 donation={causeAreaDonation}
                 distribution={causeAreaDistribution as Distribution}
-                timestamp={timestamp}
                 configuration={configuration.impact_items_configuration}
                 organizations={organizations}
               />

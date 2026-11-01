@@ -1,8 +1,14 @@
 import React, { useCallback, useState } from "react";
-import { Distribution, DistributionCauseArea, Donation } from "../../../../models";
+import {
+  Distribution,
+  DistributionCauseArea,
+  Donation,
+  DonationImpactEntry,
+} from "../../../../models";
+import { useMainLocale } from "../../../../context/MainLocaleContext";
 import { Organization } from "../../../shared/components/Widget/types/Organization";
 import style from "./DonationImpact.module.scss";
-import { DonationImpactItem } from "./DonationImpactItem";
+import { DonationImpactItem, PreComputedImpact } from "./DonationImpactItem";
 import {
   DonationImpactItemsConfiguration,
   DonationImpactList,
@@ -15,25 +21,51 @@ export type { DonationImpactItemsConfiguration };
 
 const isOperationsOrg = (name: string) => name === "Drift" || mapNameToOrgAbbriv(name) === "Drift";
 
+/**
+ * The estimate for money given directly to an organization, from the donation's `impact`
+ * (minside.donations): its entries for that organization with a count, summed per output. Null
+ * when there is none (no evaluation, operations, funds, or no figures for the donation).
+ */
+export const directImpactFor = (
+  entries: DonationImpactEntry[] | undefined,
+  organizationId: number,
+  aboutOrgUrlTemplate: string,
+): PreComputedImpact | null => {
+  const own = (entries ?? []).filter(
+    (e) => e.organizationId === organizationId && e.count !== null && !e.viaFund,
+  );
+  if (own.length === 0) return null;
+  const [first] = own;
+  return {
+    output: own.filter((e) => e.unit === first.unit).reduce((sum, e) => sum + (e.count ?? 0), 0),
+    shortDescription: first.unit ?? "",
+    longDescription: first.description ?? "",
+    charityName: first.recipient,
+    orgUrl: aboutOrgUrlTemplate.replace("{{org}}", first.recipient).replaceAll(" ", "_"),
+  };
+};
+
 const toDistributionEntry = (
   org: { id: number; name?: string; percentageShare: string | number },
   donationSum: number,
   causeAreaShare: number,
+  impact: PreComputedImpact | null,
 ): ImpactDistributionEntry => ({
   org: mapNameToOrgAbbriv(org.name as string),
   orgName: org.name ?? "unknown",
   isFund: isFundOrganizationId(org.id),
   isOperations: isOperationsOrg(org.name as string),
   sum: donationSum * (toNumber(org.percentageShare) / 100) * causeAreaShare,
+  impact,
 });
 
 const DonationImpact: React.FC<{
   donation: Donation;
   distribution: Distribution;
-  timestamp: Date;
   configuration: DonationImpactItemsConfiguration;
   organizations: Organization[];
-}> = ({ donation, distribution, timestamp, configuration, organizations }) => {
+}> = ({ donation, distribution, configuration, organizations }) => {
+  const mainLocale = useMainLocale();
   const [requiredPrecision, setRequiredPrecision] = useState(0);
   const updatePrecision = useCallback(
     (precision: number) => {
@@ -42,7 +74,7 @@ const DonationImpact: React.FC<{
     [requiredPrecision],
   );
 
-  if (donation.impact?.length) {
+  if (mainLocale === "dk" && donation.impact?.length) {
     return (
       <div className={style.container}>
         <table className={style.wrapper} cellSpacing={0} data-cy="donation-impact-list">
@@ -60,7 +92,6 @@ const DonationImpact: React.FC<{
                   orgAbriv=""
                   orgName={entry.recipient}
                   sumToOrg={entry.amount}
-                  donationTimestamp={timestamp}
                   precision={requiredPrecision}
                   signalRequiredPrecision={updatePrecision}
                   configuration={configuration.impact_item_configuration}
@@ -116,9 +147,20 @@ const DonationImpact: React.FC<{
             <DonationImpactList
               donation={donation}
               distribution={organizations.map((org) =>
-                toDistributionEntry(org, donationSum, causeAreaShare),
+                toDistributionEntry(
+                  org,
+                  donationSum,
+                  causeAreaShare,
+                  // Sweden's database has no impact figures (docs/impact-api-migration.md)
+                  mainLocale === "sv"
+                    ? null
+                    : directImpactFor(
+                        donation.impact,
+                        org.id,
+                        configuration.impact_item_configuration.about_org_link_url_format_string,
+                      ),
+                ),
               )}
-              timestamp={timestamp}
               configuration={configuration}
             />
           </div>
@@ -139,7 +181,6 @@ const DonationImpact: React.FC<{
                 sum: operationsSum,
               },
             ]}
-            timestamp={timestamp}
             configuration={configuration}
           />
         </div>
