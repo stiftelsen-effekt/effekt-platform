@@ -80,14 +80,24 @@ export const donationsAggregatedOutput = z.array(
   }),
 );
 
-/** One entry of a Danish donation's impact (only the Danish backend sends `impact`) */
-const donationImpactEntry = z.object({
+/**
+ * One entry of a donation's impact: what part of the donation (`amount`) went to which charity
+ * (`recipient`) through which organization the donor chose (`organization`; a fund for money split
+ * by a fund's grant), and how many outputs (`unit`, e.g. "Myggnett") it bought (`count`; null: no
+ * estimate, as for operations or the All Grants Fund). The Danish backend defined this shape; ours
+ * sends the same (custom_modules/impact) plus `organizationId`.
+ */
+export const donationImpactEntry = z.object({
   recipient: z.string(),
   unit: z.string().nullable(),
   organization: z.string().nullable(),
+  /** Only our backend sends it */
+  organizationId: z.number().int().optional(),
   amount: z.number(),
   count: z.number().nullable(),
 });
+
+export type DonationImpactEntry = z.output<typeof donationImpactEntry>;
 
 /**
  * GET /donors/:id/donations. Every field is kept: the Min Side donation table's columns are
@@ -105,7 +115,9 @@ export const donationsOutput = z.array(
     timestamp: isoDateTime,
     paymentMethod: z.string(),
     taxUnitId: z.number().int().nullable(),
-    // Only our backend sends metaOwnerId, only the Danish backend sends impact
+    // Only our backend sends metaOwnerId. Both backends send impact; ours leaves it out for a
+    // donation it has no figures for yet (no exchange rate for its day) or when the impact
+    // lookup fails, and Min Side then falls back to its own lookup
     metaOwnerId: z.number().int().optional(),
     impact: z.array(donationImpactEntry).optional(),
   }),

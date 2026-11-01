@@ -36,7 +36,12 @@ export {
   type ImpactLine,
   type OrganizationShare,
 } from "./estimate";
-export { getDonationImpacts, getDonorImpactSummary, type DonorImpactOptions } from "./donations";
+export {
+  donorImpact,
+  getDonationImpacts,
+  getDonorImpactSummary,
+  type DonorImpactOptions,
+} from "./donations";
 export {
   distributionShares,
   getImpactEstimatesForDonationByOrg,

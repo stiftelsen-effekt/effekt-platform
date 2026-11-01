@@ -7,7 +7,7 @@ import * as impactData from "../custom_modules/impact/data";
 import { buildImpactData } from "../custom_modules/impact/data";
 import { clearImpactCostsMemo } from "../custom_modules/impact/costs";
 import * as exchangeRates from "../custom_modules/exchangeRates";
-import { mountTrpc } from "../trpc/express";
+import { isPublicCachedRead, mountTrpc } from "../trpc/express";
 import { appRouter } from "../trpc/router";
 import { createCallerFactory } from "../trpc/trpc";
 
@@ -142,5 +142,25 @@ describe("site.impactCosts", () => {
     await request(app).get(`/trpc/site.impactCosts?input=${bad}`).expect(400);
     const none = encodeURIComponent(JSON.stringify({ abbreviations: [] }));
     await request(app).get(`/trpc/site.impactCosts?input=${none}`).expect(400);
+  });
+
+  it("refuses a batch that includes it, so its cache header never covers another answer", async () => {
+    const app = express();
+    mountTrpc(app);
+    const input = encodeURIComponent(
+      JSON.stringify({ 0: { abbreviations: ["AMF"] }, 1: { donorId: 7 } }),
+    );
+    const res = await request(app)
+      .get(`/trpc/site.impactCosts,minside.donations?batch=1&input=${input}`)
+      .expect(400);
+    expect(res.body.error.message).to.equal("site.impactCosts cannot be batched");
+    expect(res.headers["cache-control"]).to.equal(undefined);
+  });
+
+  it("answers any origin (server.ts CORS), only for a single call", () => {
+    expect(isPublicCachedRead("/trpc/site.impactCosts")).to.equal(true);
+    expect(isPublicCachedRead("/trpc/site.impactCosts,minside.donations")).to.equal(false);
+    expect(isPublicCachedRead("/trpc/minside.donations")).to.equal(false);
+    expect(isPublicCachedRead("/site.impactCosts")).to.equal(false);
   });
 });

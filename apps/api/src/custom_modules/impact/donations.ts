@@ -83,7 +83,8 @@ export type DonorImpactOptions = {
 
 /**
  * Per-donation impact in the Danish `impact` shape, by donation ID. A donation whose day has no
- * exchange rate (an empty rate table) gets entries without counts.
+ * exchange rate (none on or before it, as before the first backfill) is left out of the map, so
+ * callers can tell "no figure yet" from "no estimate" (an entry with a null count).
  */
 export async function getDonationImpacts(
   options: DonorImpactOptions,
@@ -101,24 +102,24 @@ export async function getDonationImpacts(
 
   for (const donation of donations) {
     const rate = rateOn(rates, dayOf(donation.timestamp));
+    if (!rate) continue;
     const estimate = estimateDonation(data, {
       month: monthOf(donation.timestamp),
       amount: donation.sum,
-      perUsd: rate?.perUsd ?? NaN,
+      perUsd: rate.perUsd,
       shares: donation.shares,
       language,
     });
-    if (!rate) {
-      // No rate: keep the amounts, drop the counts
-      estimate.withoutEstimate.push(
-        ...estimate.lines.map((l) => ({ organizationId: l.organizationId, amount: l.amount })),
-      );
-      estimate.lines = [];
-    }
     result.set(donation.id, toImpactEntries(data, estimate));
   }
   return result;
 }
+
+/**
+ * The functions Min Side's procedures call, on an object so the router's tests can stub them
+ * without a database
+ */
+export const donorImpact = { getDonationImpacts };
 
 /** The donor's impact summed over a year (or all years): one entry per organization, recipient and output */
 export async function getDonorImpactSummary(
