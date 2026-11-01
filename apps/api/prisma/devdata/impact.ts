@@ -35,3 +35,22 @@ export async function linkImpactCharities(conn: mysql.Connection) {
     );
   }
 }
+
+/**
+ * Exchange rates for local and e2e databases: one fixed rate per currency from 2013, so impact
+ * figures are round and stable (readers take the latest rate on or before a date). Production
+ * gets ECB rates from POST /scheduled/exchange-rates; running it locally (or with ?from=) fills
+ * in real rates, which replace these.
+ */
+export const DEV_EXCHANGE_RATES: [date: string, currency: string, perUsd: string][] = [
+  ["2013-01-01", "NOK", "10.00000000"],
+  ["2013-01-01", "SEK", "10.00000000"],
+  ["2013-01-01", "DKK", "7.00000000"],
+  ["2013-01-01", "EUR", "0.90000000"],
+];
+
+export async function seedExchangeRates(conn: mysql.Connection) {
+  await conn.query("INSERT IGNORE INTO Exchange_rates (date, currency, per_usd, source) VALUES ?", [
+    DEV_EXCHANGE_RATES.map((row) => [...row, "dev"]),
+  ]);
+}

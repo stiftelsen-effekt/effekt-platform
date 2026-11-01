@@ -21,7 +21,7 @@
  * never sees an unknown table in the application schema (no drift for `prisma migrate dev`).
  */
 import crypto from "crypto";
-import { linkImpactCharities } from "./impact";
+import { linkImpactCharities, seedExchangeRates } from "./impact";
 import mysql from "mysql2/promise";
 import { config } from "./config";
 import { firstOfMonth, isoDate, parts, todayInNorway, toDay } from "./calendar";
@@ -320,6 +320,7 @@ async function upsertReference(conn: mysql.Connection) {
   );
   await upsert("Recurring_agreement_stopped_reasons", STOP_REASONS);
   await linkImpactCharities(conn);
+  await seedExchangeRates(conn);
 }
 
 function mapId(segments: Segment[] | undefined, genId: number): number {
@@ -484,6 +485,9 @@ export async function topUp(conn: mysql.Connection, end: number): Promise<TopUpR
     );
     return "not-generated";
   }
+  // Idempotent; gives databases seeded before the impact tables their links and rates
+  await linkImpactCharities(conn);
+  await seedExchangeRates(conn);
   const previousEnd = toDay(meta.end);
   if (end <= previousEnd) {
     console.log(`Dev data is up to date (generated through ${meta.end}).`);
