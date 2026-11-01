@@ -82,6 +82,14 @@ export const trpcInput = (interception, path) => {
   return isTrpcBatch(interception.request.url) ? parsed[index] : parsed;
 };
 
+/** The input of `path` in an intercepted tRPC query (GET, the input in the URL) */
+export const trpcQueryInput = (interception, path) => {
+  const index = trpcPaths(interception.request.url).indexOf(path);
+  expect(index, `${path} in ${interception.request.url}`).to.be.at.least(0);
+  const input = JSON.parse(new URL(interception.request.url).searchParams.get("input") ?? "{}");
+  return isTrpcBatch(interception.request.url) ? input[index] : input;
+};
+
 /** The error `path` returned in an intercepted tRPC response */
 export const trpcError = (interception, path) => {
   const index = trpcPaths(interception.request.url).indexOf(path);

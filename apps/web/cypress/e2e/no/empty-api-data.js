@@ -48,7 +48,9 @@ describe("Profile and dashboard empty API data", () => {
       "contain.text",
       "Vi har ikke registrert noen donasjoner fra deg",
     );
-    cy.get("@getDistribution.all").should("have.length", 0);
+    // All of the donor's distributions come in the page's first batch (no KID list to wait for),
+    // so they are fetched once even when there is nothing to look up in them
+    cy.get("@getDistribution.all").should("have.length", 1);
   });
 
   it("shows the agreements empty placeholders when agreements are empty arrays", () => {
@@ -75,6 +77,8 @@ describe("Profile and dashboard empty API data", () => {
       timeout: 30000,
     });
     cy.get("[data-cy=agreement-list-empty-placeholder]").should("have.length", 2);
-    cy.get("@getDistribution.all").should("have.length", 0);
+    // All of the donor's distributions come in the page's first batch (no KID list to wait for),
+    // so they are fetched once even when there is nothing to look up in them
+    cy.get("@getDistribution.all").should("have.length", 1);
   });
 });

@@ -31,6 +31,11 @@ Mutations (the web helpers take the client from `useTrpcClient`):
 | `minside.updateAvtaleGiroDistribution`     | `POST /avtalegiro/:KID/distribution`                        | none                                  |
 | `minside.cancelAvtaleGiroAgreement`        | `POST /avtalegiro/:KID/status` (`active: 0`)                | none                                  |
 
+`minside.distributions` without `kids` returns all of the donor's distributions. Min Side calls it
+that way on our API, so it goes out in the page's first batch with the donations instead of after
+them (`lib/trpc/distributionsQuery.ts`). The Danish backend only answers for the KIDs it is given,
+so on the Danish site the query still waits for the page's KIDs.
+
 `minside.donations` also carries each donation's impact (`impact`, see
 [impact-api-migration.md](impact-api-migration.md#phase-3-notes)); the donations page reads all of
 its impact figures from it.

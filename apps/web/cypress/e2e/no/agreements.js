@@ -280,58 +280,22 @@ describe("Agreements page", () => {
       ]).as("getVipps");
     });
 
+    // The saved distribution under its new KID, in the shape minside.distributions returns
     cy.fixture("kids_agreements").then((kids) => {
+      const saved = kids.find((dist) => dist.kid == "95231965");
+      const shares = { 12: "25.000000000000", 1: "20.000000000000" };
       cy.interceptTrpc("minside.distributions", [
         ...kids.filter((dist) => dist.kid != "95231965"),
         {
+          ...saved,
           kid: newKid,
-          shares: [
-            {
-              id: 12,
-              name: "GiveWells tildelingsfond",
-              share: "25.000000000000",
-            },
-            {
-              id: 1,
-              name: "Against Malaria Foundation",
-              share: "20.000000000000",
-            },
-            {
-              id: 10,
-              name: "Hellen Keller International",
-              share: "25.000000000000",
-            },
-            {
-              id: 4,
-              name: "Malaria Consortium",
-              share: "0.000000000000",
-            },
-            {
-              id: 2,
-              name: "Schistosomiasis Control Initiative",
-              share: "30.000000000000",
-            },
-            {
-              id: 7,
-              name: "GiveDirectly",
-              share: "0.000000000000",
-            },
-            {
-              id: 13,
-              name: "GiveDirectly Borgerlønn",
-              share: "0.000000000000",
-            },
-            {
-              id: 14,
-              name: "New Incentives",
-              share: "0.000000000000",
-            },
-            {
-              id: 11,
-              name: "Drift av gieffektivt.no",
-              share: "0.000000000000",
-            },
-          ],
+          causeAreas: saved.causeAreas.map((causeArea) => ({
+            ...causeArea,
+            organizations: causeArea.organizations.map((org) => ({
+              ...org,
+              percentageShare: shares[org.id] ?? org.percentageShare,
+            })),
+          })),
         },
       ]).as("getDistribution");
     });
@@ -525,7 +489,9 @@ describe("Agreements page", () => {
 
     cy.get("[data-cy=lightbox-confirm]").click();
 
-    cy.wait(["@getVipps", "@getDistribution"]);
+    // Only the agreements are fetched again: the distributions (all of the donor's, fetched
+    // without a KID list) don't change when an agreement is cancelled
+    cy.wait("@getVipps");
 
     cy.get("[data-cy=generic-list-table]").first().find("tbody").should("have.length", 1);
 
