@@ -68,6 +68,9 @@ BuildKit with a layer cache in the registry (`effektapi:buildcache`), since ever
 machine starts empty. With an unchanged lockfile and `apps/api/package.json`, neither
 `pnpm install` in `apps/api/Dockerfile` runs again and only the compiled API is pushed. The
 release image is `node:…-slim` plus OpenSSL (Prisma's schema engine, used by the migrate jobs).
+The push to the registry occasionally fails while authorizing (`failed to authorize:
+DeadlineExceeded`), so the script runs the build up to three times; a retry finds every layer in
+the builder's cache and only pushes again.
 
 To check the step logic without Cloud Build, run each step's `entrypoint` and `args` locally with
 `docker` and `gcloud` replaced by scripts that log their arguments, `DEPLOY_GUARD_REPO` pointed
