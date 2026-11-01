@@ -1,6 +1,7 @@
 # Moving the impact API into the platform
 
-Status: **phase 1 in progress** (decisions settled 2026-11-01, see [Decisions](#decisions)). Written
+Status: **phases 0–2 done in code** (decisions settled 2026-11-01, see [Decisions](#decisions);
+phase 0 runs as scripts by hand). Written
 2026-10-30 from read-only inspection of the code, the GCP config, the load balancer logs and the
 public API. No database was queried (the `Impact` schema needs the `impactapi` credentials, which
 this plan did not read); row counts below come from the public API, which returns every row.
@@ -399,3 +400,29 @@ Settled on 2026-11-01:
   `Sight`. `END` ↔ `End` and `DTW` ↔ `DtW` differ only in case. `prisma/devdata/impact.ts` repeats
   the list for the dev seed, because a fresh dev database gets its organizations after the
   migrations.
+
+### Phase 2 notes
+
+- Code: `apps/api/src/custom_modules/impact/` (data cache, rules, per-donation estimate, donor
+  impact for Min Side, receipts) and `custom_modules/monthlyOutputs.ts`. Rates:
+  `custom_modules/exchangeRates.ts` and `POST /scheduled/exchange-rates` (docs/functions.md).
+- `IMPACT_SOURCE=remote` (API env) switches receipts and the results page back to the legacy
+  impact API and Norges Bank for one release. Without NOK rates in `Exchange_rates` (before the
+  first backfill) both fall back to the legacy path by themselves.
+- Phase 3 entry points: `getDonationImpacts({donorId, year?, language?})` gives each donation's
+  `impact` entries in the Danish shape, and `getDonorImpactSummary(...)` (or
+  `sumImpactEntries`) the sums; two queries per call with the impact tables cached. Against the
+  dev data, a donor with 3,688 donations took p95 93 ms (`src/__test__/DAO/impact.db.spec.ts`).
+- What changes for donors, checked by `src/__test__/impact.snapshot.spec.ts` against recorded
+  legacy answers: receipts scale by Norges Bank ÷ ECB rate (the legacy helper also took the rate
+  of the first business day of a 31-day window, about a month before the donation); The END
+  Fund, Deworm the World and Sightsavers now get receipt outputs (the legacy code compared
+  abbreviations case-sensitively, `End` ≠ `END`). The results page moves to the latest evaluation
+  on or before each month and the month's average ECB rate. On the production sums of
+  2026-11-01 its totals moved by −0.7 % to +2.2 % per output (vitamin A +2.2 %, the most).
+- Found on the way: the legacy API's Datastore cache key keeps only the last
+  `charity_abbreviation` of a request (Django `QueryDict.items()`), so a request for several
+  charities can get another request's cached answer, missing charities. Receipts (which ask for
+  all of a donation's charities at once) have sometimes shown no figure for a charity because of
+  it. The compatibility REST must not
+  copy this.

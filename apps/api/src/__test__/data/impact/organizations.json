@@ -1,0 +1,187 @@
+[
+  {
+    "ID": 1,
+    "abbriv": "AMF",
+    "full_name": "Against Malaria Foundation"
+  },
+  {
+    "ID": 2,
+    "abbriv": "SCI",
+    "full_name": "SCI Foundation"
+  },
+  {
+    "ID": 3,
+    "abbriv": "End",
+    "full_name": "The End Fund"
+  },
+  {
+    "ID": 4,
+    "abbriv": "MC",
+    "full_name": "Malaria Consortium"
+  },
+  {
+    "ID": 5,
+    "abbriv": "DtW",
+    "full_name": "Deworm the World"
+  },
+  {
+    "ID": 6,
+    "abbriv": "Sight",
+    "full_name": "Sightsavers"
+  },
+  {
+    "ID": 7,
+    "abbriv": "GD",
+    "full_name": "GiveDirectly"
+  },
+  {
+    "ID": 8,
+    "abbriv": "PHC",
+    "full_name": "Project Healthy Children"
+  },
+  {
+    "ID": 9,
+    "abbriv": "NLS",
+    "full_name": "No Lean Season"
+  },
+  {
+    "ID": 10,
+    "abbriv": "HKI",
+    "full_name": "Helen Keller International"
+  },
+  {
+    "ID": 11,
+    "abbriv": "Drift",
+    "full_name": "Drift av Gi Effektivt"
+  },
+  {
+    "ID": 12,
+    "abbriv": "TCF",
+    "full_name": "GiveWell Top Charities Fund"
+  },
+  {
+    "ID": 13,
+    "abbriv": "UBI",
+    "full_name": "GiveDirectly Borgerlønn"
+  },
+  {
+    "ID": 14,
+    "abbriv": "NI",
+    "full_name": "New Incentives"
+  },
+  {
+    "ID": 15,
+    "abbriv": "AGF",
+    "full_name": "GiveWell All Grants Fund"
+  },
+  {
+    "ID": 16,
+    "abbriv": "GDZF",
+    "full_name": "GiveDirectly Zakat-fond"
+  },
+  {
+    "ID": 17,
+    "abbriv": "FEM",
+    "full_name": "Family Empowerment Media"
+  },
+  {
+    "ID": 18,
+    "abbriv": "Other",
+    "full_name": "Annet"
+  },
+  {
+    "ID": 19,
+    "abbriv": "GDCSF",
+    "full_name": "GiveDirectly Climate Survival Fund"
+  },
+  {
+    "ID": 20,
+    "abbriv": "TARL",
+    "full_name": "Teaching at the Right Level"
+  },
+  {
+    "ID": 21,
+    "abbriv": "CATF",
+    "full_name": "Clean Air Taskforce"
+  },
+  {
+    "ID": 22,
+    "abbriv": "EASWN",
+    "full_name": "Evidence Action Safe Water Now"
+  },
+  {
+    "ID": 23,
+    "abbriv": "TMK",
+    "full_name": "Taimaka"
+  },
+  {
+    "ID": 27,
+    "abbriv": "SB",
+    "full_name": "SecureBio"
+  },
+  {
+    "ID": 28,
+    "abbriv": "DG",
+    "full_name": "Digital Green"
+  },
+  {
+    "ID": 29,
+    "abbriv": "OAF",
+    "full_name": "One Acre Fund"
+  },
+  {
+    "ID": 30,
+    "abbriv": "DIL",
+    "full_name": "Development Innovation Lab"
+  },
+  {
+    "ID": 31,
+    "abbriv": "GD MB",
+    "full_name": "Give Directly - Moms and Babies"
+  },
+  {
+    "ID": 34,
+    "abbriv": "EA AWF",
+    "full_name": "EA Animal Welfare Fund"
+  },
+  {
+    "ID": 35,
+    "abbriv": "CS",
+    "full_name": "Clear Solutions"
+  },
+  {
+    "ID": 36,
+    "abbriv": "AMI",
+    "full_name": "Access to Medicines Initiative"
+  },
+  {
+    "ID": 37,
+    "abbriv": "MF",
+    "full_name": "Miracle Feet"
+  },
+  {
+    "ID": 38,
+    "abbriv": "LAF",
+    "full_name": "Lafiya"
+  },
+  {
+    "ID": 39,
+    "abbriv": "FH",
+    "full_name": "Fortify Health"
+  },
+  {
+    "ID": 40,
+    "abbriv": "DIV",
+    "full_name": "DIV Fund"
+  },
+  {
+    "ID": 41,
+    "abbriv": "GD UNR",
+    "full_name": "GiveDirectly Unrestricted"
+  },
+  {
+    "ID": 42,
+    "abbriv": "GEBF",
+    "full_name": "GiEffektivts barnedødelighetsfond"
+  }
+]

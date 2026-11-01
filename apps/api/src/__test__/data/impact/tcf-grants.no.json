@@ -1,0 +1,1284 @@
+{
+  "max_impact_fund_grants": [
+    {
+      "id": 14,
+      "allotment_set": [
+        {
+          "id": 26,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 61858866.10373944,
+          "currency": "NOK",
+          "converted_cost_per_output": 58.03336473384886,
+          "exchange_rate_date": "2018-10-01",
+          "sum_in_cents": 760000000,
+          "number_outputs_purchased": 1065919,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2018,
+      "start_month": 10
+    },
+    {
+      "id": 13,
+      "allotment_set": [
+        {
+          "id": 25,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 40853403.07261347,
+          "currency": "NOK",
+          "converted_cost_per_output": 39.37571137609151,
+          "exchange_rate_date": "2019-01-01",
+          "sum_in_cents": 470000000,
+          "number_outputs_purchased": 1037528,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "2019 GiveWell Cost-effectiveness Analysis — Version 4 \"Nets\"",
+          "source_url": "https://docs.google.com/spreadsheets/d/1_bNbnVaAUQSq4fIzGBU_wVWojmwZrvQKzjSRx92y6wc/edit?gid=1364064522#gid=1364064522",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 1
+    },
+    {
+      "id": 12,
+      "allotment_set": [
+        {
+          "id": 24,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 19728907.084371664,
+          "currency": "NOK",
+          "converted_cost_per_output": 38.857389781834414,
+          "exchange_rate_date": "2019-04-01",
+          "sum_in_cents": 230000000,
+          "number_outputs_purchased": 507726,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "2019 GiveWell Cost-effectiveness Analysis — Version 4 \"Nets\"",
+          "source_url": "https://docs.google.com/spreadsheets/d/1_bNbnVaAUQSq4fIzGBU_wVWojmwZrvQKzjSRx92y6wc/edit?gid=1364064522#gid=1364064522",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 4
+    },
+    {
+      "id": 11,
+      "allotment_set": [
+        {
+          "id": 23,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_sum": 22187399.77090492,
+          "currency": "NOK",
+          "converted_cost_per_output": 10.411008419361266,
+          "exchange_rate_date": "2019-07-01",
+          "sum_in_cents": 260000000,
+          "number_outputs_purchased": 2131148,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Recommendations to Open Philanthropy and allocation of Q3 2019 discretionary funding — November - \"VAS\"",
+          "source_url": "https://docs.google.com/spreadsheets/d/1ta2MzARlUNWSliMlpDFyvxui8A2fevkgEtq3f_I36gk/edit?gid=1070538669#gid=1070538669",
+          "comment": "",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 7
+    },
+    {
+      "id": 1,
+      "allotment_set": [
+        {
+          "id": 1,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 108607973.94017251,
+          "currency": "NOK",
+          "converted_cost_per_output": 68.4503893634723,
+          "exchange_rate_date": "2019-10-01",
+          "sum_in_cents": 1190000000,
+          "number_outputs_purchased": 1586667,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Recommendations to Open Philanthropy and allocation of Q3 2019 discretionary funding — November",
+          "source_url": "https://docs.google.com/spreadsheets/d/1ta2MzARlUNWSliMlpDFyvxui8A2fevkgEtq3f_I36gk/edit?gid=791021775#gid=791021775 - \"SMC\"",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        },
+        {
+          "id": 2,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_sum": 13690080.74876124,
+          "currency": "NOK",
+          "converted_cost_per_output": 11.225868010123099,
+          "exchange_rate_date": "2019-10-01",
+          "sum_in_cents": 150000000,
+          "number_outputs_purchased": 1219512,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Recommendations to Open Philanthropy and allocation of Q3 2019 discretionary funding — November - \"VAS\"",
+          "source_url": "https://docs.google.com/spreadsheets/d/1ta2MzARlUNWSliMlpDFyvxui8A2fevkgEtq3f_I36gk/edit?gid=1070538669#gid=1070538669",
+          "comment": "",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2019,
+      "start_month": 10
+    },
+    {
+      "id": 2,
+      "allotment_set": [
+        {
+          "id": 3,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 102797440.58500914,
+          "currency": "NOK",
+          "converted_cost_per_output": 434.911579534147,
+          "exchange_rate_date": "2020-01-01",
+          "sum_in_cents": 1170000000,
+          "number_outputs_purchased": 236364,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "2020 GiveWell cost-effectiveness analysis - \"AMF\"",
+          "source_url": "https://docs.google.com/spreadsheets/d/1BmFwVYeGMkpys6hG0tnfHyq__ZFZf-bmXYLSHODGpLY/edit?gid=1364064522#gid=1364064522",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 1
+    },
+    {
+      "id": 3,
+      "allotment_set": [
+        {
+          "id": 4,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 36553285.71428572,
+          "currency": "NOK",
+          "converted_cost_per_output": 66.66159509189667,
+          "exchange_rate_date": "2020-07-01",
+          "sum_in_cents": 380000000,
+          "number_outputs_purchased": 548341,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "2020 GiveWell cost-effectiveness analysis — version 2, \"Malaria Consortium\"",
+          "source_url": "https://docs.google.com/spreadsheets/d/16XOOB1oWse1ICbF0OVXUYtwWwpvG3mxAAQ6LYAAndQU/edit?gid=791021775#gid=791021775",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 7
+    },
+    {
+      "id": 4,
+      "allotment_set": [
+        {
+          "id": 5,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 240383824.02995232,
+          "currency": "NOK",
+          "converted_cost_per_output": 50.675506110340976,
+          "exchange_rate_date": "2020-10-01",
+          "sum_in_cents": 2590000000,
+          "number_outputs_purchased": 4743590,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "2020 GiveWell cost-effectiveness analysis — version 2 \"AMF\"",
+          "source_url": "https://docs.google.com/spreadsheets/d/11MRYERuf2Mw_E8hl913Ku8kRLjuZr6s0YlULGQ4UXPM/edit?gid=1364064522#gid=1364064522",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2020,
+      "start_month": 10
+    },
+    {
+      "id": 5,
+      "allotment_set": [
+        {
+          "id": 6,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 8915172.962573053,
+          "currency": "NOK",
+          "converted_cost_per_output": 47.21669453839786,
+          "exchange_rate_date": "2021-01-01",
+          "sum_in_cents": 104603100,
+          "number_outputs_purchased": 188814,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        },
+        {
+          "id": 7,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_sum": 93751430.49135597,
+          "currency": "NOK",
+          "converted_cost_per_output": 9.375143049135596,
+          "exchange_rate_date": "2021-01-01",
+          "sum_in_cents": 1100000000,
+          "number_outputs_purchased": 10000000,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        },
+        {
+          "id": 8,
+          "intervention": {
+            "long_description": "Barn behandlet med ormekur for ett år",
+            "short_description": "Ormekurer",
+            "id": 4
+          },
+          "converted_sum": 12784285.976093994,
+          "currency": "NOK",
+          "converted_cost_per_output": 14.574085721265442,
+          "exchange_rate_date": "2021-01-01",
+          "sum_in_cents": 150000000,
+          "number_outputs_purchased": 877193,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 7,
+            "charity_name": "Sightsavers",
+            "abbreviation": "SS"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 1
+    },
+    {
+      "id": 6,
+      "allotment_set": [
+        {
+          "id": 9,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 80353754.46960668,
+          "currency": "NOK",
+          "converted_cost_per_output": 1000.1463054144366,
+          "exchange_rate_date": "2021-04-01",
+          "sum_in_cents": 940000000,
+          "number_outputs_purchased": 80342,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "GiveWell's CEA of New Incentives' conditional cash transfers to increase infant vaccination (public)",
+          "source_url": "https://docs.google.com/spreadsheets/d/11WUg59i_kWye42fO45cpMmD-O0wFX_CioJl0D19Suyg/edit?gid=1266854728#gid=1266854728",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        },
+        {
+          "id": 10,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 19495710.00238379,
+          "currency": "NOK",
+          "converted_cost_per_output": 38.467189151017514,
+          "exchange_rate_date": "2021-04-01",
+          "sum_in_cents": 228066100,
+          "number_outputs_purchased": 506814,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "2021 GiveWell cost-effectiveness analysis [AMF Chad] (public)",
+          "source_url": "https://docs.google.com/spreadsheets/d/1aDLagZoVCIeybc5xXNN3j6Y4I-DlGGlZoEumTfrKjBc/edit?gid=1364064522#gid=1364064522",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        },
+        {
+          "id": 11,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 19495710.00238379,
+          "currency": "NOK",
+          "converted_cost_per_output": 58.98300008889874,
+          "exchange_rate_date": "2021-04-01",
+          "sum_in_cents": 228066100,
+          "number_outputs_purchased": 330531,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 4
+    },
+    {
+      "id": 7,
+      "allotment_set": [
+        {
+          "id": 12,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 75356789.25277685,
+          "currency": "NOK",
+          "converted_cost_per_output": 40.98290797040406,
+          "exchange_rate_date": "2021-07-01",
+          "sum_in_cents": 877077600,
+          "number_outputs_purchased": 1838737,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 7
+    },
+    {
+      "id": 8,
+      "allotment_set": [
+        {
+          "id": 13,
+          "intervention": {
+            "long_description": "Barn behandlet med ormekur for ett år",
+            "short_description": "Ormekurer",
+            "id": 4
+          },
+          "converted_sum": 67733723.07448277,
+          "currency": "NOK",
+          "converted_cost_per_output": 7.047312624877464,
+          "exchange_rate_date": "2021-10-01",
+          "sum_in_cents": 784111600,
+          "number_outputs_purchased": 9611284,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 7,
+            "charity_name": "Sightsavers",
+            "abbreviation": "SS"
+          }
+        },
+        {
+          "id": 14,
+          "intervention": {
+            "long_description": "Barn behandlet med ormekur for ett år",
+            "short_description": "Ormekurer",
+            "id": 4
+          },
+          "converted_sum": 41737186.03689656,
+          "currency": "NOK",
+          "converted_cost_per_output": 6.002832774008679,
+          "exchange_rate_date": "2021-10-01",
+          "sum_in_cents": 483165700,
+          "number_outputs_purchased": 6952915,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 6,
+            "charity_name": "Deworm the World",
+            "abbreviation": "DTW"
+          }
+        },
+        {
+          "id": 15,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 81294814.13793105,
+          "currency": "NOK",
+          "converted_cost_per_output": 753.7766725816507,
+          "exchange_rate_date": "2021-10-01",
+          "sum_in_cents": 941100000,
+          "number_outputs_purchased": 107850,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        },
+        {
+          "id": 16,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 29768984.404137935,
+          "currency": "NOK",
+          "converted_cost_per_output": 46.233889656329204,
+          "exchange_rate_date": "2021-10-01",
+          "sum_in_cents": 344617200,
+          "number_outputs_purchased": 643878,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        },
+        {
+          "id": 17,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 191598729.4672414,
+          "currency": "NOK",
+          "converted_cost_per_output": 60.78852036944227,
+          "exchange_rate_date": "2021-10-01",
+          "sum_in_cents": 2218020500,
+          "number_outputs_purchased": 3151890,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        },
+        {
+          "id": 18,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_sum": 12043847.014482759,
+          "currency": "NOK",
+          "converted_cost_per_output": 9.14377178125333,
+          "exchange_rate_date": "2021-10-01",
+          "sum_in_cents": 139424200,
+          "number_outputs_purchased": 1317164,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2021,
+      "start_month": 10
+    },
+    {
+      "id": 9,
+      "allotment_set": [
+        {
+          "id": 19,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_sum": 15773668.827035611,
+          "currency": "NOK",
+          "converted_cost_per_output": 9.3313563743338,
+          "exchange_rate_date": "2022-01-01",
+          "sum_in_cents": 178930900,
+          "number_outputs_purchased": 1690394,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        },
+        {
+          "id": 20,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 189248137.98903167,
+          "currency": "NOK",
+          "converted_cost_per_output": 784.9948896600811,
+          "exchange_rate_date": "2022-01-01",
+          "sum_in_cents": 2146763700,
+          "number_outputs_purchased": 241082,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        },
+        {
+          "id": 21,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 71968357.42097215,
+          "currency": "NOK",
+          "converted_cost_per_output": 48.57344390065884,
+          "exchange_rate_date": "2022-01-01",
+          "sum_in_cents": 816383500,
+          "number_outputs_purchased": 1481640,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 1
+    },
+    {
+      "id": 10,
+      "allotment_set": [
+        {
+          "id": 22,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 73441476.65580891,
+          "currency": "NOK",
+          "converted_cost_per_output": 68.020765788585,
+          "exchange_rate_date": "2022-04-01",
+          "sum_in_cents": 840000000,
+          "number_outputs_purchased": 1079692,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 4
+    },
+    {
+      "id": 15,
+      "allotment_set": [
+        {
+          "id": 27,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 150132383.69304556,
+          "currency": "NOK",
+          "converted_cost_per_output": 1797.1102056839823,
+          "exchange_rate_date": "2022-07-01",
+          "sum_in_cents": 1510000000,
+          "number_outputs_purchased": 83541,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 7
+    },
+    {
+      "id": 16,
+      "allotment_set": [
+        {
+          "id": 28,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 255947081.3397129,
+          "currency": "NOK",
+          "converted_cost_per_output": 69.62629102943976,
+          "exchange_rate_date": "2022-10-01",
+          "sum_in_cents": 2360000000,
+          "number_outputs_purchased": 3676012,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium — SMC Renewal in Nigeria, Burkina Faso, Chad, and Togo (January 2023)\r\n\r\n2023 GiveWell cost-effectiveness analysis — version 2 (public)",
+          "source_url": "https://www.givewell.org/research/grants/Malaria-Consortium-SMC-renewal-Nigeria-Burkina-Chad-Togo-January-2023#Cost-effectiveness\r\n\r\nhttps://docs.google.com/spreadsheets/d/10JFJaWnFAEKmsv5XjXqGqEoMUx0eM7x3WYwu_vC7FRw/edit?gid=791021775#gid=791021775&range=A256:N256",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2022,
+      "start_month": 10
+    },
+    {
+      "id": 17,
+      "allotment_set": [
+        {
+          "id": 29,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 109297852.14785217,
+          "currency": "NOK",
+          "converted_cost_per_output": 1779.7764593941176,
+          "exchange_rate_date": "2023-01-01",
+          "sum_in_cents": 1110000000,
+          "number_outputs_purchased": 61411,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 1
+    },
+    {
+      "id": 18,
+      "allotment_set": [
+        {
+          "id": 30,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 167427868.55149624,
+          "currency": "NOK",
+          "converted_cost_per_output": 29.38124836385554,
+          "exchange_rate_date": "2023-02-01",
+          "sum_in_cents": 1680000000,
+          "number_outputs_purchased": 5698460,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Against Malaria Foundation — Support for ITN Campaigns in DRC (June 2023) | GiveWell\r\n\r\nSecondary source: GiveWell, 2023 AMF DRC grant cost-effectiveness analysis (public)",
+          "source_url": "https://www.givewell.org/research/grants/against-malaria-foundation-support-for-itn-campaigns-in-drc-june-2023\r\n\r\nSecondary source URL: https://docs.google.com/spreadsheets/d/1lvWRNFSdhDvEd-Ft1TFhVxMd7qyGBY6hJyD_hSGchcs/edit?gid=1364064522#gid=1364064522",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 2
+    },
+    {
+      "id": 19,
+      "allotment_set": [
+        {
+          "id": 31,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 81394267.32066219,
+          "currency": "NOK",
+          "converted_cost_per_output": 929.2219480861952,
+          "exchange_rate_date": "2023-04-01",
+          "sum_in_cents": 780000000,
+          "number_outputs_purchased": 87594,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        },
+        {
+          "id": 32,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 81394267.32066219,
+          "currency": "NOK",
+          "converted_cost_per_output": 88.20243703014502,
+          "exchange_rate_date": "2023-04-01",
+          "sum_in_cents": 780000000,
+          "number_outputs_purchased": 922812,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium — SMC in Karamoja, Uganda in 2024 and Nampula, Mozambique in 2024-2025 (November 2023 - January 2024)",
+          "source_url": "https://www.givewell.org/research/grants/malaria-consortium-smc-karamoja-uganda-nampula-mozambique-november-2023-january-2024",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2023,
+      "start_month": 4
+    },
+    {
+      "id": 20,
+      "allotment_set": [
+        {
+          "id": 33,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 11292294.731089758,
+          "currency": "NOK",
+          "converted_cost_per_output": 8.677022727097205,
+          "exchange_rate_date": "2024-01-01",
+          "sum_in_cents": 110000000,
+          "number_outputs_purchased": 1301402,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium - SMC in Karamoja, Uganda in 2024 and Nampula, Mozambique in 2024-2025 (Nov 2023-Jan 2024)",
+          "source_url": "https://www.givewell.org/research/grants/malaria-consortium-smc-karamoja-uganda-nampula-mozambique-november-2023-january-2024",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        },
+        {
+          "id": 34,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 92391502.34527983,
+          "currency": "NOK",
+          "converted_cost_per_output": 83.87096694261287,
+          "exchange_rate_date": "2024-01-01",
+          "sum_in_cents": 900000000,
+          "number_outputs_purchased": 1101591,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium — SMC Renewals in Nigeria, Burkina Faso, Chad and Togo (January - October 2024)",
+          "source_url": "https://www.givewell.org/research/grants/malaria-consortium-SMC-renewals-in-nigeria-burkina-faso-chad-and-togo",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        },
+        {
+          "id": 35,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 585146181.5201056,
+          "currency": "NOK",
+          "converted_cost_per_output": 83.87095492110726,
+          "exchange_rate_date": "2024-01-01",
+          "sum_in_cents": 5700000000,
+          "number_outputs_purchased": 6976744,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium — SMC Renewals in Nigeria, Burkina Faso, Chad and Togo (January - October 2024)",
+          "source_url": "https://www.givewell.org/research/grants/malaria-consortium-SMC-renewals-in-nigeria-burkina-faso-chad-and-togo",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2024,
+      "start_month": 1
+    },
+    {
+      "id": 28,
+      "allotment_set": [
+        {
+          "id": 42,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 115620029.5912706,
+          "currency": "NOK",
+          "converted_cost_per_output": 44.31531460962732,
+          "exchange_rate_date": "2024-02-01",
+          "sum_in_cents": 1100000000,
+          "number_outputs_purchased": 2609031,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Against Malaria Foundation — Support for ITN Campaigns in DRC (June 2024)\r\n\r\n\r\nSecondary source: GiveWell's CEA of insecticide-treated net (ITN) distributions — version 24.2 [grant for DRC 2025-26",
+          "source_url": "https://www.givewell.org/research/grants/AMF-LLIN-DRC-June-2024\r\n\r\n\r\nSecondary source URL: https://docs.google.com/spreadsheets/d/1r_wnxTzdVtIClM_K8xZYGz8DwxAjiC0NbYQXfefKgaE/edit?gid=1266854728#gid=1266854728",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2024,
+      "start_month": 2
+    },
+    {
+      "id": 26,
+      "allotment_set": [
+        {
+          "id": 36,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 28906247.70184038,
+          "currency": "NOK",
+          "converted_cost_per_output": 148.05115471249138,
+          "exchange_rate_date": "2024-03-01",
+          "sum_in_cents": 273148000,
+          "number_outputs_purchased": 195245,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium - SMC in Karamoja, Uganda in 2025-26 (sept 2024)",
+          "source_url": "https://www.givewell.org/research/grants/malaria-consortium-seasonal-malaria-chemoprevention-in-karamoja-uganda-in-2025-26-september-2024",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        },
+        {
+          "id": 41,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_sum": 30689632.84934801,
+          "currency": "NOK",
+          "converted_cost_per_output": 27.08428161754667,
+          "exchange_rate_date": "2024-03-01",
+          "sum_in_cents": 290000000,
+          "number_outputs_purchased": 1133116,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Helen Keller International — Vitamin A Supplementation (August & September 2024)",
+          "source_url": "https://www.givewell.org/research/grants/helen-keller-international-vitamin-a-supplementation-august-september-2024",
+          "comment": "Secondary source: GiveWell, CEA of vitamin A supplementation, 2024 v1 (public), link https://docs.google.com/spreadsheets/d/1Ojn4JAcmKkggPe7IpGbqKhMcpF05OJLWWlm7IZkIlnk/edit?gid=1266854728#gid=1266854728&range=AB:AB",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2024,
+      "start_month": 3
+    },
+    {
+      "id": 27,
+      "allotment_set": [
+        {
+          "id": 37,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 11936834.352779375,
+          "currency": "NOK",
+          "converted_cost_per_output": 272.14523625870635,
+          "exchange_rate_date": "2024-04-01",
+          "sum_in_cents": 109734200,
+          "number_outputs_purchased": 43862,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium — SMC Renewal in South Sudan (October 2024)\r\n\r\n\r\nsecondary source: GiveWell's CEA of seasonal malaria chemoprevention (SMC) — 2025 version 1 (public)",
+          "source_url": "https://www.givewell.org/research/grants/malaria-consortium-smc-renewal-in-south-sudan-october-2024\r\n\r\nsecondary source: https://docs.google.com/spreadsheets/d/1Ojn4JAcmKkggPe7IpGbqKhMcpF05OJLWWlm7IZkIlnk/edit?gid=2109982948#gid=2109982948",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        },
+        {
+          "id": 38,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 9790157.414462801,
+          "currency": "NOK",
+          "converted_cost_per_output": 1147.5978682994726,
+          "exchange_rate_date": "2024-04-01",
+          "sum_in_cents": 90000000,
+          "number_outputs_purchased": 8531,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "New Incentives — Expansion to Niger and Yobe States (October 2024)\r\n\r\nsecondary source: GiveWell, (Niger and Yobe expansion) CEA of New Incentives' conditional cash transfers to increase infant vaccination, September 2024 (public)",
+          "source_url": "https://www.givewell.org/research/grants/new-incentives-expansion-to-niger-and-yobe-states-october-2024\r\n\r\nsecondary source: https://docs.google.com/spreadsheets/d/1EB0kvA7iJn5qquDwPxfoGt_z6TiSGqqWXz6zWl1AkmE/edit?gid=175487621#gid=175487621",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        },
+        {
+          "id": 39,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 315460627.7993569,
+          "currency": "NOK",
+          "converted_cost_per_output": 61.62905186851289,
+          "exchange_rate_date": "2024-04-01",
+          "sum_in_cents": 2900000000,
+          "number_outputs_purchased": 5118700,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "e-mail from GiveWell February 2025, outlining the impact of a 96 mln (of which 830K USD came from TopCharitiesFund July-Sept 2024)\r\n\r\ngrant page forthcoming",
+          "source_url": "",
+          "comment": "no grant page yet, number from estimate shared by GiveWell in an email on Feb 10th, 2024 (subject line email: We have directed your TopCharitiesFund donations",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        },
+        {
+          "id": 44,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_sum": 230612596.87401265,
+          "currency": "NOK",
+          "converted_cost_per_output": 29.982532407125557,
+          "exchange_rate_date": "2024-04-01",
+          "sum_in_cents": 2120000000,
+          "number_outputs_purchased": 7691565,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Helen Keller Intl — Vitamin A Supplementation (December 2024)\r\n\r\n\r\nSecondary source: GiveWell, CEA of vitamin A supplementation, 2024 v2 (public)",
+          "source_url": "Primary source: https://www.givewell.org/research/grants/Helen-Keller-Intl-Vitamin-A-Supplementation-December-2024\r\n\r\nSecondary source: https://docs.google.com/spreadsheets/d/1L6D1mf8AMKoUHrN0gBGiJjtstic4RvqLZCxXZ99kdnA/edit?gid=2109982948#gid=2109982948",
+          "comment": "cost per life saved: USD 5,761\r\nCost effectiveness (multiples of cash): 24.58",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2024,
+      "start_month": 4
+    },
+    {
+      "id": 29,
+      "allotment_set": [
+        {
+          "id": 43,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_sum": 137372684.69338486,
+          "currency": "NOK",
+          "converted_cost_per_output": 1019.0247217775269,
+          "exchange_rate_date": "2025-01-01",
+          "sum_in_cents": 1210000000,
+          "number_outputs_purchased": 134808,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "New Incentives — Extension of Support in Northern Nigeria (March 2025)\r\n\r\nSecondary source: [March 2025 renewal grant] GiveWell's CEA of New Incentives' conditional cash transfers to increase infant vaccination (public)",
+          "source_url": "https://www.givewell.org/research/grants/new-incentives-extension-of-support-in-northern-nigeria-march-2025\r\n\r\nSecondary source URL: https://docs.google.com/spreadsheets/d/1EB0kvA7iJn5qquDwPxfoGt_z6TiSGqqWXz6zWl1AkmE/edit?gid=1266854728#gid=1266854728",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2025,
+      "start_month": 1
+    },
+    {
+      "id": 33,
+      "allotment_set": [
+        {
+          "id": 48,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_sum": 100829607.21184804,
+          "currency": "NOK",
+          "converted_cost_per_output": 108.98660032669956,
+          "exchange_rate_date": "2025-02-01",
+          "sum_in_cents": 890000000,
+          "number_outputs_purchased": 925156,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Malaria Consortium, SMC expansion in Chad",
+          "source_url": "https://www.givewell.org/research/grants/Malaria-Consortium-SMC-Expansion-in-Chad-June-2025",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        },
+        {
+          "id": 49,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_sum": 40785009.65872505,
+          "currency": "NOK",
+          "converted_cost_per_output": 72.16682619756038,
+          "exchange_rate_date": "2025-02-01",
+          "sum_in_cents": 360000000,
+          "number_outputs_purchased": 565149,
+          "number_outputs_purchased_lower_bound": 0,
+          "number_outputs_purchased_upper_bound": null,
+          "source_name": "Against Malaria Foundation — Support for ITN campaign implementation costs in Ituri, DRC (August 2025)",
+          "source_url": "https://www.givewell.org/research/grants/Against-Malaria-Foundation-Support-for-ITN-campaign-implementation-costs-in-Ituri-DRC-August-2025#The_case_for_the_grant",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ],
+      "language": "no",
+      "start_year": 2025,
+      "start_month": 2
+    }
+  ]
+}

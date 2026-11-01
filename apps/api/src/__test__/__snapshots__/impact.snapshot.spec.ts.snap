@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`receipts: legacy impact API vs impact tables > matches the recorded receipt figures 1`] = `
+[
+  [
+    "AMF: 16 Myggnett",
+  ],
+  [
+    "TCF: 4 Malariabehandlinger; 2 Myggnett",
+  ],
+  [
+    "AMF: 2 Myggnett",
+    "MC: 1 Malariabehandlinger",
+    "Drift: 60 Drift",
+  ],
+  [
+    "AGF: ",
+    "HKI: 20,7 A-vitamintilskudd",
+    "NI: 0,3 Vaksinasjoner",
+  ],
+  [
+    "TCF: 0,2 Malariabehandlinger; 0,2 Malariabehandlinger; 1,3 Malariabehandlinger",
+    "GD: 10,1 Dollar mottatt",
+  ],
+  [
+    "Sight: 25 Ormekurer",
+    "End: 14 Ormekurer",
+    "DtW: 16 Ormekurer",
+  ],
+  [
+    "UBI: 141 Dollar mottatt",
+  ],
+  [
+    "SCI: 44 Ormekurer",
+    "PHC: 912 År med næringstilsetting",
+  ],
+]
+`;

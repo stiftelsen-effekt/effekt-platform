@@ -1,0 +1,522 @@
+[
+  {
+    "timestamp": "2024-03-15T12:00:00Z",
+    "sum": 1000,
+    "orgs": [[1, "100"]],
+    "evaluations": {
+      "evaluations": [
+        {
+          "id": 71,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_cost_per_output": 61.90839729954684,
+          "exchange_rate_date": "2024-03-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2023,
+          "start_month": 1,
+          "cents_per_output": 585,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+          "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        }
+      ]
+    },
+    "grant": null,
+    "norgesBankRate": "10.4716"
+  },
+  {
+    "timestamp": "2025-06-10T12:00:00Z",
+    "sum": 500,
+    "orgs": [[12, "100"]],
+    "evaluations": null,
+    "grant": {
+      "max_impact_fund_grants": [
+        {
+          "id": 33,
+          "allotment_set": [
+            {
+              "id": 48,
+              "intervention": {
+                "long_description": "Barn behandlet med en full kur med malariamedisin",
+                "short_description": "Malariabehandlinger",
+                "id": 1
+              },
+              "converted_sum": 89999449.92246248,
+              "currency": "NOK",
+              "converted_cost_per_output": 97.28029642834557,
+              "exchange_rate_date": "2025-06-01",
+              "sum_in_cents": 890000000,
+              "number_outputs_purchased": 925156,
+              "number_outputs_purchased_lower_bound": 0,
+              "number_outputs_purchased_upper_bound": null,
+              "source_name": "Malaria Consortium, SMC expansion in Chad",
+              "source_url": "https://www.givewell.org/research/grants/Malaria-Consortium-SMC-Expansion-in-Chad-June-2025",
+              "comment": "",
+              "charity": {
+                "id": 10,
+                "charity_name": "Malaria Consortium",
+                "abbreviation": "MC"
+              }
+            },
+            {
+              "id": 49,
+              "intervention": {
+                "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+                "short_description": "Myggnett",
+                "id": 2
+              },
+              "converted_sum": 36404271.87874887,
+              "currency": "NOK",
+              "converted_cost_per_output": 64.41535219694074,
+              "exchange_rate_date": "2025-06-01",
+              "sum_in_cents": 360000000,
+              "number_outputs_purchased": 565149,
+              "number_outputs_purchased_lower_bound": 0,
+              "number_outputs_purchased_upper_bound": null,
+              "source_name": "Against Malaria Foundation — Support for ITN campaign implementation costs in Ituri, DRC (August 2025)",
+              "source_url": "https://www.givewell.org/research/grants/Against-Malaria-Foundation-Support-for-ITN-campaign-implementation-costs-in-Ituri-DRC-August-2025#The_case_for_the_grant",
+              "comment": "",
+              "charity": {
+                "id": 1,
+                "charity_name": "Against Malaria Foundation",
+                "abbreviation": "AMF"
+              }
+            }
+          ],
+          "language": "no",
+          "start_year": 2025,
+          "start_month": 2
+        }
+      ]
+    },
+    "norgesBankRate": "10.4412"
+  },
+  {
+    "timestamp": "2023-11-20T12:00:00Z",
+    "sum": 300,
+    "orgs": [
+      [1, "50"],
+      [4, "30"],
+      [11, "20"]
+    ],
+    "evaluations": {
+      "evaluations": [
+        {
+          "id": 71,
+          "intervention": {
+            "long_description": "Myggnett impregnert med insektmiddel levert til husholdninger",
+            "short_description": "Myggnett",
+            "id": 2
+          },
+          "converted_cost_per_output": 65.48979785517699,
+          "exchange_rate_date": "2023-11-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2023,
+          "start_month": 1,
+          "cents_per_output": 585,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+          "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+          "comment": "",
+          "charity": {
+            "id": 1,
+            "charity_name": "Against Malaria Foundation",
+            "abbreviation": "AMF"
+          }
+        },
+        {
+          "id": 75,
+          "intervention": {
+            "long_description": "Barn behandlet med en full kur med malariamedisin",
+            "short_description": "Malariabehandlinger",
+            "id": 1
+          },
+          "converted_cost_per_output": 89.67064629401156,
+          "exchange_rate_date": "2023-11-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2023,
+          "start_month": 1,
+          "cents_per_output": 801,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+          "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+          "comment": "",
+          "charity": {
+            "id": 10,
+            "charity_name": "Malaria Consortium",
+            "abbreviation": "MC"
+          }
+        }
+      ]
+    },
+    "grant": null,
+    "norgesBankRate": "11.029"
+  },
+  {
+    "timestamp": "2026-10-15T12:00:00Z",
+    "sum": 2000,
+    "orgs": [
+      [15, "60"],
+      [10, "20"],
+      [14, "20"]
+    ],
+    "evaluations": {
+      "evaluations": [
+        {
+          "id": 73,
+          "intervention": {
+            "long_description": "Barn som får A-vitamintilskudd",
+            "short_description": "A-vitamintilskudd",
+            "id": 3
+          },
+          "converted_cost_per_output": 19.53996282527881,
+          "exchange_rate_date": "2026-10-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2023,
+          "start_month": 1,
+          "cents_per_output": 203,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+          "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=334891838#gid=334891838",
+          "comment": "",
+          "charity": {
+            "id": 3,
+            "charity_name": "Helen Keller International",
+            "abbreviation": "HKI"
+          }
+        },
+        {
+          "id": 77,
+          "intervention": {
+            "long_description": "Spebarn vaksinert som ikke ville blitt vaksinert hadde det ikke vært for dette tiltaket",
+            "short_description": "Vaksinasjoner",
+            "id": 5
+          },
+          "converted_cost_per_output": 1277.7018056293152,
+          "exchange_rate_date": "2026-10-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2023,
+          "start_month": 1,
+          "cents_per_output": 13274,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "GiveWell directed grants to top charities with impact information (2020 onward) (public)",
+          "source_url": "https://docs.google.com/spreadsheets/d/1z065ab9PPMu9i5KiQ4yLyQJPFQCfEzHSgtHulPiZeBo/edit?gid=386901628#gid=386901628",
+          "comment": "",
+          "charity": {
+            "id": 4,
+            "charity_name": "New Incentives",
+            "abbreviation": "NI"
+          }
+        }
+      ]
+    },
+    "grant": null,
+    "norgesBankRate": "9.3213"
+  },
+  {
+    "timestamp": "2024-01-15T12:00:00Z",
+    "sum": 250,
+    "orgs": [
+      [12, "50"],
+      [7, "50"]
+    ],
+    "evaluations": {
+      "evaluations": [
+        {
+          "id": 17,
+          "intervention": {
+            "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+            "short_description": "Dollar mottatt",
+            "id": 6
+          },
+          "converted_cost_per_output": 12.318866979370645,
+          "exchange_rate_date": "2024-01-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2018,
+          "start_month": 3,
+          "cents_per_output": 120,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 8,
+            "charity_name": "GiveDirectly",
+            "abbreviation": "GD"
+          }
+        }
+      ]
+    },
+    "grant": {
+      "max_impact_fund_grants": [
+        {
+          "id": 20,
+          "allotment_set": [
+            {
+              "id": 33,
+              "intervention": {
+                "long_description": "Barn behandlet med en full kur med malariamedisin",
+                "short_description": "Malariabehandlinger",
+                "id": 1
+              },
+              "converted_sum": 11292294.731089758,
+              "currency": "NOK",
+              "converted_cost_per_output": 8.677022727097205,
+              "exchange_rate_date": "2024-01-01",
+              "sum_in_cents": 110000000,
+              "number_outputs_purchased": 1301402,
+              "number_outputs_purchased_lower_bound": 0,
+              "number_outputs_purchased_upper_bound": null,
+              "source_name": "Malaria Consortium - SMC in Karamoja, Uganda in 2024 and Nampula, Mozambique in 2024-2025 (Nov 2023-Jan 2024)",
+              "source_url": "https://www.givewell.org/research/grants/malaria-consortium-smc-karamoja-uganda-nampula-mozambique-november-2023-january-2024",
+              "comment": "",
+              "charity": {
+                "id": 10,
+                "charity_name": "Malaria Consortium",
+                "abbreviation": "MC"
+              }
+            },
+            {
+              "id": 34,
+              "intervention": {
+                "long_description": "Barn behandlet med en full kur med malariamedisin",
+                "short_description": "Malariabehandlinger",
+                "id": 1
+              },
+              "converted_sum": 92391502.34527983,
+              "currency": "NOK",
+              "converted_cost_per_output": 83.87096694261287,
+              "exchange_rate_date": "2024-01-01",
+              "sum_in_cents": 900000000,
+              "number_outputs_purchased": 1101591,
+              "number_outputs_purchased_lower_bound": 0,
+              "number_outputs_purchased_upper_bound": null,
+              "source_name": "Malaria Consortium — SMC Renewals in Nigeria, Burkina Faso, Chad and Togo (January - October 2024)",
+              "source_url": "https://www.givewell.org/research/grants/malaria-consortium-SMC-renewals-in-nigeria-burkina-faso-chad-and-togo",
+              "comment": "",
+              "charity": {
+                "id": 10,
+                "charity_name": "Malaria Consortium",
+                "abbreviation": "MC"
+              }
+            },
+            {
+              "id": 35,
+              "intervention": {
+                "long_description": "Barn behandlet med en full kur med malariamedisin",
+                "short_description": "Malariabehandlinger",
+                "id": 1
+              },
+              "converted_sum": 585146181.5201056,
+              "currency": "NOK",
+              "converted_cost_per_output": 83.87095492110726,
+              "exchange_rate_date": "2024-01-01",
+              "sum_in_cents": 5700000000,
+              "number_outputs_purchased": 6976744,
+              "number_outputs_purchased_lower_bound": 0,
+              "number_outputs_purchased_upper_bound": null,
+              "source_name": "Malaria Consortium — SMC Renewals in Nigeria, Burkina Faso, Chad and Togo (January - October 2024)",
+              "source_url": "https://www.givewell.org/research/grants/malaria-consortium-SMC-renewals-in-nigeria-burkina-faso-chad-and-togo",
+              "comment": "",
+              "charity": {
+                "id": 10,
+                "charity_name": "Malaria Consortium",
+                "abbreviation": "MC"
+              }
+            }
+          ],
+          "language": "no",
+          "start_year": 2024,
+          "start_month": 1
+        }
+      ]
+    },
+    "norgesBankRate": "10.46"
+  },
+  {
+    "timestamp": "2020-12-10T12:00:00Z",
+    "sum": 400,
+    "orgs": [
+      [6, "50"],
+      [3, "25"],
+      [5, "25"]
+    ],
+    "evaluations": {
+      "evaluations": [
+        {
+          "id": 40,
+          "intervention": {
+            "long_description": "Barn behandlet med ormekur for ett år",
+            "short_description": "Ormekurer",
+            "id": 4
+          },
+          "converted_cost_per_output": 7.176026069518716,
+          "exchange_rate_date": "2020-12-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2018,
+          "start_month": 1,
+          "cents_per_output": 81,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 5,
+            "charity_name": "The END Fund",
+            "abbreviation": "END"
+          }
+        },
+        {
+          "id": 52,
+          "intervention": {
+            "long_description": "Barn behandlet med ormekur for ett år",
+            "short_description": "Ormekurer",
+            "id": 4
+          },
+          "converted_cost_per_output": 6.378689839572192,
+          "exchange_rate_date": "2020-12-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2020,
+          "start_month": 11,
+          "cents_per_output": 72,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 6,
+            "charity_name": "Deworm the World",
+            "abbreviation": "DTW"
+          }
+        }
+      ]
+    },
+    "grant": null,
+    "norgesBankRate": "9.013"
+  },
+  {
+    "timestamp": "2022-02-01T10:00:00Z",
+    "sum": 1500,
+    "orgs": [[13, "100"]],
+    "evaluations": {
+      "evaluations": [
+        {
+          "id": 22,
+          "intervention": {
+            "long_description": "Kontantoverføring mottatt av ekstremt fattige husholdninger",
+            "short_description": "Dollar mottatt",
+            "id": 6
+          },
+          "converted_cost_per_output": 10.618614564831262,
+          "exchange_rate_date": "2022-02-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2018,
+          "start_month": 3,
+          "cents_per_output": 120,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 9,
+            "charity_name": "GiveDirectly | Universial Basic Income Study",
+            "abbreviation": "UBI"
+          }
+        }
+      ]
+    },
+    "grant": null,
+    "norgesBankRate": "8.8078"
+  },
+  {
+    "timestamp": "2019-05-20T12:00:00Z",
+    "sum": 800,
+    "orgs": [
+      [2, "50"],
+      [8, "50"]
+    ],
+    "evaluations": {
+      "evaluations": [
+        {
+          "id": 45,
+          "intervention": {
+            "long_description": "Barn behandlet med ormekur for ett år",
+            "short_description": "Ormekurer",
+            "id": 4
+          },
+          "converted_cost_per_output": 8.914482389656708,
+          "exchange_rate_date": "2019-05-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2019,
+          "start_month": 4,
+          "cents_per_output": 103,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 2,
+            "charity_name": "SCI Foundation",
+            "abbreviation": "SCI"
+          }
+        },
+        {
+          "id": 63,
+          "intervention": {
+            "long_description": "Basismatvarer for en person beriket med essensielle vitaminer og mineraler i ett år i områder utsatt for feilernæring",
+            "short_description": "År med næringstilsetting",
+            "id": 7
+          },
+          "converted_cost_per_output": 0.4327418635755684,
+          "exchange_rate_date": "2019-05-01",
+          "currency": "NOK",
+          "language": "no",
+          "start_year": 2016,
+          "start_month": 2,
+          "cents_per_output": 5,
+          "cents_per_output_upper_bound": null,
+          "cents_per_output_lower_bound": 0,
+          "source_name": "",
+          "source_url": "",
+          "comment": "",
+          "charity": {
+            "id": 12,
+            "charity_name": "Project Healthy Children",
+            "abbreviation": "PHC"
+          }
+        }
+      ]
+    },
+    "grant": null,
+    "norgesBankRate": "8.5233"
+  }
+]
