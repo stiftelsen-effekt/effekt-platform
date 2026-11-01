@@ -10,10 +10,12 @@ steps:
 
   # The API image (apps/api/Dockerfile), built from the repository root with BuildKit (buildx)
   # and a layer cache kept in the registry (scripts/deploy/build-api-image.sh), and pushed as
-  # this build's own tag. Publishing that tag changes nothing in production. Every later step
-  # uses the image by this tag, effektapi:$BUILD_ID, never by :latest: a parallel older build may
-  # move :latest after this one, and deploying by a shared tag would then ship its image
-  # (docs/deploy.md).
+  # this build's own tag, to the Artifact Registry repository `effekt` in europe-north1, the region
+  # of the services, the migrate jobs and Cloud SQL (scripts/deploy/api-registry.sh). Images built
+  # before the move stay on gcr.io/<project>/effektapi for rollbacks to older revisions.
+  # Publishing that tag changes nothing in production. Every later step uses the image by this
+  # tag, effektapi:$BUILD_ID, never by :latest: a parallel older build may move :latest after
+  # this one, and deploying by a shared tag would then ship its image (docs/deploy.md).
   - name: "gcr.io/cloud-builders/docker"
     id: "build"
     entrypoint: "bash"
@@ -21,8 +23,8 @@ steps:
       - "scripts/deploy/unless-skipped.sh"
       - "bash"
       - "scripts/deploy/build-api-image.sh"
-      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
-      - "gcr.io/$PROJECT_ID/effektapi:buildcache"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:buildcache"
 
   # Check again before touching production: a newer merge may have landed during the image build
   - name: "gcr.io/cloud-builders/git"
@@ -40,12 +42,12 @@ steps:
     args:
       - "scripts/deploy/unless-skipped.sh"
       - "gcloud"
-      - "container"
-      - "images"
-      - "add-tag"
-      - "--quiet"
-      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
-      - "gcr.io/$PROJECT_ID/effektapi:latest"
+      - "artifacts"
+      - "docker"
+      - "tags"
+      - "add"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:latest"
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-norway"
@@ -59,7 +61,7 @@ steps:
       - "update"
       - "effektapi-db-migrate"
       - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
       - "--execute-now"
@@ -76,7 +78,7 @@ steps:
       - "deploy"
       - "effektapi"
       - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
       - "--platform"
@@ -96,7 +98,7 @@ steps:
       - "update"
       - "geeffektivt-db-migrate"
       - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
       - "--execute-now"
@@ -113,7 +115,7 @@ steps:
       - "deploy"
       - "geeffektivt"
       - "--image"
-      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
       - "--region"
       - "europe-north1"
       - "--platform"
