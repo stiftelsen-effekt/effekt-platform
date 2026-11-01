@@ -33,21 +33,24 @@ steps:
     env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_IGNORE=$_GUARD_IGNORE"]
     args: ["scripts/deploy/guard.sh"]
 
-  # :latest is a convenience tag for people (docker pull); nothing deploys from it. Moving it
-  # is a registry call, no upload.
-  - name: "gcr.io/cloud-builders/gcloud"
+  # :latest is a convenience tag for people (docker pull); nothing deploys from it. It is moved
+  # by pushing the manifest under the new tag (no upload). That needs only tags.update, which the
+  # build's artifactregistry.writer role has; `gcloud artifacts docker tags add` deletes the old
+  # tag first and needs tags.delete. allowFailure: a stale :latest must never block a deploy.
+  - name: "gcr.io/cloud-builders/docker"
     id: "push-latest"
     waitFor: ["guard-before-release"]
+    allowFailure: true
     entrypoint: "bash"
     args:
       - "scripts/deploy/unless-skipped.sh"
-      - "gcloud"
-      - "artifacts"
       - "docker"
-      - "tags"
-      - "add"
-      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
+      - "buildx"
+      - "imagetools"
+      - "create"
+      - "--tag"
       - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:latest"
+      - "europe-north1-docker.pkg.dev/$PROJECT_ID/effekt/effektapi:$BUILD_ID"
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-norway"
