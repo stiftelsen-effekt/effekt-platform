@@ -7,6 +7,7 @@ import { UserWrapper } from "./userwrapper";
 import { DonorProvider } from "./donorProvider";
 import { ActivityProvider } from "./activityProvider";
 import { NavbarAuthProvider } from "./NavbarAuthProvider";
+import { TrpcClientProvider } from "./TrpcClientProvider";
 import { ToastContainer } from "react-toastify";
 import { SWRConfig } from "swr";
 import {
@@ -107,44 +108,46 @@ export const ProfileLayout = withStaticProps(getProfileLayoutStaticProps)(({
               siteTitle={profileData.site_title}
               loginErrorConfig={profileData.login_error_configuration}
             >
-              <DonorProvider>
-                <ActivityProvider>
-                  <ToastContainer
-                    position="top-right"
-                    autoClose={3000}
-                    hideProgressBar={true}
-                    newestOnTop={true}
-                    closeOnClick
-                    rtl={false}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                    closeButton={false}
-                    toastStyle={{ borderRadius: 0, background: "white", color: "black" }}
-                  />
-                  <WidgetContext.Provider value={widgetContextValue}>
-                    <BannerContext.Provider value={[banners, setBanners]}>
-                      {!usesExternalWidget && (
-                        <WidgetPane
-                          darkMode={true}
-                          {...widgetData}
-                          prefilled={widgetContext.prefilled}
-                          prefilledSum={widgetContext.prefilledSum}
-                        />
-                      )}
-                      {/* At least a screen tall, so the footer stays below the fold while the
+              <TrpcClientProvider>
+                <DonorProvider>
+                  <ActivityProvider>
+                    <ToastContainer
+                      position="top-right"
+                      autoClose={3000}
+                      hideProgressBar={true}
+                      newestOnTop={true}
+                      closeOnClick
+                      rtl={false}
+                      pauseOnFocusLoss
+                      draggable
+                      pauseOnHover
+                      closeButton={false}
+                      toastStyle={{ borderRadius: 0, background: "white", color: "black" }}
+                    />
+                    <WidgetContext.Provider value={widgetContextValue}>
+                      <BannerContext.Provider value={[banners, setBanners]}>
+                        {!usesExternalWidget && (
+                          <WidgetPane
+                            darkMode={true}
+                            {...widgetData}
+                            prefilled={widgetContext.prefilled}
+                            prefilledSum={widgetContext.prefilledSum}
+                          />
+                        )}
+                        {/* At least a screen tall, so the footer stays below the fold while the
                           page's data loads */}
-                      <main className={styles.main} style={{ minHeight: "100vh" }}>
-                        <NavbarAuthProvider>{children}</NavbarAuthProvider>
-                      </main>
-                      {profileData.missing_name_modal_config && (
-                        <MissingNameModal config={profileData.missing_name_modal_config} />
-                      )}
-                    </BannerContext.Provider>
-                  </WidgetContext.Provider>
-                  <Footer {...footerData} />
-                </ActivityProvider>
-              </DonorProvider>
+                        <main className={styles.main} style={{ minHeight: "100vh" }}>
+                          <NavbarAuthProvider>{children}</NavbarAuthProvider>
+                        </main>
+                        {profileData.missing_name_modal_config && (
+                          <MissingNameModal config={profileData.missing_name_modal_config} />
+                        )}
+                      </BannerContext.Provider>
+                    </WidgetContext.Provider>
+                    <Footer {...footerData} />
+                  </ActivityProvider>
+                </DonorProvider>
+              </TrpcClientProvider>
             </UserWrapper>
           </MainLocaleContext.Provider>
         </SWRConfig>
