@@ -1,9 +1,9 @@
 # Moving the impact API into the platform
 
-Status: **plan, not started.** Written 2026-10-30 from read-only inspection of the code, the GCP config,
-the load balancer logs and the public API. No database was queried (the `Impact` schema needs the
-`impactapi` credentials, which this plan did not read); row counts below come from the public API,
-which returns every row.
+Status: **phase 1 in progress** (decisions settled 2026-11-01, see [Decisions](#decisions)). Written
+2026-10-30 from read-only inspection of the code, the GCP config, the load balancer logs and the
+public API. No database was queried (the `Impact` schema needs the `impactapi` credentials, which
+this plan did not read); row counts below come from the public API, which returns every row.
 
 ## Summary
 
@@ -204,12 +204,14 @@ API, because Annetame Targalt keys on `charity.id` and the compatibility respons
 | Table                       | Columns                                                                                                                                                                                                                          | From                                                      |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | `Impact_charities`          | `ID`, `name`, `abbreviation` (unique, upper case), `Organization_ID` (nullable, unique FK → `Organizations`)                                                                                                                     | `api_charity`                                             |
-| `Impact_interventions`      | `ID`, `short_description` (unique, the English/default value), `long_description`                                                                                                                                                | `api_intervention`                                        |
-| `Impact_intervention_texts` | `Intervention_ID`, `language` (`en`/`no`/`sv`/`et`/`dk`), `short_description`, `long_description`; PK (intervention, language)                                                                                                   | the `_xx` modeltranslation columns                        |
+| `Impact_interventions`      | `ID`, `short_description` (unique, English), `long_description` (English)                                                                                                                                                        | `api_intervention`                                        |
+| `Impact_intervention_texts` | `Intervention_ID`, `language` (`no`/`sv`/`et`/`dk`), `short_description`, `long_description`; PK (intervention, language). No row: the English texts apply                                                                       | the `_xx` modeltranslation columns                        |
 | `Impact_evaluations`        | `ID`, `Charity_ID`, `Intervention_ID`, `valid_from` (DATE, first of month), `cents_per_output`, `_lower_bound`, `_upper_bound`, `source_name`, `source_url`, `comment`, `updated_at`, `updated_by`; unique (charity, valid_from) | `api_evaluation`                                          |
-| `Impact_grants`             | `ID`, `fund` ENUM(`MIF`,`AGF`), `valid_from`; unique (fund, valid_from)                                                                                                                                                          | both grant tables                                         |
+| `Impact_grants`             | `ID`, `fund` (`TCF` or `AGF`), `valid_from`, `legacy_id`; unique (fund, valid_from) and (fund, legacy_id)                                                                                                                        | both grant tables                                         |
 | `Impact_grant_allotments`   | `ID`, `Grant_ID`, `Charity_ID`, `Intervention_ID`, `sum_in_cents`, `number_outputs_purchased` (+ bounds), `source_*`, `comment`                                                                                                  | `api_allotment`                                           |
-| `Exchange_rates`            | `date`, `currency`, `per_usd` DECIMAL(18,8), `source`; PK (date, currency)                                                                                                                                                       | new (replaces the live Norges Bank calls and the ECB zip) |
+| `Exchange_rates`            | `currency`, `date`, `per_usd` DECIMAL(18,8), `source`; PK (currency, date)                                                                                                                                                       | new (replaces the live Norges Bank calls and the ECB zip) |
+
+Every table also has `created_by`/`created_at`, and the editable ones `updated_by`/`updated_at`.
 
 Notes:
 
@@ -217,8 +219,8 @@ Notes:
   start at 1), so the compatibility layer keeps a `legacy_id` per fund, or the ETL offsets AGF IDs
   and the compatibility layer maps them back. Either works; `legacy_id` is simpler.
 - `Impact_charities.Organization_ID` replaces matching by abbreviation, the `sight`/`ss` hack and
-  the web's name → abbreviation map. Charities without an organisation (for example UBI, GDZF)
-  stay unlinked.
+  the web's name → abbreviation map. All 15 charities have an organisation in production; a
+  charity without one would stay unlinked.
 - Edit history: `updated_at`/`updated_by` on rows, and edits go to the API's existing logging, as
   other admin writes do. Evaluations are already versioned by `valid_from`; a GiveWell update is a
   new row, not an edit.
@@ -353,19 +355,47 @@ outside Auth0, and an unclear deploy state.
   now applies to effektapi too: a preview build hammering the widget from one IP could throttle.
   Watch the `cloud_armor_denies` metric in phase 5.
 
-## Decisions needed
+## Decisions
 
-1. **Evaluation rule:** for a donation, use the latest estimate on or before its month
-   (recommended; what Min Side and receipts do), and change the results page to match?
-2. **Exchange rates:** ECB (all currencies, what Min Side shows today) or Norges Bank (what
-   receipts and the results page use, official for NOK)? Recommended: Norges Bank for NOK and
-   ECB cross rates for others, one table either way.
-3. **AGF and stale MIF data:** keep showing TCF impact from the last MIF grant (2025-02) for
-   donations after 2025-04-01, show AGF as "no estimate", or have someone enter AGF allotments?
-   Who owns updating GiveWell numbers (the newest evaluation is 2023)?
-4. **Min Side contract:** `impact` on `minside.donations`, the Danish shape (recommended), or a
-   separate `minside.impact`?
-5. **Sweden:** accept that SE Min Side impact stops working, or keep it on the compatibility REST
-   URL until SE is gone?
-6. **Grant IDs:** a `legacy_id` column (recommended) or offset AGF IDs?
-7. **Freeze date** for Django admin (phase 0), and who is told.
+Settled on 2026-11-01:
+
+1. **Evaluation rule:** a donation uses the latest evaluation on or before its month, everywhere
+   (as Min Side and receipts do today). The results page (`monthlyOutputs.ts`) changes to match.
+   A month before a charity's first evaluation has no estimate.
+2. **Exchange rates:** ECB everywhere (what Min Side and third parties see today): one
+   `Exchange_rates` table, a daily job and a backfill from 2013. Receipts and the results page
+   move from Norges Bank to ECB.
+3. **AGF and stale data:** no behaviour change in this migration. AGF keeps "no estimate"; TCF
+   keeps the latest fund grant's split. Missing or stale GiveWell numbers are filled in later,
+   separately.
+4. **Min Side:** the Danish shape: `impact` per donation on `minside.donations` (already in
+   `apps/api/src/trpc/shared/minside.ts` and rendered for DK), plus a server-side aggregate, so the
+   donations page loads in one call (phase 3).
+5. **Sweden:** Swedish Min Side impact may stop working (the data lives only in the Norwegian
+   database).
+6. **Grant IDs:** a `legacy_id` column. Top Charities Fund grants keep their IDs; the AGF grant
+   gets the next free ID.
+7. **Freeze:** Django admin is frozen in phase 0 (staff flags removed, see below).
+8. **Naming:** "Max Impact Fund"/MIF is called Top Charities Fund (TCF) in our tables, code,
+   procedures, admin and UI text. The compatibility REST (phase 5) keeps the old paths and field
+   names for third parties: `max_impact_fund_grants` ↔ `Impact_grants` with `fund = 'TCF'`,
+   `all_grants_fund_grants` ↔ `fund = 'AGF'`, and each grant's `id` ↔ `legacy_id`.
+9. **Third parties** (One for the World's impact calculator, Annetame Targalt keyed on
+   `charity.id`) keep working unchanged: all IDs are kept.
+
+### Phase 0 and 1 notes
+
+- The dump of `Impact` (with `django_admin_log` and `auth_user`) is a Cloud SQL export to
+  `gs://effekt-db-dump/impact/`, written by the instance's service account, so it needs no
+  database password. The freeze removes `is_staff`/`is_superuser` from every Django user after
+  saving the current flags in `Impact.auth_user_flags_backup_20261101`, and can be rolled back.
+- The data migration (`prisma/migrations/20261101120000_impact_tables`) is generated from the
+  public API by `apps/api/scripts/impact-data.mjs generate` rather than read across databases:
+  our read-only user has no access to `Impact`, the effektapi user's grants on it were not
+  checked (that needs an admin login), and a generated file gives the same rows, with the same IDs,
+  in production, dev, e2e and previews. `scripts/impact-data.mjs verify` compares counts and
+  SHA-256 checksums with the live API.
+- Charity → organization links (all 15 exist in production): same abbreviation, except `SS` ↔
+  `Sight`. `END` ↔ `End` and `DTW` ↔ `DtW` differ only in case. `prisma/devdata/impact.ts` repeats
+  the list for the dev seed, because a fresh dev database gets its organizations after the
+  migrations.

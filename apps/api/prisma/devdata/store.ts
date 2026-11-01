@@ -21,6 +21,7 @@
  * never sees an unknown table in the application schema (no drift for `prisma migrate dev`).
  */
 import crypto from "crypto";
+import { linkImpactCharities } from "./impact";
 import mysql from "mysql2/promise";
 import { config } from "./config";
 import { firstOfMonth, isoDate, parts, todayInNorway, toDay } from "./calendar";
@@ -318,6 +319,7 @@ async function upsertReference(conn: mysql.Connection) {
     REFERRAL_TYPES.map(({ weight: _weight, ...type }) => type),
   );
   await upsert("Recurring_agreement_stopped_reasons", STOP_REASONS);
+  await linkImpactCharities(conn);
 }
 
 function mapId(segments: Segment[] | undefined, genId: number): number {
