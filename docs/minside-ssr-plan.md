@@ -119,6 +119,31 @@ they are already fast.
 4. **Personalisation** (separate decisions per item): widget prefill for logged-in donors; impact
    summary on public pages; deep links from emails.
 
+## Local review by the user before committing (required)
+
+The user (Håkon) wants to try each step himself on his laptop, in a real browser, before anything
+is committed or a PR is opened — not on Vercel previews. So, as the first deliverable of phase 0:
+
+- Add **one command** that starts everything needed to click around Min Side locally, e.g.
+  `pnpm minside:local` (root `package.json`): the full-stack e2e services (MySQL with the seeded
+  e2e donor 900001 and the generated dev data, the mock OIDC issuer, the API) plus `next dev` for
+  the website pointed at them, with hot reload. It prints the URL, how to log in, and how to stop.
+  Reuse `scripts/e2e-fullstack.sh` / `compose.e2e.yml` (`E2E_KEEP_UP=1` behaviour) rather than a new
+  stack; same ports as `docs/e2e.md` (web 3100, API 5150, OIDC 8191, MySQL 3317).
+- **Logging in locally** goes through the mock issuer's login form (as `cy.loginFullstack` does):
+  any username, and the claims `{"https://gieffektivt.no/user-id": 900001}` for the e2e donor (or
+  a dev-data donor id with many donations, to see a heavy page). Document a couple of ready-made
+  donor ids (light, heavy, with agreements, with tax units) in this section once the seed is known.
+- **DK locally**: a way to render the Danish Min Side against a local stub of the Danish REST
+  backend (or recorded fixtures), switched by an env var / query flag, so the DK path can be
+  reviewed without production.
+- At the end of each phase, the agent **stops with the stack running** (or tells the user the one
+  command), lists what to look at (URLs, donor ids, what changed), and waits for the user's OK
+  before committing and opening the PR. Small UI tweaks the user asks for are made against the
+  running `next dev` and re-reviewed, still without CI.
+- `next build && next start` once before the PR, to catch build-only and streaming/production
+  differences locally.
+
 ## Fast local iteration (required)
 
 The goal is to iterate locally and open a PR only when a phase is green locally — not to sit
