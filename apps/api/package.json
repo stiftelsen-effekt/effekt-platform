@@ -40,7 +40,7 @@
     "@types/ssh2-sftp-client": "^9.0.0",
     "@xmldom/xmldom": "^0.9.12",
     "apicache": "1.6.3",
-    "body-parser": "^1.19.0",
+    "body-parser": "^2.3.0",
     "compression": "^1.8.2",
     "csv-parse": "catalog:",
     "decimal.js": "^10.6.0",
