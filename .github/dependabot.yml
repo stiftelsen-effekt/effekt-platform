@@ -30,6 +30,14 @@ updates:
       # @types/node follows the Node major in .nvmrc and the Dockerfiles.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 has no JavaScript API yet (the package exports only `version`), and the API
+      # and the website need one: ts-node, the API's Vitest transform and `next build`. Without
+      # this rule Dependabot proposes 7.x for the default catalog, which they use. The `native`
+      # catalog (admin, Studio) is already on 7 and still gets minor and patch updates; its next
+      # major (8) is ignored too and is a planned upgrade. Remove once the default catalog
+      # can move to 7 (docs/tooling.md, Versions).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       # Minor and patch updates that are merged by hand. Keep this list the same as DENYLIST in
       # .github/workflows/dependabot-auto-merge.yml. The first group that matches wins.

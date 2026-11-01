@@ -38,6 +38,13 @@ JavaScript API, which TypeScript 7 doesn't have yet. The admin and the Sanity St
 `tsc`, so they use TypeScript 7 (the native compiler, about ten times faster) from the
 `native` catalog. Move the rest when TypeScript 7 ships its API.
 
+Checked again with 7.0.2 (November 2026): `require("typescript")` returns only `version`; the
+compiler API is under `typescript/unstable/*` and is a different, async API. So ts-node (`pnpm
+dev`), the API's Vitest transform (`ts.transpileModule` in `vitest.config.ts`) and `next build`
+(`typescript.createProgram`) can't use it, and `scripts/build-types.mjs` resolves
+`typescript/bin/tsc`, which 7's `exports` doesn't expose. Dependabot ignores TypeScript majors
+until this changes ([dependencies.md](dependencies.md)).
+
 Node is pinned once, in [`.nvmrc`](../.nvmrc), and `engines.node` is `24.x` everywhere. pnpm is
 pinned by `packageManager` in the root `package.json`.
 
