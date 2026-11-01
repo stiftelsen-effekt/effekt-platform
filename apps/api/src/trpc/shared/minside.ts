@@ -91,9 +91,11 @@ export const donationImpactEntry = z.object({
   recipient: z.string(),
   unit: z.string().nullable(),
   organization: z.string().nullable(),
-  /** Only our backend sends these two; `description` only with a count */
+  /** Only our backend sends these; `description` and `viaFund` only with a count */
   organizationId: z.number().int().optional(),
   description: z.string().optional(),
+  /** Split by a fund's grant (the Top Charities Fund) rather than given to the charity directly */
+  viaFund: z.boolean().optional(),
   amount: z.number(),
   count: z.number().nullable(),
 });

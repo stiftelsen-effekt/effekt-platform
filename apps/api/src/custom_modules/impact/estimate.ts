@@ -115,7 +115,8 @@ export function estimateDonation(
  * (null: no estimate) and `amount` the part of the donation. `organizationId` (only our backend
  * sends it) is the organization's ID, so Min Side can tell money given through a fund from money
  * given directly without matching names; `description` (only ours, only with a count) is the
- * output's long description ("Myggnett impregnert med insektmiddel levert til husholdninger").
+ * output's long description ("Myggnett impregnert med insektmiddel levert til husholdninger"), and
+ * `viaFund` (only ours, only with a count) whether the part was split by a fund's grant.
  */
 export type DonationImpactEntry = {
   recipient: string;
@@ -123,6 +124,7 @@ export type DonationImpactEntry = {
   organization: string | null;
   organizationId: number;
   description?: string;
+  viaFund?: boolean;
   amount: number;
   count: number | null;
 };
@@ -150,6 +152,7 @@ export function toImpactEntries(
         organization: data.organizationNames.get(line.organizationId) ?? null,
         organizationId: line.organizationId,
         description: line.longDescription,
+        viaFund: line.basis.kind === "allotment",
         amount: line.amount,
         count: line.outputs,
       });

@@ -430,9 +430,9 @@ Settled on 2026-11-01:
 ### Phase 3 notes
 
 - `minside.donations` sends each donation's `impact` (the Danish shape plus optional
-  `organizationId`, so Min Side tells money given through the Top Charities Fund from money given
-  directly without matching names, and `description`, the output's long text that Min Side shows
-  when a row is opened). The page's year and all-time impact tables sum those entries
+  `organizationId`, so Min Side matches entries to the distribution's organizations without
+  matching names, `description`, the output's long text that Min Side shows when
+  a row is opened, and `viaFund`, whether the part was split by a fund's grant). The page's year and all-time impact tables sum those entries
   in the browser: the sum is the same as `sumImpactEntries` on the server, needs no second
   request, and works unchanged on the Danish site, whose backend already sends per-donation
   `impact`. A response-level aggregate would have changed the procedure's output from an array to
