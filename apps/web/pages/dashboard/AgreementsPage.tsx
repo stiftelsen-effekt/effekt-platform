@@ -24,7 +24,7 @@ import styles from "../../styles/Agreements.module.css";
 import { PageContent } from "../../components/profile/layout/PageContent/PageContent";
 import { getClient } from "../../lib/sanity.client";
 import { groq } from "next-sanity";
-import { Spinner } from "../../components/shared/components/Spinner/Spinner";
+import { SkeletonStack } from "../../components/profile/shared/Skeleton/Skeleton";
 import { MainHeader } from "../../components/shared/layout/Header/Header";
 import { DateTime } from "luxon";
 import { withStaticProps } from "../../util/withStaticProps";
@@ -220,9 +220,8 @@ const DKAgreementsPageContent: React.FC<{
         <PageContent>
           <div className={styles.container}>
             <h3 className={styles.header}>Faste aftaler</h3>
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-              <Spinner />
-            </div>
+            {/* Fixed-size placeholders for the active and stopped agreement lists */}
+            <SkeletonStack heights={[190, 210]} />
           </div>
         </PageContent>
       </>
@@ -421,9 +420,8 @@ const NordicAgreementsPageContent: React.FC<{
         <PageContent>
           <div className={styles.container}>
             <h3 className={styles.header}>Faste avtaler</h3>
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-              <Spinner />
-            </div>
+            {/* Fixed-size placeholders for the active and stopped agreement lists */}
+            <SkeletonStack heights={[190, 210]} />
           </div>
         </PageContent>
       </>

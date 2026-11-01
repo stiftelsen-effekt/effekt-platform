@@ -21,9 +21,18 @@
   }
 }
 
+/* The loading placeholders start where the loaded page's first block does */
+.placeholder {
+  margin-top: 30px;
+}
+
 @media only screen and (max-width: 1180px) {
   .header {
     display: none;
+  }
+
+  .placeholder {
+    margin-top: 70px;
   }
 
   .details {

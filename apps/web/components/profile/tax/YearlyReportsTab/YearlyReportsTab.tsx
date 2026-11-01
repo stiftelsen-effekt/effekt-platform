@@ -4,7 +4,7 @@ import { Info } from "react-feather";
 import { Distribution, Donation, TaxYearlyReport } from "../../../../models";
 import { useDistributions, useDonations, useYearlyTaxReports } from "../../../../_queries";
 import { InfoBox } from "../../../shared/components/Infobox/Infobox";
-import { Spinner } from "../../../shared/components/Spinner/Spinner";
+import { SkeletonStack } from "../../shared/Skeleton/Skeleton";
 import { DonorContext } from "../../layout/donorProvider";
 import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
 import { TaxYearlyReportList } from "../../shared/lists/taxYearlyReportsList/TaxYearlyReportList";
@@ -74,9 +74,7 @@ export const YearlyReportsTab: React.FC<{
     return (
       <div className={styles.container}>
         <h4 className={styles.header}>Dine årsoppgaver</h4>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <Spinner />
-        </div>
+        <SkeletonStack heights={[180, 180]} />
       </div>
     );
   }
