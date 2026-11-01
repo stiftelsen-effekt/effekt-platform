@@ -3,12 +3,11 @@ import { DAO } from "../custom_modules/DAO";
 
 import express from "express";
 const router = express.Router();
-import bodyParser from "body-parser";
 import { encodePlausibleData } from "../custom_modules/plausible";
 import { getFundraiserRedirectUrl } from "../custom_modules/fundraiserRedirect";
 import { exportCsv } from "../custom_modules/csvexport";
 import { verifyVippsWebhookSignature } from "../custom_modules/vippsWebhookAuth";
-const jsonBody = bodyParser.json();
+const jsonBody = express.json();
 import crypto from "crypto";
 const config = require("../config");
 const vipps = require("../custom_modules/vipps");

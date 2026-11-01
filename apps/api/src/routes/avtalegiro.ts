@@ -57,7 +57,7 @@ router.get(
   localeMiddleware,
   async (req: LocaleRequest, res, next) => {
     try {
-      const agreement = await DAO.avtalegiroagreements.getAgreement(req.params.id);
+      const agreement = await DAO.avtalegiroagreements.getAgreement(String(req.params.id));
 
       if (!agreement) return res.sendStatus(404);
 

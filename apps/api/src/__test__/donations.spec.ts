@@ -1,5 +1,4 @@
 import { describe, it, beforeEach, afterEach } from "vitest";
-import bodyParser from "body-parser";
 import { expect } from "chai";
 import express from "express";
 import sinon from "sinon";
@@ -16,8 +15,8 @@ describe("donations", () => {
 
     beforeEach(() => {
       server = express();
-      server.use(bodyParser.json());
-      server.use(bodyParser.urlencoded({ extended: true }));
+      server.use(express.json());
+      server.use(express.urlencoded({ extended: true }));
       server.use("/donations", donationsRouter);
     });
 

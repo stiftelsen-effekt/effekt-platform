@@ -4,7 +4,6 @@ import { DAO } from "../custom_modules/DAO";
 import { fnr } from "@navikt/fnrvalidator";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import permissions from "../enums/authorizationPermissions";
-import bodyParser from "body-parser";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import {
   DonorServiceError,
@@ -20,7 +19,7 @@ const config = require("../config");
 
 const router = express.Router();
 
-const urlEncodeParser = bodyParser.urlencoded({ extended: false });
+const urlEncodeParser = express.urlencoded({ extended: false });
 
 // Ownership checks parseInt the id but the DAO gets the raw string, which MySQL reads
 // differently (e.g. "1.2e4" is 1 to parseInt and 12000 to MySQL). Only allow plain integers.
@@ -227,7 +226,7 @@ router.get(
   localeMiddleware,
   async (req: LocaleRequest, res, next) => {
     try {
-      const donorId = parseInt(req.params.id);
+      const donorId = parseInt(String(req.params.id));
 
       if (isNaN(donorId)) {
         return res.status(400).json({

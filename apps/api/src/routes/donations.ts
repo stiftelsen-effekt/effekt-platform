@@ -2,7 +2,6 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendDonationReceipt } from "../custom_modules/mail";
-import bodyParser from "body-parser";
 import apicache from "apicache";
 import { confirmDonation, updateDonation } from "../custom_modules/donationsService";
 import { localeMiddleware, LocaleRequest } from "../middleware/locale";
@@ -14,7 +13,7 @@ import {
 } from "../custom_modules/pendingDonationRegistration";
 
 const router = express.Router();
-const urlEncodeParser = bodyParser.urlencoded({ extended: true });
+const urlEncodeParser = express.urlencoded({ extended: true });
 const cache = apicache.middleware;
 
 const dateRangeHelper = require("../custom_modules/dateRangeHelper");
