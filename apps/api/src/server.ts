@@ -45,6 +45,7 @@ import {
   PREVIEW_DISABLED_PATHS,
 } from "./custom_modules/preview/previewHttp";
 import { createPreviewRouter } from "./routes/preview";
+import { createImpactCompatRouter } from "./routes/impactCompat";
 
 // Defence in depth: log stray rejections instead of letting Node's default
 // (--unhandled-rejections=throw) terminate the whole API process.
@@ -263,6 +264,8 @@ DAO.connect(() => {
   app.use("/agreementfeedback", agreementfeedbackRoute);
   app.use("/ltv", ltvRoute);
   app.use("/survey", surveyRouter);
+  // The legacy impact API's endpoints (impact.gieffektivt.no/api/*, data.gieffektivt.no/impact/api/*)
+  app.use(createImpactCompatRouter());
 
   app.use("/static", express.static(__dirname + "/static"));
   app.use("/img", express.static(__dirname + "/views/img"));
