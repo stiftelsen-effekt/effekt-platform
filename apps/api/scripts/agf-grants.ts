@@ -892,23 +892,28 @@ const readSnapshot = () => {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 };
 
-const commands = {
-  fetch: async () =>
-    process.stdout.write(
-      `${JSON.stringify(await fetchAll({ cache: option("--cache"), airtableCsv: option("--airtable-csv") }), null, 1)}\n`,
-    ),
-  report: async () => report(readSnapshot()),
-  sql: async () => process.stdout.write(toSql(readSnapshot(), option("--by"))),
-  diff: async () => diff(readSnapshot()),
+const runCommand = async (command: string | undefined) => {
+  switch (command) {
+    case "fetch":
+      process.stdout.write(
+        `${JSON.stringify(await fetchAll({ cache: option("--cache"), airtableCsv: option("--airtable-csv") }), null, 1)}\n`,
+      );
+      return;
+    case "report":
+      return report(readSnapshot());
+    case "sql":
+      process.stdout.write(toSql(readSnapshot(), option("--by")));
+      return;
+    case "diff":
+      return diff(readSnapshot());
+    default:
+      console.error("Usage: agf-grants.ts fetch|report|diff|sql … (see the comment at the top)");
+      process.exit(2);
+  }
 };
 
 if (require.main === module) {
-  const run = commands[process.argv[2]];
-  if (!run) {
-    console.error("Usage: agf-grants.ts fetch|report|diff|sql … (see the comment at the top)");
-    process.exit(2);
-  }
-  run().catch((e) => {
+  runCommand(process.argv[2]).catch((e) => {
     console.error(e);
     process.exit(1);
   });
