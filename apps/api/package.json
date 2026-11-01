@@ -56,7 +56,7 @@
     "honeypot": "0.0.2",
     "ioredis": "^5.8.2",
     "luxon": "catalog:",
-    "mailersend": "^2.2.0",
+    "mailersend": "^3.4.1",
     "moment": "^2.31.0",
     "morgan": "^1.12.1",
     "mysql2": "^3.10.0",
