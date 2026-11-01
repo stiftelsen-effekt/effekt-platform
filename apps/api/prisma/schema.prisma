@@ -53,6 +53,7 @@ model Organizations {
   Regrant_holds                         Regrant_holds[]
   Regranting_funds                      Regranting_funds?
   Onward_allocations                    Onward_allocations[]
+  Impact_charities                      Impact_charities?
 }
 
 model AvtaleGiro_replaced_distributions {
@@ -1233,6 +1234,139 @@ model Regrant_holds {
 
   @@index([Organization_ID], map: "fk_Regrant_holds_to_Organizations_idx")
   @@index([Project_ID], map: "fk_Regrant_holds_to_Projects_idx")
+}
+
+// endregion
+
+// region Impact: GiveWell cost-per-output figures (docs/impact-api-migration.md)
+// Moved from the legacy impact API (impact.gieffektivt.no, database `Impact`) with the same IDs:
+// third parties key on the charity ID. "Max Impact Fund" (MIF) there is the Top Charities Fund
+// (TCF) here.
+
+/// A charity GiveWell estimates costs for. Linked to the Organization donors give to, if any
+model Impact_charities {
+  ID              Int       @id @default(autoincrement())
+  name            String    @db.VarChar(200)
+  abbreviation    String    @unique(map: "Impact_charities_abbreviation_key") @db.VarChar(10) /// Upper case. Sanity's intervention widget blocks store it
+  Organization_ID Int?      @unique(map: "Impact_charities_Organization_ID_key")
+  created_by      String    @db.VarChar(255)
+  created_at      DateTime  @default(now()) @db.DateTime(0)
+  updated_by      String?   @db.VarChar(255)
+  updated_at      DateTime? @db.DateTime(0)
+
+  Organizations           Organizations?            @relation(fields: [Organization_ID], references: [ID], onDelete: SetNull, onUpdate: Cascade, map: "fk_Impact_charities_to_Organizations")
+  Impact_evaluations      Impact_evaluations[]
+  Impact_grant_allotments Impact_grant_allotments[]
+}
+
+/// What an output is ("Bednets"). The columns hold English; other languages are in Impact_intervention_texts
+model Impact_interventions {
+  ID                Int       @id @default(autoincrement())
+  short_description String    @unique(map: "Impact_interventions_short_description_key") @db.VarChar(100)
+  long_description  String    @db.VarChar(1000)
+  created_by        String    @db.VarChar(255)
+  created_at        DateTime  @default(now()) @db.DateTime(0)
+  updated_by        String?   @db.VarChar(255)
+  updated_at        DateTime? @db.DateTime(0)
+
+  Impact_intervention_texts Impact_intervention_texts[]
+  Impact_evaluations        Impact_evaluations[]
+  Impact_grant_allotments   Impact_grant_allotments[]
+}
+
+/// An intervention's texts in one language (no, sv, et, dk). No row: use the English texts
+model Impact_intervention_texts {
+  Intervention_ID   Int
+  language          String @db.VarChar(2)
+  short_description String @db.VarChar(100)
+  long_description  String @db.VarChar(1000)
+
+  Impact_interventions Impact_interventions @relation(fields: [Intervention_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Impact_intervention_texts_to_Impact_interventions")
+
+  @@id([Intervention_ID, language])
+}
+
+/// A charity's cost per output from `valid_from` until its next evaluation. A donation uses the
+/// latest evaluation on or before its month. A GiveWell update is a new row, not an edit
+model Impact_evaluations {
+  ID                           Int       @id @default(autoincrement())
+  Charity_ID                   Int
+  Intervention_ID              Int
+  valid_from                   DateTime  @db.Date /// First day of a month
+  cents_per_output             Int       @db.UnsignedInt /// USD cents
+  cents_per_output_lower_bound Int       @default(0) @db.UnsignedInt
+  cents_per_output_upper_bound Int?      @db.UnsignedInt
+  source_name                  String    @db.Text
+  source_url                   String    @db.Text
+  comment                      String    @db.Text
+  created_by                   String    @db.VarChar(255)
+  created_at                   DateTime  @default(now()) @db.DateTime(0)
+  updated_by                   String?   @db.VarChar(255)
+  updated_at                   DateTime? @db.DateTime(0)
+
+  Impact_charities     Impact_charities     @relation(fields: [Charity_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Impact_evaluations_to_Impact_charities")
+  Impact_interventions Impact_interventions @relation(fields: [Intervention_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Impact_evaluations_to_Impact_interventions")
+
+  @@unique([Charity_ID, valid_from], map: "Impact_evaluations_charity_valid_from_key")
+  @@index([Intervention_ID], map: "fk_Impact_evaluations_to_Impact_interventions_idx")
+}
+
+/// A GiveWell fund's grants from `valid_from`: how money given to the fund in a month is split
+/// (its allotments). `fund` is TCF (Top Charities Fund, "Max Impact Fund" in the old API) or AGF
+model Impact_grants {
+  ID         Int       @id @default(autoincrement())
+  fund       String    @db.VarChar(8) /// TCF | AGF
+  valid_from DateTime  @db.Date /// First day of a month
+  legacy_id  Int? /// The grant's ID in the old API (MIF and AGF IDs overlapped); the compatibility REST exposes it
+  created_by String    @db.VarChar(255)
+  created_at DateTime  @default(now()) @db.DateTime(0)
+  updated_by String?   @db.VarChar(255)
+  updated_at DateTime? @db.DateTime(0)
+
+  Impact_grant_allotments Impact_grant_allotments[]
+
+  @@unique([fund, valid_from], map: "Impact_grants_fund_valid_from_key")
+  @@unique([fund, legacy_id], map: "Impact_grants_fund_legacy_id_key")
+}
+
+/// One charity's part of a fund grant: the sum and the outputs it buys
+model Impact_grant_allotments {
+  ID                                   Int       @id @default(autoincrement())
+  Grant_ID                             Int
+  Charity_ID                           Int
+  Intervention_ID                      Int
+  sum_in_cents                         BigInt    @db.UnsignedBigInt /// USD cents
+  number_outputs_purchased             Int       @db.UnsignedInt
+  number_outputs_purchased_lower_bound Int       @default(0) @db.UnsignedInt
+  number_outputs_purchased_upper_bound Int?      @db.UnsignedInt
+  source_name                          String    @db.Text
+  source_url                           String    @db.Text
+  comment                              String    @db.Text
+  created_by                           String    @db.VarChar(255)
+  created_at                           DateTime  @default(now()) @db.DateTime(0)
+  updated_by                           String?   @db.VarChar(255)
+  updated_at                           DateTime? @db.DateTime(0)
+
+  Impact_grants        Impact_grants        @relation(fields: [Grant_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Impact_grant_allotments_to_Impact_grants")
+  Impact_charities     Impact_charities     @relation(fields: [Charity_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Impact_grant_allotments_to_Impact_charities")
+  Impact_interventions Impact_interventions @relation(fields: [Intervention_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Impact_grant_allotments_to_Impact_interventions")
+
+  @@index([Grant_ID], map: "fk_Impact_grant_allotments_to_Impact_grants_idx")
+  @@index([Charity_ID], map: "fk_Impact_grant_allotments_to_Impact_charities_idx")
+  @@index([Intervention_ID], map: "fk_Impact_grant_allotments_to_Impact_interventions_idx")
+}
+
+/// ECB reference rates as units of `currency` per US dollar (ECB publishes per euro; the job
+/// divides by the day's USD rate). Business days only: readers take the latest date on or
+/// before the one they need. Filled by POST /scheduled/exchange-rates
+model Exchange_rates {
+  date       DateTime @db.Date
+  currency   String   @db.Char(3)
+  per_usd    Decimal  @db.Decimal(18, 8)
+  source     String   @default("ECB") @db.VarChar(16)
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  @@id([currency, date])
 }
 
 // endregion
