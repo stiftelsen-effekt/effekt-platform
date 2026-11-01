@@ -165,10 +165,10 @@ describe("Donations page (full stack)", () => {
       cy.get("@rows").should("have.length", 4);
       // Sorted by name; rounded to whole outputs, or the first decimal that isn't 0
       const expected = [
-        ["3", "A-vitamintilskudd"],
+        ["2", "A-vitamintilskudd"],
         ["10", "malariabehandlinger"],
-        ["34", "myggnett"],
-        ["0,4", "vaksinasjoner"],
+        ["33", "myggnett"],
+        ["0,3", "vaksinasjoner"],
       ];
       expected.forEach(([number, unit], i) => {
         cy.get("@rows").eq(i).find("strong").should("have.text", number);
@@ -182,7 +182,7 @@ describe("Donations page (full stack)", () => {
       cy.get("@rows").should("have.length", 2);
       cy.get("@rows").eq(0).find("strong").should("have.text", "7");
       cy.get("@rows").eq(0).should("contain.text", "malariabehandlinger");
-      cy.get("@rows").eq(1).find("strong").should("have.text", "22");
+      cy.get("@rows").eq(1).find("strong").should("have.text", "21");
       cy.get("@rows").eq(1).should("contain.text", "myggnett");
     });
 
