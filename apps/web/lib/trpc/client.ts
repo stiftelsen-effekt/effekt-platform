@@ -76,3 +76,25 @@ export const publicTrpcFor = (mainLocale: MainLocale | string | null | undefined
   const flavor = apiFlavorFor((mainLocale ?? "no") as MainLocale);
   return (publicClients[flavor] ??= createPublicTrpcClient({ flavor }));
 };
+
+/**
+ * Where the intervention widget gets its cost per output (site.impactCosts): the Norwegian API on
+ * every site, since the impact figures live only in its database (docs/impact-api-migration.md).
+ * The Norwegian site uses its own API (so local and e2e builds use the local one); the Danish and
+ * Swedish sites, whose NEXT_PUBLIC_EFFEKT_API is their own backend, use NEXT_PUBLIC_IMPACT_API or
+ * the production Norwegian API. site.impactCosts answers any origin and is never batched.
+ */
+export const impactApiUrl = (mainLocale: MainLocale | string | null | undefined): string =>
+  (mainLocale ?? "no") === "no"
+    ? apiUrl()
+    : process.env.NEXT_PUBLIC_IMPACT_API || "https://data.gieffektivt.no";
+
+let impactClient: { url: string; client: TrpcClient } | undefined;
+
+/** The client for site.impactCosts (no token, no batching), for a site by its main_locale */
+export const impactTrpcFor = (mainLocale: MainLocale | string | null | undefined): TrpcClient => {
+  const url = impactApiUrl(mainLocale);
+  if (impactClient?.url !== url)
+    impactClient = { url, client: createPublicTrpcClient({ flavor: "trpc", url }) };
+  return impactClient.client;
+};

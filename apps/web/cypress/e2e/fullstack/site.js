@@ -148,3 +148,43 @@ describe("Fundraiser page (full stack)", () => {
     });
   });
 });
+
+describe("Intervention widget (full stack)", () => {
+  beforeEach(() => {
+    cy.task("resetE2EData");
+    // site.impactCosts is cacheable for an hour, so the browser may answer it from its cache (the
+    // results tests above visit the same page) and the intercept would never see it
+    cy.wrap(
+      Cypress.automation("remote:debugger:protocol", { command: "Network.clearBrowserCache" }),
+    );
+    cy.intercept("GET", trpcUrl("site.impactCosts")).as("impactCosts");
+    // Nothing may call the legacy impact API any more
+    cy.intercept("https://impact.gieffektivt.no/**", () => {
+      throw new Error("The widget called the legacy impact API");
+    });
+    cy.visit({ url: "/", headers: { "x-vercel-skip-toolbar": "1" } });
+  });
+
+  it("gets the cost per output from site.impactCosts and divides the sum by it", () => {
+    cy.wait("@impactCosts", { timeout: 30000 }).then((interception) => {
+      // One unbatched call for the block's charities, in Norwegian and NOK
+      expect(interception.request.url).to.not.contain("batch=");
+      const input = JSON.parse(new URL(interception.request.url).searchParams.get("input"));
+      expect(input).to.include({
+        language: "no",
+        currency: "NOK",
+      });
+      const costs = trpcData(interception, "site.impactCosts");
+      // AMF's latest evaluation (585 US cents per net, from 2023) at the seeded 10 kr per USD
+      const amf = costs.find((c) => c.abbreviation === "AMF");
+      expect(amf).to.include({ centsPerOutput: 585, currency: "NOK" });
+      expect(amf.costPerOutput).to.be.closeTo(58.5, 1e-9);
+      expect(amf.shortDescription).to.equal("Myggnett");
+    });
+
+    cy.get("[data-cy=impact-input]").scrollIntoView();
+    cy.get("[data-cy=impact-input]").clear().type("5850");
+    cy.get("[data-cy=Myggnett-button]").click();
+    cy.get("[data-cy=impact-output]").invoke("text").then(parseFloat).should("equal", 100);
+  });
+});
