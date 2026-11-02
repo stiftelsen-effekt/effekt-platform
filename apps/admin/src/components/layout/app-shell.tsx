@@ -2,6 +2,7 @@ import { PreviewBanner } from "./preview-banner";
 import { Link, useNavigate, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
   ChevronDownIcon,
+  ChevronRightIcon,
   ChevronsUpDownIcon,
   HandCoinsIcon,
   KeyRoundIcon,
@@ -39,11 +40,13 @@ import { strings } from "@/lib/strings";
 import { userIdentity } from "./user-identity";
 import { cn } from "@/lib/utils";
 import { CommandPalette, type PaletteCommand } from "./command-palette";
-import { navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
+import { flattenItems, navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
 import {
-  activeGroupLabel,
+  activeTrail,
+  expandedStore,
   openGroupsStore,
   pinnedStore,
+  setExpanded,
   setGroupOpen,
   splitPinned,
   togglePinned,
@@ -69,10 +72,15 @@ const activeClasses = [
 function NavLink({
   item,
   count,
+  sub,
+  className,
   onNavigate,
 }: {
   item: NavItem;
   count?: number;
+  /** A sub-page: one level in, no icon, a little smaller. */
+  sub?: boolean;
+  className?: string;
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
@@ -82,9 +90,9 @@ function NavLink({
       to={item.to as LinkProps["to"]}
       activeOptions={{ exact: item.exact ?? false }}
       onClick={onNavigate}
-      className={cn(itemClasses, activeClasses)}
+      className={cn(itemClasses, activeClasses, sub && "h-7 max-lg:h-9 text-[13px]", className)}
     >
-      <Icon strokeWidth={1.75} />
+      {!sub && <Icon strokeWidth={1.75} />}
       <span className="flex-1 truncate">{item.label}</span>
       {count ? (
         <span className="num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning">
@@ -96,36 +104,94 @@ function NavLink({
   );
 }
 
-function PinnableNavLink({
+function countFor(item: NavItem, reviewCount?: number) {
+  return item.badge === "reviewQueue" ? reviewCount : undefined;
+}
+
+/** Open items waiting somewhere below `item`, shown on it while it is collapsed. */
+function hiddenCount(item: NavItem, reviewCount?: number): number {
+  return (item.children ?? []).reduce(
+    (sum, child) => sum + (countFor(child, reviewCount) ?? 0) + hiddenCount(child, reviewCount),
+    0,
+  );
+}
+
+/** One menu row: link, pin button (on hover) and, for parents, an expand chevron. */
+function NavEntry({
   item,
   pinned,
-  count,
+  sub,
+  expanded,
+  reviewCount,
   onNavigate,
 }: {
   item: NavItem;
-  pinned: boolean;
-  count?: number;
+  pinned?: boolean;
+  sub?: boolean;
+  expanded: string[];
+  reviewCount?: number;
   onNavigate?: () => void;
 }) {
+  const children = item.children ?? [];
+  const open = children.length > 0 && expanded.includes(item.to);
+  const count = (countFor(item, reviewCount) ?? 0) + (open ? 0 : hiddenCount(item, reviewCount));
   const PinToggleIcon = pinned ? PinOffIcon : PinIcon;
-  const action = `${pinned ? "Unpin" : "Pin"} ${item.label}`;
+  const pinAction = `${pinned ? "Unpin" : "Pin"} ${item.label}`;
+  const expandAction = `${open ? "Collapse" : "Expand"} ${item.label}`;
   return (
-    <li className="group/pin relative">
-      <NavLink item={item} onNavigate={onNavigate} count={count} />
-      <button
-        type="button"
-        onClick={() => togglePinned(item.to)}
-        title={action}
-        aria-label={action}
-        className={cn(
-          "absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-content-center rounded-xs",
-          "text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring",
-          "opacity-0 transition-opacity group-focus-within/pin:opacity-100 group-hover/pin:opacity-100",
-          "max-lg:opacity-100",
+    <li>
+      <div className="group/pin relative">
+        <NavLink
+          item={item}
+          sub={sub}
+          onNavigate={onNavigate}
+          count={count || undefined}
+          className={children.length > 0 ? "pr-14" : "pr-8"}
+        />
+        <button
+          type="button"
+          onClick={() => togglePinned(item.to)}
+          title={pinAction}
+          aria-label={pinAction}
+          className={cn(
+            "absolute top-1/2 grid size-6 -translate-y-1/2 place-content-center rounded-xs",
+            children.length > 0 ? "right-7" : "right-1",
+            "text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring",
+            "opacity-0 transition-opacity group-focus-within/pin:opacity-100 group-hover/pin:opacity-100",
+            "max-lg:opacity-100",
+          )}
+        >
+          <PinToggleIcon className="size-3.5" />
+        </button>
+        {children.length > 0 && (
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => setExpanded(item.to, !open)}
+            title={expandAction}
+            aria-label={expandAction}
+            className="absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-content-center rounded-xs text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring"
+          >
+            <ChevronRightIcon
+              className={cn("size-3.5 transition-transform", open && "rotate-90")}
+            />
+          </button>
         )}
-      >
-        <PinToggleIcon className="size-3.5" />
-      </button>
+      </div>
+      {open && (
+        <ul className="mt-px mb-0.5 ml-[18px] grid gap-px border-l border-border pl-1">
+          {children.map((child) => (
+            <NavEntry
+              key={child.to}
+              item={child}
+              sub
+              expanded={expanded}
+              reviewCount={reviewCount}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </ul>
+      )}
     </li>
   );
 }
@@ -206,15 +272,20 @@ function Sidebar({
 }) {
   const pins = pinnedStore.use();
   const openGroups = openGroupsStore.use();
+  const expanded = expandedStore.use();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { pinned, groups: rest } = useMemo(() => splitPinned(groups, pins), [groups, pins]);
 
-  // Navigating (⌘K, links on pages) into a collapsed group opens it.
-  const activeGroup = activeGroupLabel(rest, pathname);
+  // Navigating (⌘K, links on pages) into a collapsed group or parent opens it.
+  const trail = activeTrail(rest, pathname);
+  const trailGroup = trail?.group ?? "";
+  const trailParents = trail?.parents.join("\n") ?? "";
   useEffect(() => {
-    if (activeGroup && !openGroupsStore.get().includes(activeGroup))
-      setGroupOpen(activeGroup, true);
-  }, [activeGroup]);
+    if (trailGroup && !openGroupsStore.get().includes(trailGroup)) setGroupOpen(trailGroup, true);
+    for (const parent of trailParents ? trailParents.split("\n") : []) {
+      if (!expandedStore.get().includes(parent)) setExpanded(parent, true);
+    }
+  }, [trailGroup, trailParents]);
 
   return (
     <div className="flex h-full flex-col gap-4 bg-canvas px-3 pt-4 pb-3">
@@ -252,12 +323,13 @@ function Sidebar({
             <h2 className="mb-1 px-2.5 text-xs font-semibold text-faint-foreground">Pinned</h2>
             <ul className="grid gap-px">
               {pinned.map((item) => (
-                <PinnableNavLink
+                <NavEntry
                   key={item.to}
                   item={item}
                   pinned
+                  expanded={expanded}
+                  reviewCount={reviewCount}
                   onNavigate={onNavigate}
-                  count={item.badge === "reviewQueue" ? reviewCount : undefined}
                 />
               ))}
             </ul>
@@ -266,7 +338,11 @@ function Sidebar({
         {rest.map((group, index) => {
           const label = group.label;
           const open = !label || openGroups.includes(label);
-          const reviewItem = group.items.find((item) => item.badge === "reviewQueue");
+          const waiting = group.items.reduce(
+            (sum, item) =>
+              sum + (countFor(item, reviewCount) ?? 0) + hiddenCount(item, reviewCount),
+            0,
+          );
           return (
             <div key={label ?? index} className={cn(index > 0 && "mt-2")}>
               {label && (
@@ -280,9 +356,9 @@ function Sidebar({
                   )}
                 >
                   <span className="flex-1 text-left">{label}</span>
-                  {!open && reviewItem && reviewCount ? (
+                  {!open && waiting ? (
                     <span className="num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning">
-                      {reviewCount}
+                      {waiting}
                       <span className="sr-only"> open</span>
                     </span>
                   ) : null}
@@ -295,12 +371,12 @@ function Sidebar({
                 <ul className="grid gap-px">
                   {group.items.map((item) =>
                     label ? (
-                      <PinnableNavLink
+                      <NavEntry
                         key={item.to}
                         item={item}
-                        pinned={false}
+                        expanded={expanded}
+                        reviewCount={reviewCount}
                         onNavigate={onNavigate}
-                        count={item.badge === "reviewQueue" ? reviewCount : undefined}
                       />
                     ) : (
                       <li key={item.to}>
@@ -362,7 +438,7 @@ export function AppShell({
   useHotkey("?", () => setShortcutsOpen(true));
 
   const navItems = useMemo(() => {
-    const items = [...groups.flatMap((group) => group.items), settingsItem];
+    const items = [...flattenItems(groups.flatMap((group) => group.items)), settingsItem];
     if (showDesign) items.push(designItem);
     return items;
   }, [groups, showDesign]);

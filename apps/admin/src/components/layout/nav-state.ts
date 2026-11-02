@@ -3,7 +3,7 @@
  * open. Pure helpers plus two persistent stores, so the sidebar itself stays dumb.
  */
 import { createPersistentStore } from "@/lib/persistent-store";
-import type { NavGroup, NavItem } from "./nav";
+import { flattenItems, type NavGroup, type NavItem } from "./nav";
 
 /** Groups open the first time someone uses the admin; the rest start collapsed. */
 export const defaultOpenGroups = ["Donors", "Money in", "Agreements"];
@@ -26,37 +26,65 @@ export function setGroupOpen(label: string, open: boolean) {
 }
 
 /**
- * Moves pinned items out of their groups into one list, in pin order. Pins that point at
- * items that no longer exist (or are behind a feature flag) are ignored; groups left
- * empty disappear.
+ * Moves pinned items out of the menu into one list, in pin order. A pinned parent leaves
+ * its sub-pages behind, promoted to the group's top level. Pins that point at items that
+ * no longer exist (or are behind a feature flag) are ignored; empty groups disappear.
  */
 export function splitPinned(
   groups: NavGroup[],
   pins: string[],
 ): { pinned: NavItem[]; groups: NavGroup[] } {
-  const byTo = new Map(groups.flatMap((group) => group.items).map((item) => [item.to, item]));
-  const pinned = pins.flatMap((to) => byTo.get(to) ?? []);
+  const byTo = new Map(
+    flattenItems(groups.flatMap((group) => group.items)).map((item) => [item.to, item]),
+  );
+  const pinned = pins.flatMap((to) => {
+    const item = byTo.get(to);
+    return item ? [{ ...item, children: undefined }] : [];
+  });
   const pinnedTo = new Set(pinned.map((item) => item.to));
+  const strip = (items: NavItem[]): NavItem[] =>
+    items.flatMap((item) => {
+      const children = strip(item.children ?? []);
+      if (pinnedTo.has(item.to)) return children;
+      return [{ ...item, children: children.length > 0 ? children : undefined }];
+    });
   const rest = groups
-    .map((group) => ({ ...group, items: group.items.filter((item) => !pinnedTo.has(item.to)) }))
+    .map((group) => ({ ...group, items: strip(group.items) }))
     .filter((group) => group.items.length > 0);
   return { pinned, groups: rest };
 }
 
-/** The group whose item is the best (longest) match for the current path. */
-export function activeGroupLabel(groups: NavGroup[], pathname: string): string | undefined {
-  let best: { label?: string; length: number } | undefined;
-  for (const group of groups) {
-    for (const item of group.items) {
-      const matches = item.exact
-        ? pathname === item.to
-        : item.to === "/"
-          ? pathname === "/"
-          : pathname === item.to || pathname.startsWith(`${item.to}/`);
-      if (matches && (!best || item.to.length > best.length)) {
-        best = { label: group.label, length: item.to.length };
+function matches(item: NavItem, pathname: string) {
+  if (item.exact || item.to === "/") return pathname === item.to;
+  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+}
+
+/**
+ * Where the current page sits in the menu: its group and the parents above it (so the
+ * sidebar can open them). The longest matching path wins.
+ */
+export function activeTrail(
+  groups: NavGroup[],
+  pathname: string,
+): { group?: string; parents: string[] } | undefined {
+  let best: { group?: string; parents: string[]; length: number } | undefined;
+  const visit = (items: NavItem[], group: string | undefined, parents: string[]) => {
+    for (const item of items) {
+      if (matches(item, pathname) && (!best || item.to.length > best.length)) {
+        best = { group, parents, length: item.to.length };
       }
+      visit(item.children ?? [], group, [...parents, item.to]);
     }
-  }
-  return best?.label;
+  };
+  for (const group of groups) visit(group.items, group.label, []);
+  return best && { group: best.group, parents: best.parents };
+}
+
+export const expandedStore = createPersistentStore<string[]>("nav-expanded", []);
+
+export function setExpanded(to: string, open: boolean) {
+  expandedStore.set((items) => {
+    const without = items.filter((item) => item !== to);
+    return open ? [...without, to] : without;
+  });
 }
