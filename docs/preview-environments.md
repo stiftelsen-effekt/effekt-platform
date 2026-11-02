@@ -339,3 +339,5 @@ docker run --rm --network preview-net -p 5199:8080 -e PORT=8080 -e PREVIEW_JWT_S
 # open http://localhost:5199
 docker rm -f preview-mysql && docker network rm preview-net && docker rmi effekt-preview:local
 ```
+
+<!-- timing test for #1077, not to be merged -->
