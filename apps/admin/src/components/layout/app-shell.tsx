@@ -1,6 +1,7 @@
 import { PreviewBanner } from "./preview-banner";
 import { Link, useNavigate, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
+  ChevronDownIcon,
   ChevronsUpDownIcon,
   HandCoinsIcon,
   KeyRoundIcon,
@@ -10,11 +11,13 @@ import {
   MenuIcon,
   MoonIcon,
   PaletteIcon,
+  PinIcon,
+  PinOffIcon,
   Rows3Icon,
   SearchIcon,
   SunIcon,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/auth";
 import {
   DropdownMenu,
@@ -37,6 +40,14 @@ import { userIdentity } from "./user-identity";
 import { cn } from "@/lib/utils";
 import { CommandPalette, type PaletteCommand } from "./command-palette";
 import { navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
+import {
+  activeGroupLabel,
+  openGroupsStore,
+  pinnedStore,
+  setGroupOpen,
+  splitPinned,
+  togglePinned,
+} from "./nav-state";
 import { useGoToShortcuts } from "./shortcuts";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 
@@ -82,6 +93,40 @@ function NavLink({
         </span>
       ) : null}
     </Link>
+  );
+}
+
+function PinnableNavLink({
+  item,
+  pinned,
+  count,
+  onNavigate,
+}: {
+  item: NavItem;
+  pinned: boolean;
+  count?: number;
+  onNavigate?: () => void;
+}) {
+  const PinToggleIcon = pinned ? PinOffIcon : PinIcon;
+  const action = `${pinned ? "Unpin" : "Pin"} ${item.label}`;
+  return (
+    <li className="group/pin relative">
+      <NavLink item={item} onNavigate={onNavigate} count={count} />
+      <button
+        type="button"
+        onClick={() => togglePinned(item.to)}
+        title={action}
+        aria-label={action}
+        className={cn(
+          "absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-content-center rounded-xs",
+          "text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring",
+          "opacity-0 transition-opacity group-focus-within/pin:opacity-100 group-hover/pin:opacity-100",
+          "max-lg:opacity-100",
+        )}
+      >
+        <PinToggleIcon className="size-3.5" />
+      </button>
+    </li>
   );
 }
 
@@ -159,6 +204,18 @@ function Sidebar({
   onSearch: () => void;
   onNavigate?: () => void;
 }) {
+  const pins = pinnedStore.use();
+  const openGroups = openGroupsStore.use();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { pinned, groups: rest } = useMemo(() => splitPinned(groups, pins), [groups, pins]);
+
+  // Navigating (⌘K, links on pages) into a collapsed group opens it.
+  const activeGroup = activeGroupLabel(rest, pathname);
+  useEffect(() => {
+    if (activeGroup && !openGroupsStore.get().includes(activeGroup))
+      setGroupOpen(activeGroup, true);
+  }, [activeGroup]);
+
   return (
     <div className="flex h-full flex-col gap-4 bg-canvas px-3 pt-4 pb-3">
       <Link
@@ -190,26 +247,72 @@ function Sidebar({
       </button>
 
       <nav aria-label="Main" className="-mx-1 flex-1 overflow-y-auto px-1">
-        {groups.map((group, index) => (
-          <div key={group.label ?? index} className={cn(index > 0 && "mt-4")}>
-            {group.label && (
-              <h2 className="mb-1 px-2.5 text-xs font-semibold text-faint-foreground">
-                {group.label}
-              </h2>
-            )}
+        {pinned.length > 0 && (
+          <div className="mb-4">
+            <h2 className="mb-1 px-2.5 text-xs font-semibold text-faint-foreground">Pinned</h2>
             <ul className="grid gap-px">
-              {group.items.map((item) => (
-                <li key={item.to}>
-                  <NavLink
-                    item={item}
-                    onNavigate={onNavigate}
-                    count={item.badge === "reviewQueue" ? reviewCount : undefined}
-                  />
-                </li>
+              {pinned.map((item) => (
+                <PinnableNavLink
+                  key={item.to}
+                  item={item}
+                  pinned
+                  onNavigate={onNavigate}
+                  count={item.badge === "reviewQueue" ? reviewCount : undefined}
+                />
               ))}
             </ul>
           </div>
-        ))}
+        )}
+        {rest.map((group, index) => {
+          const label = group.label;
+          const open = !label || openGroups.includes(label);
+          const reviewItem = group.items.find((item) => item.badge === "reviewQueue");
+          return (
+            <div key={label ?? index} className={cn(index > 0 && "mt-2")}>
+              {label && (
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  onClick={() => setGroupOpen(label, !open)}
+                  className={cn(
+                    "mb-px flex h-7 w-full items-center gap-1 rounded-sm px-2.5 text-xs font-semibold text-faint-foreground",
+                    "transition-colors hover:text-foreground focus-ring-inset",
+                  )}
+                >
+                  <span className="flex-1 text-left">{label}</span>
+                  {!open && reviewItem && reviewCount ? (
+                    <span className="num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning">
+                      {reviewCount}
+                      <span className="sr-only"> open</span>
+                    </span>
+                  ) : null}
+                  <ChevronDownIcon
+                    className={cn("size-3.5 transition-transform", !open && "-rotate-90")}
+                  />
+                </button>
+              )}
+              {open && (
+                <ul className="grid gap-px">
+                  {group.items.map((item) =>
+                    label ? (
+                      <PinnableNavLink
+                        key={item.to}
+                        item={item}
+                        pinned={false}
+                        onNavigate={onNavigate}
+                        count={item.badge === "reviewQueue" ? reviewCount : undefined}
+                      />
+                    ) : (
+                      <li key={item.to}>
+                        <NavLink item={item} onNavigate={onNavigate} />
+                      </li>
+                    ),
+                  )}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="grid gap-px">
