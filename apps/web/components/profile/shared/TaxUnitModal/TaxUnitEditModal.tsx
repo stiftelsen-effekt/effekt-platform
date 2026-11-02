@@ -1,5 +1,6 @@
-import { useAuth0, User } from "@auth0/auth0-react";
-import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
+import { useMinsideSession } from "../../../../context/MinsideSessionContext";
+import { useRouter } from "next/navigation";
+import { useMinsideTrpc } from "../../../../lib/trpc/useTrpcClient";
 import { useCallback, useState } from "react";
 import { TaxUnit } from "../../../../models";
 import { Lightbox } from "../../../shared/components/Lightbox/Lightbox";
@@ -10,7 +11,7 @@ import { validateOrg, validateSsn } from "@ssfbank/norwegian-id-validators";
 
 import styles from "./TaxUnitModal.module.scss";
 import { Check } from "react-feather";
-import { useTaxUnits } from "../../../../_queries";
+import { useMinsideTaxUnits } from "../../../../_queries";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
 import { ErrorMessage } from "../ErrorMessage/ErrorMessage";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
@@ -25,15 +26,16 @@ const TaxUnitEditModalStandard: React.FC<{
   onFailure: () => void;
   onClose: () => void;
 }> = ({ open, initial, onSuccess, onFailure, onClose }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-  const trpc = useTrpcClient(getAccessTokenSilently);
+  const { donorId } = useMinsideSession();
+  const trpc = useMinsideTrpc();
+  const router = useRouter();
   const failureToast = useFailureToast();
 
   const {
     data: existingUnits,
     loading: loadingUnits,
     error: errorLoadingUnits,
-  } = useTaxUnits(user as User, getAccessTokenSilently);
+  } = useMinsideTaxUnits();
 
   const initialSsnDigits = initial.ssn.replace(/\D/g, "");
   const [name, setName] = useState(initial.name);
@@ -47,14 +49,12 @@ const TaxUnitEditModalStandard: React.FC<{
   const create = useCallback(async () => {
     setLoading(true);
 
-    if (!user) {
-      return;
-    }
     const ssnDigits = ssn.replace(/\D/g, "");
-    const result = await updateTaxUnit({ ...initial, name: name, ssn: ssnDigits }, user, trpc);
+    const result = await updateTaxUnit({ ...initial, name: name, ssn: ssnDigits }, donorId, trpc);
 
     if (result && typeof result !== "string") {
       successToast();
+      router.refresh();
       onSuccess(result);
       setError("");
     } else if (typeof result === "string") {
@@ -68,7 +68,7 @@ const TaxUnitEditModalStandard: React.FC<{
       setLoading(false);
       setError("");
     }
-  }, [name, ssn, user, trpc, initial, onSuccess, onFailure, failureToast]);
+  }, [router, name, ssn, donorId, trpc, initial, onSuccess, onFailure, failureToast]);
 
   if (loadingUnits) {
     return <Spinner />;

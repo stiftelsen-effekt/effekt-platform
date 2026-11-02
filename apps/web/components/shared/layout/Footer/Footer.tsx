@@ -1,64 +1,12 @@
 import Link from "next/link";
-import { LinkType } from "../../../main/blocks/Links/Links";
-import { NavLink } from "../../components/Navbar/Navbar";
 import styles from "./Footer.module.scss";
 import { NewsletterSignup } from "../../../main/blocks/NewsletterSignup/NewsletterSignup";
 import { withStaticProps } from "../../../../util/withStaticProps";
-import { getClient } from "../../../../lib/sanity.client";
-import { groq } from "next-sanity";
-import { token } from "../../../../token";
+import { getFooterStaticProps } from "./footerStaticProps";
 
-export type FooterItem = NavLink | LinkType;
-export type FooterProps = {
-  _key: string;
-  links?: FooterItem[];
-}[];
+export type { FooterItem, FooterProps } from "./footerStaticProps";
 
-type QueryResult = {
-  _id: string;
-  footer_columns?: FooterProps;
-  footer_to_top_label?: string;
-  footer_newsletter_heading?: string;
-  footer_newsletter_form_url?: string;
-  footer_newsletter_send_label?: string;
-  footer_email_label?: string;
-  main_locale: string;
-};
-
-const footerQuery = groq`
-  *[_type == "site_settings"][0] {
-    _id,
-    footer_columns[] {
-      _key,
-      links[] {
-        _type == 'navitem' => @ {
-          ...,
-          "slug": page->slug.current
-        },
-        _type == 'link' => @ {
-          ...
-        },
-      }
-    },
-    footer_to_top_label,
-    footer_newsletter_heading,
-    footer_newsletter_form_url,
-    footer_newsletter_send_label,
-    footer_email_label,
-    main_locale,
-  }
-`;
-
-const Footer = withStaticProps(async ({ draftMode = false }: { draftMode: boolean }) => {
-  const result = await getClient(draftMode ? token : undefined).fetch<QueryResult>(footerQuery);
-
-  return {
-    data: {
-      result,
-      query: footerQuery,
-    },
-  };
-})(({ data }) => {
+const Footer = withStaticProps(getFooterStaticProps)(({ data }) => {
   const {
     footer_columns,
     footer_to_top_label,

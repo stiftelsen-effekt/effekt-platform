@@ -1,134 +1,40 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useContext, useEffect, useState } from "react";
 import styles from "./Navbar.module.scss";
-import { useRouter } from "next/router";
+import { useRouter } from "next/compat/router";
+import { useIsAppRouter } from "../../../../context/AppRouterContext";
+import { usePathname } from "next/navigation";
 import AnimateHeight from "react-animate-height";
-import type { SanityImageObject } from "@sanity/image-url";
 import { WidgetContext } from "../../../main/layout/layout";
 import { EffektButton, EffektButtonVariant } from "../EffektButton/EffektButton";
 import { preloadDonationWidgetProps } from "../../../main/layout/WidgetPane/loadWidget";
 import { ResponsiveImage } from "../../responsiveimage";
 import { useRouterContext } from "../../../../context/RouterContext";
 import { withStaticProps } from "../../../../util/withStaticProps";
-import { groq } from "next-sanity";
-import { getClient } from "../../../../lib/sanity.client";
 import { NavbarAuthContext } from "./NavbarAuthContext";
-import { token } from "../../../../token";
 import { stegaClean } from "@sanity/client/stega";
 import { CustomLink } from "../CustomLink/CustomLink";
 import { LiveQuery } from "../../LiveQuery";
+import { getNavbarStaticProps } from "./navbarStaticProps";
 
 /* .logoWrapper is 250px wide on large screens, .logoWrapperImage 160px below that */
 const LOGO_SIZES = "(min-width: 1521px) 250px, 160px";
 
-export type NavLink = {
-  _type: "navitem";
-  _key: string;
-  title?: string | null;
-  pagetype?: string;
-  slug?: string | null;
-};
+export type {
+  NavLink,
+  MainNavbarGroup,
+  MainNavbarItem,
+  NavBarQueryResult,
+} from "./navbarStaticProps";
 
-export type MainNavbarGroup = {
-  _type: "navgroup";
-  _key: string;
-  title: string;
-  items: NavLink[];
-};
-
-export type MainNavbarItem = NavLink | MainNavbarGroup;
-
-export type NavBarQueryResult = {
-  settings: {
-    logo: SanityImageObject;
-    main_navigation: MainNavbarItem[];
-    donate_label: string;
-    accent_color: string;
-    main_currency: string;
-    hide_dashboard_button?: boolean;
-  };
-  dashboard: {
-    main_navigation: MainNavbarItem[];
-    dashboard_logo: SanityImageObject;
-    dashboard_label: string;
-    logout_label: string;
-  };
-};
-
-const query = groq`
-{
-  "dashboard": *[_id == "dashboard"][0] {
-    dashboard_label,
-    logout_label,
-    dashboard_logo,
-    main_navigation[] {
-      _type == 'navgroup' => {
-        _type,
-        _key,
-        title,
-        items[]->{
-          title,
-          "slug": page->slug.current
-        },
-      },
-      _type != 'navgroup' => @ {
-        _type,
-        _key,
-        title,
-        "slug": page->slug.current
-      },
-    }
-  },
-  "settings": *[_type == "site_settings"][0] {
-    logo,
-    donate_label,
-    accent_color,
-    main_currency,
-    hide_dashboard_button,
-    main_navigation[] {
-      _type == 'navgroup' => {
-        _type,
-        _key,
-        title,
-        items[] {
-          title,
-          "slug": page->slug.current
-        },
-      },
-      _type != 'navgroup' => @ {
-        _type,
-        _key,
-        title,
-        "slug": page->slug.current
-      }
-    }
-  }
-}
-`;
-
-export const Navbar = withStaticProps(
-  async ({
-    dashboard,
-    useDashboardLogo,
-    draftMode = false,
-  }: {
-    dashboard: boolean;
-    draftMode: boolean;
-    useDashboardLogo?: boolean;
-  }) => {
-    // Fetched once per build by the client's build cache (lib/sanity.client.ts)
-    const result = await getClient(draftMode ? token : undefined).fetch<NavBarQueryResult>(query);
-
-    return {
-      dashboard,
-      useDashboardLogo: useDashboardLogo || null,
-      data: {
-        result,
-        query,
-      },
-    };
-  },
-)(({ data, dashboard, useDashboardLogo }) => {
+export const Navbar = withStaticProps(getNavbarStaticProps)(({
+  data,
+  dashboard,
+  useDashboardLogo,
+}) => {
+  // Rendered by both routers. Under the App Router (Min Side), <OnAppRouterNavigation> below closes
+  // the menu on navigation instead of the pages router's asPath.
   const router = useRouter();
+  const appRouter = useIsAppRouter();
   const settingsData = data.result.settings;
   const dashboardData = data.result.dashboard;
 
@@ -161,12 +67,13 @@ export const Navbar = withStaticProps(
     filteredElements.reduce((a, v) => ({ ...a, [v._key]: false }), {}),
   );
 
-  useEffect(() => {
+  const closeMenu = useCallback(() => {
     setExpandMenu(false);
     if (typeof document !== "undefined") {
       document.body.style.overflow = "auto";
     }
-  }, [router.asPath]);
+  }, []);
+  useEffect(closeMenu, [router?.asPath, closeMenu]);
 
   const setExpanded = (expanded: boolean) => {
     if (expanded && window.innerWidth < 1180) document.body.style.overflow = "hidden";
@@ -200,6 +107,11 @@ export const Navbar = withStaticProps(
       data-mobile-menu-expanded={expandMenu ? "true" : "false"}
     >
       <nav className={`${styles.navbar}`} data-cy="navbar">
+        {appRouter && (
+          <Suspense fallback={null}>
+            <OnAppRouterNavigation onNavigate={closeMenu} />
+          </Suspense>
+        )}
         <div
           className={styles.logoWrapper}
           onMouseDown={(e) => (e.currentTarget.style.outline = "none")}
@@ -406,3 +318,13 @@ export const PreviewNavbar: React.FC<Awaited<ReturnType<typeof Navbar.getStaticP
     <LiveQuery data={props.data}>{(data) => <Navbar {...(props as any)} data={data} />}</LiveQuery>
   );
 };
+
+/**
+ * Calls onNavigate when the App Router's path changes. Reading the path is request data, so it sits
+ * in its own <Suspense> boundary and the navbar itself stays in the prerendered shell.
+ */
+function OnAppRouterNavigation({ onNavigate }: { onNavigate: () => void }) {
+  const pathname = usePathname();
+  useEffect(onNavigate, [pathname, onNavigate]);
+  return null;
+}

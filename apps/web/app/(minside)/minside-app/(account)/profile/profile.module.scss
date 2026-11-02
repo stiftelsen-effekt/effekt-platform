@@ -1,15 +1,13 @@
-@use "../../../../../design-system/mixins" as *;
-
 // The profile form and, beside it, what we do with the donor's data. The form's heading is the
 // page title, so the data column starts where the form does.
 .gridContainer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  column-gap: var(--ds-section-column-gap);
+  column-gap: 100px;
   align-items: start;
 
-  @include down(lg) {
+  @media (max-width: 1180px) {
     grid-template-columns: minmax(0, 1fr);
-    row-gap: var(--ds-section-gap);
+    row-gap: 40px;
   }
 }

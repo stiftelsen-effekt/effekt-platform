@@ -1,6 +1,5 @@
-import { useAuth0, User } from "@auth0/auth0-react";
 import { useState } from "react";
-import { useTaxUnits } from "../../../../_queries";
+import { useMinsideTaxUnits } from "../../../../_queries";
 import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
 import { SkeletonStack } from "../../shared/Skeleton/Skeleton";
 import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
@@ -30,9 +29,7 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
   sumTaxDeductionsLabel,
   sumTaxBenefitLabel,
 }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-
-  const { loading, data, error } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { loading, data, error } = useMinsideTaxUnits();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 

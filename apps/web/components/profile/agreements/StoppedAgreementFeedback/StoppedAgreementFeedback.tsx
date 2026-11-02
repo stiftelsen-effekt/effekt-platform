@@ -7,11 +7,9 @@ import {
 import { AgreementTypes } from "../../shared/lists/agreementList/AgreementList";
 import styles from "./StoppedAgreementFeedback.module.scss";
 import {
-  addStoppedAgreementFeedback,
-  deleteStoppedAgreementFeedback,
-} from "../../shared/lists/agreementList/_queries";
-import { useAuth0 } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../hooks/useApi";
+  addStoppedAgreementFeedbackAction,
+  deleteStoppedAgreementFeedbackAction,
+} from "../../../../app/(minside)/minside-app/actions";
 import { toast } from "react-toastify";
 import { AlertCircle } from "react-feather";
 import { EffektTextInput } from "../../../shared/components/EffektTextInput/EffektTextInput";
@@ -45,7 +43,6 @@ export const StoppedAgreementFeedback = ({
   agreementType: AgreementTypes;
 }) => {
   const { loading, data, error } = useAgreementFeedbackTypes();
-  const { getAccessTokenSilently } = useAuth0();
 
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackSelection[]>([]);
   const [otherComment, setOtherComment] = useState("");
@@ -61,16 +58,13 @@ export const StoppedAgreementFeedback = ({
     const operation = operationQueue.current[0];
 
     try {
-      const token = await getAccessToken(getAccessTokenSilently);
-
       if (operation.type === "add") {
-        const insertedId = await addStoppedAgreementFeedback(
+        const insertedId = await addStoppedAgreementFeedbackAction(
           agreementId,
           KID,
           agreementType,
           operation.feedbackTypeId,
           operation.otherComement,
-          token,
         );
 
         // Find the latest operation for this feedbackTypeId
@@ -96,12 +90,12 @@ export const StoppedAgreementFeedback = ({
           });
         } else {
           // Latest operation is delete, so we need to delete this record
-          await deleteStoppedAgreementFeedback(insertedId, KID, token);
+          await deleteStoppedAgreementFeedbackAction(insertedId, KID);
         }
       } else {
         // delete operation
         if (operation.backendId) {
-          await deleteStoppedAgreementFeedback(operation.backendId, KID, token);
+          await deleteStoppedAgreementFeedbackAction(operation.backendId, KID);
         }
 
         // Find the latest operation for this feedbackTypeId

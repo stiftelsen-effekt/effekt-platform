@@ -6,7 +6,6 @@
  * (500 kr in 2022, 1 000 kr in 2023, 2 500 kr in 2025). Every donation has a tax unit.
  */
 import { DONOR_ID, TAX_UNITS } from "../../../../../apps/api/prisma/e2e/data.mjs";
-import { trpcData, trpcUrl } from "../../support/trpc";
 
 /** The visible (desktop) report of one year */
 const yearReport = (year) =>
@@ -20,15 +19,11 @@ describe("Yearly tax reports (full stack)", () => {
     cy.task("resetE2EData");
     cy.loginFullstack(DONOR_ID);
 
-    cy.intercept("GET", trpcUrl("minside.taxReports")).as("taxReports");
     cy.visit("/min-side/skatt/aarsoppgaver");
-    cy.wait("@taxReports", { timeout: 30000 });
   });
 
   it("gets the donor's yearly reports from the API", () => {
-    cy.get("@taxReports").then((interception) => {
-      const reports = trpcData(interception, "minside.taxReports");
-
+    cy.apiQuery("minside.taxReports", { donorId: DONOR_ID }).then((reports) => {
       // The previous year down to 2022
       const lastYear = new Date().getFullYear() - 1;
       expect(reports.map((r) => r.year)).to.deep.equal(

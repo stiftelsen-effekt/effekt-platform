@@ -18,7 +18,6 @@ const contextMenu = (unit, option) => {
 const lightboxInput = (index) =>
   cy.get("[data-cy=lightbox]:visible input:not([type=radio])").eq(index);
 import { DONOR_ID, TAX_UNITS } from "../../../../../apps/api/prisma/e2e/data.mjs";
-import { trpcData, trpcError, trpcInput, trpcUrl } from "../../support/trpc";
 
 /** The visible (desktop) list of one tax unit */
 const taxUnitList = (unit) =>
@@ -33,14 +32,11 @@ describe("Tax units (full stack)", () => {
     cy.task("resetE2EData");
     cy.loginFullstack(DONOR_ID);
 
-    cy.intercept("GET", trpcUrl("minside.taxUnits")).as("taxUnits");
     cy.visit("/min-side/skatt/");
-    cy.wait("@taxUnits", { timeout: 30000 });
   });
 
   it("gets the donor's tax units from the API", () => {
-    cy.get("@taxUnits").then((interception) => {
-      const units = trpcData(interception, "minside.taxUnits");
+    cy.apiQuery("minside.taxUnits", { donorId: DONOR_ID }).then((units) => {
       expect(units).to.have.length(2);
 
       const main = units.find((u) => u.id === TAX_UNITS.main.id);
@@ -88,28 +84,12 @@ describe("Tax units (full stack)", () => {
     lightboxInput(0).type("E2E Barn");
     lightboxInput(1).type(NEW_SSN);
 
-    cy.intercept("POST", trpcUrl("minside.createTaxUnit")).as("create");
     cy.get("[data-cy=lightbox]:visible [data-cy=lightbox-confirm]").click();
-    cy.wait("@create").then((interception) => {
-      expect(interception.response.statusCode).to.equal(200);
-      expect(trpcInput(interception, "minside.createTaxUnit")).to.deep.equal({
-        donorId: DONOR_ID,
-        name: "E2E Barn",
-        ssn: NEW_SSN,
-      });
-      expect(trpcData(interception, "minside.createTaxUnit")).to.deep.include({
-        donorId: DONOR_ID,
-        name: "E2E Barn",
-        ssn: NEW_SSN,
-        archived: null,
-      });
-    });
 
     // The list is revalidated, and the unit is stored
     taxUnitList({ name: "E2E Barn" }).should("exist");
     cy.reload();
-    cy.wait("@taxUnits").then((interception) => {
-      const units = trpcData(interception, "minside.taxUnits");
+    cy.apiQuery("minside.taxUnits", { donorId: DONOR_ID }).then((units) => {
       expect(units.map((u) => u.ssn)).to.include(NEW_SSN);
     });
   });
@@ -118,17 +98,7 @@ describe("Tax units (full stack)", () => {
     contextMenu(TAX_UNITS.spouse, "Endre");
     lightboxInput(0).clear().type("E2E Ektefelle Endret");
 
-    cy.intercept("POST", trpcUrl("minside.updateTaxUnit")).as("update");
     cy.get("[data-cy=lightbox]:visible [data-cy=lightbox-confirm]").click();
-    cy.wait("@update").then((interception) => {
-      expect(interception.response.statusCode).to.equal(200);
-      expect(trpcInput(interception, "minside.updateTaxUnit")).to.deep.equal({
-        donorId: DONOR_ID,
-        taxUnitId: TAX_UNITS.spouse.id,
-        name: "E2E Ektefelle Endret",
-        ssn: TAX_UNITS.spouse.ssn,
-      });
-    });
 
     taxUnitList({ name: "E2E Ektefelle Endret" }).should("exist");
     cy.reload();
@@ -140,16 +110,8 @@ describe("Tax units (full stack)", () => {
     // 500 as well. Update this test when deleting is implemented.
     contextMenu(TAX_UNITS.spouse, "Slett");
 
-    cy.intercept("POST", trpcUrl("minside.deleteTaxUnit")).as("delete");
     cy.get("[data-cy=lightbox]:visible [data-cy=lightbox-confirm]").click();
-    cy.wait("@delete").then((interception) => {
-      expect(trpcInput(interception, "minside.deleteTaxUnit")).to.deep.equal({
-        donorId: DONOR_ID,
-        taxUnitId: TAX_UNITS.spouse.id,
-        transferTaxUnitId: null,
-      });
-      expect(trpcError(interception, "minside.deleteTaxUnit").data.httpStatus).to.equal(500);
-    });
+    cy.get(".Toastify__toast--error").should("be.visible");
 
     cy.reload();
     taxUnitList(TAX_UNITS.spouse).should("exist");

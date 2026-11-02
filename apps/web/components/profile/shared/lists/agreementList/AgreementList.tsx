@@ -1,3 +1,4 @@
+import { useIsMobile } from "../../../../../hooks/useIsMobile";
 import { PortableText } from "@portabletext/react";
 import { AvtaleGiroAgreement, Distribution, TaxUnit, VippsAgreement } from "../../../../../models";
 import { GenericList } from "../GenericList";
@@ -55,9 +56,8 @@ export const AgreementList: React.FC<{
     agreementKid: string;
   } | null>(null);
 
-  const columns = configuration.columns.filter(
-    (column) => window && !(window.innerWidth < 1180 && column.hide_on_mobile),
-  );
+  const isMobile = useIsMobile();
+  const columns = configuration.columns.filter((column) => !(isMobile && column.hide_on_mobile));
 
   const headers = columns.map((column) => ({
     label: column.title,

@@ -1,5 +1,6 @@
-import { useAuth0 } from "@auth0/auth0-react";
-import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
+import { useMinsideSession } from "../../../../context/MinsideSessionContext";
+import { useRouter } from "next/navigation";
+import { useMinsideTrpc } from "../../../../lib/trpc/useTrpcClient";
 import { useCallback, useState } from "react";
 import AnimateHeight from "react-animate-height";
 import { Check } from "react-feather";
@@ -22,8 +23,9 @@ export const TaxUnitDeleteModal: React.FC<{
   onFailure: () => void;
   onClose: () => void;
 }> = ({ open, taxUnit, onSuccess, onFailure, onClose }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-  const trpc = useTrpcClient(getAccessTokenSilently);
+  const { donorId } = useMinsideSession();
+  const trpc = useMinsideTrpc();
+  const router = useRouter();
   const failureToast = useFailureToast();
 
   const [error, setError] = useState("");
@@ -36,7 +38,7 @@ export const TaxUnitDeleteModal: React.FC<{
   const valid = canConfirmTaxUnitDelete(transferDonations, selectedTaxUnit);
 
   const deleteUnit = useCallback(async () => {
-    if (!user || !canConfirmTaxUnitDelete(transferDonations, selectedTaxUnit)) {
+    if (!canConfirmTaxUnitDelete(transferDonations, selectedTaxUnit)) {
       return;
     }
 
@@ -44,10 +46,15 @@ export const TaxUnitDeleteModal: React.FC<{
 
     const transferUnit = transferDonations ? selectedTaxUnit : null;
 
-    const result = await deleteTaxUnit({ unit: taxUnit, transferUnit: transferUnit }, user, trpc);
+    const result = await deleteTaxUnit(
+      { unit: taxUnit, transferUnit: transferUnit },
+      donorId,
+      trpc,
+    );
 
     if (result && typeof result !== "string") {
       successToast();
+      router.refresh();
       onSuccess(result);
       setError("");
     } else if (typeof result === "string") {
@@ -61,7 +68,17 @@ export const TaxUnitDeleteModal: React.FC<{
       setLoading(false);
       setError("");
     }
-  }, [trpc, user, taxUnit, selectedTaxUnit, transferDonations, onSuccess, onFailure, failureToast]);
+  }, [
+    router,
+    trpc,
+    donorId,
+    taxUnit,
+    selectedTaxUnit,
+    transferDonations,
+    onSuccess,
+    onFailure,
+    failureToast,
+  ]);
 
   return (
     <Lightbox open={open} onConfirm={deleteUnit} onCancel={onClose} loading={loading} valid={valid}>

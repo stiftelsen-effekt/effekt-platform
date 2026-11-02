@@ -1,5 +1,6 @@
-import { useAuth0, User } from "@auth0/auth0-react";
-import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
+import { useMinsideSession } from "../../../../context/MinsideSessionContext";
+import { useRouter } from "next/navigation";
+import { useMinsideTrpc } from "../../../../lib/trpc/useTrpcClient";
 import { useState } from "react";
 import { TaxUnit } from "../../../../models";
 import { Lightbox } from "../../../shared/components/Lightbox/Lightbox";
@@ -12,7 +13,7 @@ import { Check } from "react-feather";
 import { validateOrg, validateSsn } from "@ssfbank/norwegian-id-validators";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
 import { ErrorMessage } from "../ErrorMessage/ErrorMessage";
-import { useTaxUnits } from "../../../../_queries";
+import { useMinsideTaxUnits } from "../../../../_queries";
 import { EffektTextInput } from "../../../shared/components/EffektTextInput/EffektTextInput";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
 import { useFailureToast } from "../../../shared/failureToast";
@@ -25,15 +26,16 @@ const TaxUnitCreateModalStandard: React.FC<{
   onFailure: () => void;
   onClose: () => void;
 }> = ({ open, onSuccess, onFailure, onClose }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-  const trpc = useTrpcClient(getAccessTokenSilently);
+  const { donorId } = useMinsideSession();
+  const trpc = useMinsideTrpc();
+  const router = useRouter();
   const failureToast = useFailureToast();
 
   const {
     data: existingUnits,
     loading: loadingUnits,
     error: errorLoadingUnits,
-  } = useTaxUnits(user as User, getAccessTokenSilently);
+  } = useMinsideTaxUnits();
 
   const [name, setName] = useState("");
   const [ssn, setSsn] = useState("");
@@ -44,14 +46,12 @@ const TaxUnitCreateModalStandard: React.FC<{
   const create = async () => {
     setLoading(true);
 
-    if (!user) {
-      return;
-    }
     const ssnDigits = ssn.replace(/\D/g, "");
-    const result = await createTaxUnit({ name, ssn: ssnDigits }, user, trpc);
+    const result = await createTaxUnit({ name, ssn: ssnDigits }, donorId, trpc);
 
     if (result && typeof result !== "string") {
       successToast();
+      router.refresh();
       onSuccess(result);
       setError("");
     } else if (typeof result === "string") {

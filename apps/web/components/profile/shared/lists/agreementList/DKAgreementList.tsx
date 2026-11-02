@@ -1,3 +1,4 @@
+import { useIsMobile } from "../../../../../hooks/useIsMobile";
 import { PortableText } from "@portabletext/react";
 import { DKAgreement, DKPaymentMethod, Distribution, TaxUnit } from "../../../../../models";
 import { GenericList } from "../GenericList";
@@ -52,9 +53,8 @@ export const DKAgreementList: React.FC<{
   causeAreaContexts: CauseAreaContext[];
 }> = ({ agreements, distributions, taxUnits, expandable, configuration, causeAreaContexts }) => {
   const formattingLocale = getFormattingLocale(useMainLocale());
-  const columns = configuration.columns.filter(
-    (column) => window && !(window.innerWidth < 1180 && column.hide_on_mobile),
-  );
+  const isMobile = useIsMobile();
+  const columns = configuration.columns.filter((column) => !(isMobile && column.hide_on_mobile));
 
   const headers = columns.map((column) => ({
     label: column.title,
