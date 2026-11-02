@@ -1,27 +1,22 @@
 /**
  * Per-browser sidebar state: which items the user pinned to the top and which groups are
- * open. Pure helpers plus two persistent stores, so the sidebar itself stays dumb.
+ * collapsed. Pure helpers plus two persistent stores, so the sidebar itself stays dumb.
  */
 import { createPersistentStore } from "@/lib/persistent-store";
 import { flattenItems, type NavGroup, type NavItem } from "./nav";
 
-/** Groups open the first time someone uses the admin; the rest start collapsed. */
-export const defaultOpenGroups = ["Donors", "Money in", "Agreements"];
-
 export const pinnedStore = createPersistentStore<string[]>("nav-pinned", []);
-export const openGroupsStore = createPersistentStore<string[]>(
-  "nav-open-groups",
-  defaultOpenGroups,
-);
+/** Groups the user collapsed. Everything starts open, so new groups show up open too. */
+export const collapsedGroupsStore = createPersistentStore<string[]>("nav-collapsed-groups", []);
 
 export function togglePinned(to: string) {
   pinnedStore.set((pins) => (pins.includes(to) ? pins.filter((pin) => pin !== to) : [...pins, to]));
 }
 
 export function setGroupOpen(label: string, open: boolean) {
-  openGroupsStore.set((groups) => {
+  collapsedGroupsStore.set((groups) => {
     const without = groups.filter((group) => group !== label);
-    return open ? [...without, label] : without;
+    return open ? without : [...without, label];
   });
 }
 

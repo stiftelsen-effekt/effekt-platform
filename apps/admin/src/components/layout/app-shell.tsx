@@ -42,7 +42,7 @@ import { CommandPalette, type PaletteCommand } from "./command-palette";
 import { flattenItems, navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
 import {
   activeTrail,
-  openGroupsStore,
+  collapsedGroupsStore,
   pinnedStore,
   setGroupOpen,
   splitPinned,
@@ -92,7 +92,13 @@ function NavLink({
       {!sub && <Icon strokeWidth={1.75} />}
       <span className="flex-1 truncate">{item.label}</span>
       {count ? (
-        <span className="num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning">
+        <span
+          className={cn(
+            "num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning",
+            // The pin button takes this spot on hover (desktop).
+            "transition-opacity lg:group-focus-within/pin:opacity-0 lg:group-hover/pin:opacity-0",
+          )}
+        >
           {count}
           <span className="sr-only"> open</span>
         </span>
@@ -105,38 +111,45 @@ function countFor(item: NavItem, reviewCount?: number) {
   return item.badge === "reviewQueue" ? reviewCount : undefined;
 }
 
-/** Open items waiting somewhere below `item`, shown on it while it is collapsed. */
-function hiddenCount(item: NavItem, reviewCount?: number): number {
-  return (item.children ?? []).reduce(
-    (sum, child) => sum + (countFor(child, reviewCount) ?? 0) + hiddenCount(child, reviewCount),
-    0,
+/**
+ * Animated open/close for a block of menu rows: the height eases between 0 and its content
+ * (grid rows 0fr → 1fr) while the rows fade. Closed rows stay mounted but inert, so they
+ * can't be tabbed to.
+ */
+function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-(--duration-slow) ease-(--ease-out) motion-reduce:transition-none",
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+      )}
+    >
+      {/* The side slack keeps the active row's outline from being clipped. */}
+      <div className="-mx-1 min-h-0 overflow-hidden px-1" inert={!open || undefined}>
+        {children}
+      </div>
+    </div>
   );
 }
 
 /**
- * One menu row: link and pin button (on hover). A parent shows its sub-pages only while the
- * current page is the parent or one of them, so the menu stays short without a second
- * thing to open and close.
+ * One menu row: the link, and a pin button that replaces its count while hovered. Sub-pages
+ * sit indented underneath.
  */
 function NavEntry({
   item,
   pinned,
   sub,
-  activePaths,
   reviewCount,
   onNavigate,
 }: {
   item: NavItem;
   pinned?: boolean;
   sub?: boolean;
-  /** Paths of the current page and its parents; their sub-pages are shown. */
-  activePaths: string[];
   reviewCount?: number;
   onNavigate?: () => void;
 }) {
   const children = item.children ?? [];
-  const open = children.length > 0 && activePaths.includes(item.to);
-  const count = (countFor(item, reviewCount) ?? 0) + (open ? 0 : hiddenCount(item, reviewCount));
   const PinToggleIcon = pinned ? PinOffIcon : PinIcon;
   const pinAction = `${pinned ? "Unpin" : "Pin"} ${item.label}`;
   return (
@@ -146,8 +159,8 @@ function NavEntry({
           item={item}
           sub={sub}
           onNavigate={onNavigate}
-          count={count || undefined}
-          className="pr-8"
+          count={countFor(item, reviewCount)}
+          className="max-lg:pr-9"
         />
         <button
           type="button"
@@ -155,24 +168,22 @@ function NavEntry({
           title={pinAction}
           aria-label={pinAction}
           className={cn(
-            "absolute top-1/2 grid size-6 -translate-y-1/2 place-content-center rounded-xs",
-            "right-1",
-            "text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring",
-            "opacity-0 transition-opacity group-focus-within/pin:opacity-100 group-hover/pin:opacity-100",
-            "max-lg:opacity-100",
+            "absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-content-center rounded-xs",
+            "bg-hover text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring",
+            "opacity-0 transition-opacity max-lg:opacity-100",
+            "lg:group-focus-within/pin:opacity-100 lg:group-hover/pin:opacity-100",
           )}
         >
           <PinToggleIcon className="size-3.5" />
         </button>
       </div>
-      {open && (
+      {children.length > 0 && (
         <ul className="mt-px mb-0.5 ml-[18px] grid gap-px border-l border-border pl-1">
           {children.map((child) => (
             <NavEntry
               key={child.to}
               item={child}
               sub
-              activePaths={activePaths}
               reviewCount={reviewCount}
               onNavigate={onNavigate}
             />
@@ -258,16 +269,16 @@ function Sidebar({
   onNavigate?: () => void;
 }) {
   const pins = pinnedStore.use();
-  const openGroups = openGroupsStore.use();
+  const collapsedGroups = collapsedGroupsStore.use();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { pinned, groups: rest } = useMemo(() => splitPinned(groups, pins), [groups, pins]);
 
   // Navigating (⌘K, links on pages) into a collapsed group opens it.
   const trail = activeTrail(rest, pathname);
   const trailGroup = trail?.group ?? "";
-  const activePaths = trail ? [...trail.parents, trail.to] : [];
   useEffect(() => {
-    if (trailGroup && !openGroupsStore.get().includes(trailGroup)) setGroupOpen(trailGroup, true);
+    if (trailGroup && collapsedGroupsStore.get().includes(trailGroup))
+      setGroupOpen(trailGroup, true);
   }, [trailGroup]);
 
   return (
@@ -300,7 +311,15 @@ function Sidebar({
         <Kbd>⌘K</Kbd>
       </button>
 
-      <nav aria-label="Main" className="-mx-1 flex-1 overflow-y-auto px-1">
+      <nav
+        aria-label="Main"
+        className={cn(
+          // The padding keeps the active row's outline from being clipped at the edges.
+          "-mx-1 -my-1 flex-1 overflow-x-hidden overflow-y-auto px-1 py-1",
+          // A thin, quiet scrollbar that only shows its thumb while the menu overflows.
+          "[scrollbar-color:var(--border-strong)_transparent] [scrollbar-width:thin]",
+        )}
+      >
         {pinned.length > 0 && (
           <div className="mb-4">
             <h2 className="mb-1 px-2.5 text-xs font-semibold text-faint-foreground">Pinned</h2>
@@ -310,7 +329,6 @@ function Sidebar({
                   key={item.to}
                   item={item}
                   pinned
-                  activePaths={activePaths}
                   reviewCount={reviewCount}
                   onNavigate={onNavigate}
                 />
@@ -320,10 +338,9 @@ function Sidebar({
         )}
         {rest.map((group, index) => {
           const label = group.label;
-          const open = !label || openGroups.includes(label);
-          const waiting = group.items.reduce(
-            (sum, item) =>
-              sum + (countFor(item, reviewCount) ?? 0) + hiddenCount(item, reviewCount),
+          const open = !label || !collapsedGroups.includes(label);
+          const waiting = flattenItems(group.items).reduce(
+            (sum, item) => sum + (countFor(item, reviewCount) ?? 0),
             0,
           );
           return (
@@ -339,34 +356,46 @@ function Sidebar({
                   )}
                 >
                   <span className="flex-1 text-left">{label}</span>
-                  {!open && waiting ? (
-                    <span className="num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning">
+                  {waiting ? (
+                    <span
+                      className={cn(
+                        "num rounded-full bg-warning-subtle px-1.5 text-xs leading-5 font-semibold text-warning",
+                        "transition-opacity duration-(--duration-base)",
+                        open && "opacity-0",
+                      )}
+                    >
                       {waiting}
                       <span className="sr-only"> open</span>
                     </span>
                   ) : null}
                   <ChevronDownIcon
-                    className={cn("size-3.5 transition-transform", !open && "-rotate-90")}
+                    className={cn(
+                      "size-3.5 transition-transform duration-(--duration-slow) ease-(--ease-out) motion-reduce:transition-none",
+                      !open && "-rotate-90",
+                    )}
                   />
                 </button>
               )}
-              {open && (
-                <ul className="grid gap-px">
-                  {group.items.map((item) =>
-                    label ? (
+              {label ? (
+                <Collapse open={open}>
+                  <ul className="grid gap-px">
+                    {group.items.map((item) => (
                       <NavEntry
                         key={item.to}
                         item={item}
-                        activePaths={activePaths}
                         reviewCount={reviewCount}
                         onNavigate={onNavigate}
                       />
-                    ) : (
-                      <li key={item.to}>
-                        <NavLink item={item} onNavigate={onNavigate} />
-                      </li>
-                    ),
-                  )}
+                    ))}
+                  </ul>
+                </Collapse>
+              ) : (
+                <ul className="grid gap-px">
+                  {group.items.map((item) => (
+                    <li key={item.to}>
+                      <NavLink item={item} onNavigate={onNavigate} />
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
