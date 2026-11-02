@@ -33,8 +33,10 @@ export const PageHeader: React.FC<{
   accent_color,
   coverPhoto,
 }) => {
-  const hasmetacontent = inngress || links;
-  const contactLink = cta_type === "contact" ? contactHref(cta_email) : undefined;
+  const contactLink =
+    layout === "hero" && cta_type === "contact" ? contactHref(cta_email) : undefined;
+  // Intro and links are optional, so the contact button alone is enough to render this block
+  const hasmetacontent = inngress || links || contactLink;
 
   if (layout === "noheader") {
     return <div className={style.spacer}></div>;
@@ -70,7 +72,7 @@ export const PageHeader: React.FC<{
               cy={"hero-cta-open-widget"}
             />
           ) : null}
-          {layout === "hero" && contactLink ? (
+          {contactLink ? (
             <a
               href={contactLink}
               className={`${buttonStyles.button} ${
