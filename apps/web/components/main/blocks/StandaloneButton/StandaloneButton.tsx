@@ -22,6 +22,7 @@ export const StandaloneButton: React.FC<{ links?: (LinkType | NavLink)[] }> = ({
   return (
     <div className={styles.wrapper}>
       <LinkElement
+        // nosemgrep: typescript.react.security.audit.react-href-var.react-href-var -- href passed isSafeHref above, so it is an http(s), mailto or tel link or a path on this site
         href={href}
         prefetch={isFundraiser ? false : undefined}
         target={openInNewTab ? "_blank" : undefined}
