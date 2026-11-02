@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useWidgetDispatch, useWidgetSelector, WidgetStore } from "../store/store";
-import { useRouter } from "next/router";
+import { useRouter } from "next/compat/router";
 import {
   setPaneNumber,
   setRecurring,
@@ -201,7 +201,7 @@ export const useQueryParamsPrefill = ({
   const hasAppliedQueryParams = useRef(false);
 
   useEffect(() => {
-    if (inline || !router.query || !causeAreas) {
+    if (inline || !causeAreas || (router && !router.isReady)) {
       return;
     }
 
@@ -209,7 +209,8 @@ export const useQueryParamsPrefill = ({
       return;
     }
 
-    const { distribution, recurring, referral, referralCode } = router.query;
+    const query = router?.query ?? Object.fromEntries(new URLSearchParams(window.location.search));
+    const { distribution, recurring, referral, referralCode } = query;
 
     if (distribution && typeof distribution === "string") {
       const prefilledDistribution = parseDistributionQueryParam(distribution);
@@ -248,7 +249,7 @@ export const useQueryParamsPrefill = ({
         hasAppliedQueryParams.current = true;
       }
     }
-  }, [inline, router.query, causeAreas, dispatch, setWidgetContext, widgetContext]);
+  }, [inline, router, causeAreas, dispatch, setWidgetContext, widgetContext]);
 
   useEffect(() => {
     dispatch(setRecurring(defaultPaymentType));

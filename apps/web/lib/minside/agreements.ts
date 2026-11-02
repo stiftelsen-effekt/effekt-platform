@@ -50,10 +50,10 @@ export const getAgreementsData = cache(async (mainLocale: MainLocale): Promise<A
       await Promise.all([
         trpc.minside.vippsAgreements.query({ donorId }),
         trpc.minside.avtaleGiroAgreements.query({ donorId }),
-        trpc.minside.distributions.query({ donorId }),
+        trpc.minside.distributions.query({ donorId }).catch(() => []),
         trpc.minside.taxUnits.query({ donorId }),
         causeAreasQuery,
-        fetchAgreementFeedbackTypes(),
+        fetchAgreementFeedbackTypes().catch(() => undefined),
       ]);
     return {
       site: "nordic",
@@ -74,7 +74,7 @@ export const getAgreementsData = cache(async (mainLocale: MainLocale): Promise<A
   ]);
   const kids = Array.from(new Set(dkAgreements.map((agreement) => agreement.kid)));
   const distributions = kids.length
-    ? await trpc.minside.distributions.query({ donorId, kids })
+    ? await trpc.minside.distributions.query({ donorId, kids }).catch(() => [])
     : [];
   return {
     site: "dk",

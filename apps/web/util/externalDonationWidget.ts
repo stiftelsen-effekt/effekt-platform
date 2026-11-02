@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useCallback, useEffect } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/compat/router";
 import { stegaClean } from "@sanity/client/stega";
 import type { WidgetContextType } from "../components/main/layout/layout";
 import type { ExternalDonationWidgetConfig } from "../components/shared/components/Widget/types/WidgetProps";
@@ -48,16 +48,17 @@ export const useExternalDonationWidget = (
   const router = useRouter();
 
   useEffect(() => {
-    if (!urls || !router.isReady) return;
-    const recurring = parseRecurringQueryParam(router.query.recurring);
+    if (!urls || (router && !router.isReady)) return;
+    const query = router?.query ?? Object.fromEntries(new URLSearchParams(window.location.search));
+    const recurring = parseRecurringQueryParam(query.recurring);
     if (recurring !== undefined) {
       // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the external donation URLs are site configuration in Sanity, edited only by staff
       window.location.href = recurring ? urls.recurring : urls.single;
-    } else if (typeof router.query.distribution === "string") {
+    } else if (typeof query.distribution === "string") {
       // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the external donation URLs are site configuration in Sanity, edited only by staff
       window.location.href = urls.default;
     }
-  }, [urls, router.isReady, router.query.recurring, router.query.distribution]);
+  }, [urls, router]);
 
   return useCallback(
     (action) => {

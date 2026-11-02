@@ -19,10 +19,15 @@ export async function MinsideFrame({
   header?: ReactNode;
   children: ReactNode;
 }) {
-  const { navbar, footer, mainLocale, routerContext } = await getMinsideFrame();
+  const { navbar, footer, mainLocale, routerContext, widget } = await getMinsideFrame();
 
   return (
-    <MinsideAppProviders loggedIn={loggedIn} mainLocale={mainLocale} routerContext={routerContext}>
+    <MinsideAppProviders
+      loggedIn={loggedIn}
+      mainLocale={mainLocale}
+      routerContext={routerContext}
+      widgetData={widget}
+    >
       {/* Dark theme: the old .dark variables for components not yet on the design system, and the
           design system's own (data-theme) */}
       <div className={`${styles.container} ${styles.dark}`}>

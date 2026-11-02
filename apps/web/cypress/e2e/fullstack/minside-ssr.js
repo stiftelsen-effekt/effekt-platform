@@ -29,6 +29,23 @@ describe("Min Side server sessions", () => {
     });
   });
 
+  it("opens the donation widget from Min Side", () => {
+    cy.visit("/min-side/");
+    cy.get("[data-cy=navbar] [data-cy=send-donation-button]:visible").click();
+    cy.get("[data-cy=widget-pane]").should("be.visible");
+    cy.get("[data-cy=widget-pane]").contains("Global helse").should("be.visible");
+  });
+
+  it("shows the donation allocation chart and impact explanations", () => {
+    cy.visit("/min-side/");
+    cy.get("[data-cy=aggregated-donations-distribution-graph]").should("be.visible");
+    cy.get("[data-cy=aggregated-donations-distribution-graph-bar]").should(
+      "have.length.greaterThan",
+      0,
+    );
+    cy.get("[data-cy=impact-estimate-explanations]").should("exist");
+  });
+
   it("saves profile changes through a server action", () => {
     cy.visit("/min-side/profil/");
     cy.get("#name").clear().type("E2E Endret");

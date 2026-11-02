@@ -2,6 +2,7 @@ import "server-only";
 import { groq } from "next-sanity";
 import { cacheLife, cacheTag } from "next/cache";
 import { getClient } from "../sanity.client";
+import { getWidgetStaticProps } from "../../components/shared/components/Widget/widgetStaticProps";
 import { getNavbarStaticProps } from "../../components/shared/components/Navbar/navbarStaticProps";
 import { getFooterStaticProps } from "../../components/shared/layout/Footer/footerStaticProps";
 import { fetchRouterContext } from "../../context/fetchRouterContext";
@@ -34,11 +35,12 @@ export async function getMinsideFrame() {
   cacheLife("hours");
   cacheTag("sanity");
 
-  const [navbar, footer, site, routerContext] = await Promise.all([
+  const [navbar, footer, site, routerContext, widget] = await Promise.all([
     getNavbarStaticProps({ dashboard: true, draftMode: false }),
     getFooterStaticProps({ draftMode: false }),
     getClient().fetch<{ title: string; main_locale: string | null }>(siteQuery),
     fetchRouterContext(),
+    getWidgetStaticProps({ draftMode: false }),
   ]);
   return {
     navbar,
@@ -46,6 +48,7 @@ export async function getMinsideFrame() {
     siteTitle: site.title,
     mainLocale: (site.main_locale ?? "no") as MainLocale,
     routerContext,
+    widget,
   };
 }
 

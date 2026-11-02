@@ -11,6 +11,9 @@ import { ErrorMessage } from "../shared/ErrorMessage/ErrorMessage";
 import { DonationList } from "../shared/lists/donationList/DonationList";
 import DonationYearMenu from "../donations/YearMenu/YearMenu";
 import { DonationsAggregateImpactTable } from "../donations/DonationsAggregateImpactTable/DonationsAggregateImpactTable";
+import DonationsChart from "../donations/DonationsChart/DonationsChart";
+import { ImpactEstimateExplanation } from "../donations/DonationsAggregateImpactTable/ImpactEstimateExplanation";
+import { toNumber } from "../../../util/decimal";
 import DonationsTotals from "../donations/DonationsTotal/DonationsTotal";
 import { DonationsYearlyGraph } from "../donations/DonationsYearlyChart/DonationsYearlyChart";
 import { getDonationSum, getYearlySum, getYears } from "../donations/donationsPageData";
@@ -93,6 +96,16 @@ export function DonationsView({
   const years = getYears(donor, donations);
   const firstYear = Math.min(...years);
   const sum = getDonationSum(aggregated, filterYear || undefined);
+  const totalsByOrganization = new Map<string, number>();
+  for (const row of aggregated) {
+    if (row.organization !== null && (filterYear === null || row.year === Number(filterYear))) {
+      totalsByOrganization.set(
+        row.organization,
+        (totalsByOrganization.get(row.organization) ?? 0) + toNumber(row.value),
+      );
+    }
+  }
+  const distribution = Array.from(totalsByOrganization, ([org, sum]) => ({ org, sum }));
 
   let periodText = "";
   if (isTotal) {
@@ -143,6 +156,7 @@ export function DonationsView({
         selected={filterYear || "total"}
       />
 
+      <DonationsChart distribution={distribution} organizations={[...organizations]} />
       <DonationsTotals sum={sum} period={periodText} />
 
       {/* A new year's rows and lists fade in (React ViewTransition; nothing under reduced motion) */}
@@ -156,6 +170,9 @@ export function DonationsView({
           ) : (
             <ErrorMessage>Aggregate donations impact texts are missing in Sanity</ErrorMessage>
           )}
+          <ImpactEstimateExplanation
+            explanations={page.donations_details_configuration?.cause_area_impact_estimates}
+          />
           {isTotal && isMobile ? (
             <DonationsYearlyGraph data={getYearlySum(aggregated, years)} />
           ) : (
