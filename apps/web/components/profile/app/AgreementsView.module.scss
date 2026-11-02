@@ -1,0 +1,12 @@
+.lists {
+  display: grid;
+  gap: 40px;
+}
+.pending {
+  margin-bottom: 24px;
+}
+@media (max-width: 1180px) {
+  .onlyOnWideScreens {
+    display: none;
+  }
+}

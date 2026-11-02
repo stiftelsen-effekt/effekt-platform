@@ -1,31 +1,8 @@
 import { createContext, useContext } from "react";
-import {
-  getArticlesPagePath,
-  getFundraisersPath,
-  getResultsPagePath,
-  getVippsAgreementPagePath,
-} from "../pages/contentPaths";
-import {
-  getAgreementsPagePath,
-  getDashboardPagePath,
-  getDonationsPagePath,
-  getProfilePagePath,
-  getTaxPagePath,
-  getVippsAnonymousPagePath,
-} from "../pages/dashboard/paths";
+import type { RouterContextValue } from "./fetchRouterContext";
 
-export type RouterContextValue = {
-  articlesPagePath: Awaited<ReturnType<typeof getArticlesPagePath>>;
-  resultsPagePath: Awaited<ReturnType<typeof getResultsPagePath>>;
-  vippsAgreementPagePath: Awaited<ReturnType<typeof getVippsAgreementPagePath>>;
-  dashboardPath: Awaited<ReturnType<typeof getDashboardPagePath>>;
-  donationsPagePath: Awaited<ReturnType<typeof getDonationsPagePath>>;
-  agreementsPagePath: Awaited<ReturnType<typeof getAgreementsPagePath>>;
-  taxPagePath: Awaited<ReturnType<typeof getTaxPagePath>>;
-  profilePagePath: Awaited<ReturnType<typeof getProfilePagePath>>;
-  vippsAnonymousPagePath: Awaited<ReturnType<typeof getVippsAnonymousPagePath>>;
-  fundraisersPath: Awaited<ReturnType<typeof getFundraisersPath>>;
-};
+export type { RouterContextValue } from "./fetchRouterContext";
+export { fetchRouterContext } from "./fetchRouterContext";
 
 export const RouterContext = createContext<RouterContextValue | null>(null);
 
@@ -35,32 +12,4 @@ export const useRouterContext = () => {
     throw new Error("RouterContext not found. Did you forget to get app static props?");
   }
   return context;
-};
-
-type AwaitedPromises<T extends Record<string, Promise<unknown>>> = {
-  [K in keyof T]: T[K] extends Promise<infer U> ? U : never;
-};
-
-// Each path is fetched once per build by the client's build cache (lib/sanity.client.ts)
-export const fetchRouterContext = async (): Promise<RouterContextValue> => {
-  const promises = {
-    articlesPagePath: getArticlesPagePath(),
-    resultsPagePath: getResultsPagePath(),
-    vippsAgreementPagePath: getVippsAgreementPagePath(),
-    dashboardPath: getDashboardPagePath(),
-    donationsPagePath: getDonationsPagePath(),
-    agreementsPagePath: getAgreementsPagePath(),
-    taxPagePath: getTaxPagePath(),
-    profilePagePath: getProfilePagePath(),
-    vippsAnonymousPagePath: getVippsAnonymousPagePath(),
-    fundraisersPath: getFundraisersPath(),
-  };
-
-  return (await Promise.all(Object.values(promises))).reduce(
-    (acc, value, index) => {
-      const key = Object.keys(promises)[index] as keyof typeof promises;
-      return { ...acc, [key]: value };
-    },
-    {} as AwaitedPromises<typeof promises>,
-  );
 };

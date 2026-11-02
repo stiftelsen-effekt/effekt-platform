@@ -1,9 +1,8 @@
-import { useAuth0, User } from "@auth0/auth0-react";
 import { useRef, useState } from "react";
 import { ChevronDown } from "react-feather";
 import { useClickOutsideAlerter } from "../../../../hooks/useClickOutsideAlerter";
 import { TaxUnit } from "../../../../models";
-import { useTaxUnits } from "../../../../_queries";
+import { useMinsideTaxUnits } from "../../../../_queries";
 
 import styles from "./TaxUnitSelector.module.scss";
 
@@ -26,14 +25,12 @@ export const TaxUnitSelector: React.FC<{
   loadingLabel = "Laster...",
   errorLabel = "En feil oppstod",
 }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-
   const [menuOpen, setMenuOpen] = useState(false);
 
   const actionRef = useRef<HTMLDivElement>(null);
   useClickOutsideAlerter(actionRef, () => setMenuOpen(false));
 
-  const { data, loading, error } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { data, loading, error } = useMinsideTaxUnits();
 
   return (
     <div className={styles.container} ref={actionRef}>

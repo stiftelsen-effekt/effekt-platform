@@ -1,101 +1,33 @@
-import { useAuth0, User } from "@auth0/auth0-react";
-import { useContext, useMemo } from "react";
-import { Info } from "react-feather";
+import { Fragment } from "react";
 import { Distribution, Donation, TaxYearlyReport } from "../../../../models";
-import { useDistributions, useDonations, useYearlyTaxReports } from "../../../../_queries";
-import { InfoBox } from "../../../shared/components/Infobox/Infobox";
-import { SkeletonStack } from "../../shared/Skeleton/Skeleton";
-import { DonorContext } from "../../layout/donorProvider";
-import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
+
 import { TaxYearlyReportList } from "../../shared/lists/taxYearlyReportsList/TaxYearlyReportList";
 import { TaxYearlyReportMobileList } from "../../shared/lists/taxYearlyReportsList/TaxYearlyReportMobileList";
 import styles from "./YearlyReportsTab.module.scss";
 import { AggregatedImpactTableConfiguration } from "../../donations/DonationsAggregateImpactTable/DonationsAggregateImpactTable";
 
+/** The yearly tax reports, from the donor's data rendered on the server */
 export const YearlyReportsTab: React.FC<{
   aggregatedImpactConfiguration: AggregatedImpactTableConfiguration;
-}> = ({ aggregatedImpactConfiguration }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-
-  const { donor } = useContext(DonorContext);
-
-  const {
-    loading: reportsLoading,
-    data: reportsData,
-    error: reportsError,
-  } = useYearlyTaxReports(user as User, getAccessTokenSilently);
-
-  const {
-    loading: donationsLoading,
-    data: donations,
-    error: donationsError,
-  } = useDonations(user as User, getAccessTokenSilently);
-
-  const kids = useMemo(() => {
-    const kidsSet = new Set<string>();
-    donations?.forEach((donation: Donation) => kidsSet.add(donation.KID));
-    return Array.from(kidsSet);
-  }, [donations]);
-
-  const shouldFetchDistributions = !donationsLoading && donations !== undefined && kids.length > 0;
-
-  const {
-    loading: distributionsLoading,
-    data: distributions,
-    error: distributionsError,
-  } = useDistributions(user as User, getAccessTokenSilently, shouldFetchDistributions, kids);
-  const donationsLoaded = Array.isArray(donations);
-  const reportsLoaded = Array.isArray(reportsData);
-  const resolvedDistributions = shouldFetchDistributions ? distributions : [];
-  const distributionsLoaded = Array.isArray(resolvedDistributions);
-
-  const dataAvailable = donationsLoaded && reportsLoaded && distributionsLoaded;
-  const loading =
-    donationsLoading || (shouldFetchDistributions && distributionsLoading) || reportsLoading;
-
-  // Any failed query would otherwise leave the tab on the spinner
-  const loadError =
-    reportsError || donationsError || (shouldFetchDistributions ? distributionsError : undefined);
-
-  if (loadError) {
+  reports: TaxYearlyReport[];
+  donations: Donation[];
+  distributions: Distribution[];
+}> = ({ aggregatedImpactConfiguration, reports, donations, distributions }) => {
+  if (reports.length === 0) {
     return (
       <div className={styles.container}>
-        <h4 className={styles.header}>Dine årsoppgaver</h4>
-        <p>
-          Henting av dine årsrapporter feilet. Våre utviklere er varlset om feilen og er på saken.
-          Kontakt oss gjerne på donasjon@gieffektivt.no så finner vi ut av det!{" "}
-        </p>
-        <ErrorMessage>{JSON.stringify(loadError, null, 2)}</ErrorMessage>
+        <p>Vi har ingen årsoppgaver til deg ennå.</p>
       </div>
     );
   }
 
-  if (loading || !dataAvailable || !donor) {
-    return (
-      <div className={styles.container}>
-        <h4 className={styles.header}>Dine årsoppgaver</h4>
-        <SkeletonStack heights={[180, 180]} />
-      </div>
-    );
-  }
-
-  if (reportsData.length === 0) {
-    return (
-      <div className={styles.container}>
-        <h4 className={styles.header}>Dine årsoppgaver</h4>
-        <p>No data available.</p>
-      </div>
-    );
-  }
-
-  const distributionsMap = new Map<string, Distribution>();
-  resolvedDistributions.map((dist: Distribution) => distributionsMap.set(dist.kid, dist));
+  const distributionsMap = new Map<string, Distribution>(
+    distributions.map((dist) => [dist.kid, dist]),
+  );
 
   return (
     <div className={styles.container}>
-      <h4 className={styles.header}>Dine årsoppgaver</h4>
-
-      {reportsData.map((report: TaxYearlyReport) => {
+      {reports.map((report: TaxYearlyReport) => {
         const filteredDonations = donations.filter(
           (donation: Donation) => new Date(donation.timestamp).getFullYear() === report.year,
         );
@@ -104,23 +36,17 @@ export const YearlyReportsTab: React.FC<{
         const currentYear = new Date().getFullYear();
 
         return (
-          <>
+          <Fragment key={report.year}>
             {report.sumDonationsWithoutTaxUnit.sumDonations > 0 &&
               report.year === currentYear - 1 && (
-                <InfoBox>
-                  <header>
-                    <Info />
-                    Donasjoner mangler skattenhet
-                  </header>
+                <div className={styles.notice}>
+                  <strong>Donasjoner mangler skatteenhet</strong>
                   <p>
-                    {/*Du har donasjoner for skatteåret som kvalifiserer til skattefradrag, men mangler
-                  skatteenhet. Vi har rapportert alle donasjoner for 2022 til skattemyndighetene,
-            men i 2023 vil du få skattefradrag på donasjoner du knytter til en skatteenhet.*/}
                     {report.units.length == 0
                       ? 'Registrer en skatteenhet i fanen til venstre i menyen under "skatt" og alle donasjoner vil knyttes til den. Ta kontakt på donasjon@gieffektivt.no om du ønsker å knytte donasjonene dine til flere skatteenheter.'
                       : "Du har allerede en eller flere skatteenheter. Kontakt oss på donasjon@gieffektivt.no for å knytte donasjonene dine til rett skatteenhet."}
                   </p>
-                </InfoBox>
+                </div>
               )}
             <div className={styles.desktopList}>
               <TaxYearlyReportList
@@ -142,7 +68,7 @@ export const YearlyReportsTab: React.FC<{
                 aggregateImpactConfig={aggregatedImpactConfiguration}
               />
             </div>
-          </>
+          </Fragment>
         );
       })}
     </div>

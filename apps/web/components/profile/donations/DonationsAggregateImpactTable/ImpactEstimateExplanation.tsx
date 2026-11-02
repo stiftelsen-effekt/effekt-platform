@@ -25,7 +25,7 @@ export const ImpactEstimateExplanation: React.FC<{
   if (visibleExplanations.length === 0) return null;
 
   return (
-    <div className={style.wrapper}>
+    <div className={style.wrapper} data-cy="impact-estimate-explanations">
       {visibleExplanations.map((explanation) => (
         <ImpactEstimateExplanationItem
           key={explanation.impact_estimate_explanation_title}

@@ -119,7 +119,12 @@ module.exports = {
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
   vipps_ocp_apim_subscription_key: process.env.VIPPS_OCP_APIM_SUBSCRIPTION_KEY,
   vipps_merchant_serial_number: process.env.VIPPS_MERCHANT_SERIAL_NUMBER,
-  vipps_api_url: process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
+  // Where the Vipps API is called. Outside production VIPPS_API_ORIGIN can point at a local stub
+  // (the full-stack e2e stack: scripts/e2e/vipps-stub.mjs); production always calls api.vipps.no.
+  vipps_api_origin:
+    process.env.NODE_ENV !== "production" && process.env.VIPPS_API_ORIGIN
+      ? process.env.VIPPS_API_ORIGIN.replace(/\/+$/, "")
+      : `https://${process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no"}`,
   vipps_recurring_webhook_secret: process.env.VIPPS_RECURRING_WEBHOOK_SECRET,
 
   // AvtaleGiro and OCR Giro files over SFTP with Mastercard Payment Services (formerly Nets). The

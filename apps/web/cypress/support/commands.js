@@ -62,7 +62,8 @@ Cypress.Commands.add("login", () => {
 /**
  * Full-stack suite only (cypress-fullstack.config.ts): logs in as `donorId` through the local
  * OIDC issuer from compose.e2e.yml. Its login form takes any username plus extra claims as JSON;
- * the numeric user-id claim is what the website and the API read.
+ * the numeric user-id claim is what the website and the API read. The session is the site's
+ * server-side one (an httpOnly cookie, apps/web/lib/auth0.ts).
  */
 Cypress.Commands.add("loginFullstack", (donorId) => {
   Cypress.log({ name: "loginFullstack", message: donorId });
@@ -70,17 +71,26 @@ Cypress.Commands.add("loginFullstack", (donorId) => {
   cy.session(
     ["fullstack", donorId],
     () => {
+      // The real OIDC flow (authorize → code → token), without rendering the issuer's form: the
+      // site's /auth/login starts it (transaction cookie), the issuer's form is posted, and the
+      // callback sets the session cookie.
+      cy.request({ url: "/auth/login?returnTo=/min-side", followRedirect: false }).then((login) =>
+        cy
+          .request({
+            method: "POST",
+            url: login.redirectedToUrl,
+            form: true,
+            body: {
+              username: `e2e-donor-${donorId}`,
+              claims: JSON.stringify({ "https://gieffektivt.no/user-id": donorId }),
+            },
+            followRedirect: false,
+          })
+          .then((authorized) =>
+            cy.request({ url: authorized.redirectedToUrl, followRedirect: false }),
+          ),
+      );
       cy.visit("/min-side/");
-
-      cy.origin(Cypress.expose("E2E_AUTH_ORIGIN"), { args: { donorId } }, ({ donorId }) => {
-        cy.get("input[name=username]").type(`e2e-donor-${donorId}`);
-        cy.get("textarea[name=claims]").type(
-          JSON.stringify({ "https://gieffektivt.no/user-id": donorId }),
-          { parseSpecialCharSequences: false, delay: 0 },
-        );
-        cy.get("input[type=submit]").click();
-      });
-
       cy.location("pathname").should("include", "/min-side");
       cy.getCookies().should((cookies) => {
         expect(cookies.some(isAuthenticatedCookie)).to.equal(true);
@@ -98,7 +108,9 @@ Cypress.Commands.add("loginFullstack", (donorId) => {
   cy.ignorePlausibleTracking();
 });
 
-const isAuthenticatedCookie = (cookie) => /^auth0\..+\.is\.authenticated$/.test(cookie.name);
+// The server-side session (nextjs-auth0, apps/web/lib/auth0.ts): an httpOnly cookie, split into
+// __session__0, __session__1, … when large. Cypress reads httpOnly cookies.
+const isAuthenticatedCookie = (cookie) => /^__session(__\d+)?$/.test(cookie.name);
 
 const nextWidgetPane = () => {
   // Panes stay mounted once visited, so several [data-cy=next-button]s can
@@ -259,4 +271,39 @@ Cypress.Commands.add("ignorePlausibleTracking", () => {
   cy.window().then((win) => {
     win.localStorage.setItem("plausible_ignore", "true");
   });
+});
+
+/**
+ * Full-stack suite: a tRPC query straight to the API (not through the website, whose Min Side
+ * calls the API from the server), as an admin: a client-credentials token from the local issuer
+ * (compose.e2e.yml, scope=admin), kept for the run. Yields the procedure's data.
+ */
+let fullstackAdminToken;
+Cypress.Commands.add("apiQuery", (path, input) => {
+  const token = fullstackAdminToken
+    ? cy.wrap(fullstackAdminToken, { log: false })
+    : cy
+        .request({
+          method: "POST",
+          url: `${Cypress.expose("E2E_AUTH_ORIGIN")}/oauth/token`,
+          form: true,
+          body: {
+            grant_type: "client_credentials",
+            scope: "admin",
+            client_id: "e2e-admin",
+            client_secret: "e2e-admin",
+          },
+          log: false,
+        })
+        .then((response) => (fullstackAdminToken = response.body.access_token));
+  return token.then((accessToken) =>
+    cy
+      .request({
+        url: `${Cypress.expose("E2E_API_ORIGIN")}/trpc/${path}?input=${encodeURIComponent(
+          JSON.stringify(input),
+        )}`,
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .its("body.result.data"),
+  );
 });

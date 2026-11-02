@@ -1,7 +1,7 @@
 import Link from "next/link";
 import style from "./DataInfo.module.scss";
 import { PortableText } from "@portabletext/react";
-import { ProfilePage } from "../../../../pages/dashboard/ProfilePage";
+import { ProfilePage } from "../../../../pages/dashboard/profilePageQuery";
 
 export const DataInfo: React.FC<{ page: ProfilePage }> = ({ page }) => {
   return (

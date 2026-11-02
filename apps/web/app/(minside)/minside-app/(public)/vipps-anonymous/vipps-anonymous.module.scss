@@ -1,0 +1,10 @@
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 65ch;
+  padding-top: 24px;
+  border-top: 1px solid currentColor;
+  // A long address wraps rather than overflowing
+  overflow-wrap: anywhere;
+}

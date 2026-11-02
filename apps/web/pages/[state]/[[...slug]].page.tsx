@@ -1,9 +1,6 @@
 import { GetStaticPropsContext, InferGetStaticPropsType } from "next";
 import { fetchRouterContext } from "../../context/RouterContext";
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
-import { FullPageSpinner } from "../../components/shared/layout/FullPageSpinner/FullPageSpinner";
-import { getDonationsPageSubpaths, getTaxPageSubPaths } from "../dashboard/paths";
 // Only referenced from getStaticProps and getStaticPaths, so Next strips these imports from the
 // client bundle
 import { ArticlePage as ArticlePageData, getArticlePaths } from "../ArticlePage";
@@ -12,13 +9,8 @@ import { ArticlesPage as ArticlesPageData } from "../ArticlesPage";
 import { VippsAgreementPage as VippsAgreementPageData } from "../VippsAgreementPage";
 import { ResultsPage as ResultsPageData } from "../ResultsPage";
 import { FundraiserPage as FundraiserPageData, getFundraiserPagePaths } from "../FundraiserPage";
-import { DonationsPage as DonationsPageData } from "../dashboard/DonationsPage";
-import { AgreementsPage as AgreementsPageData } from "../dashboard/AgreementsPage";
-import { ProfilePage as ProfilePageData } from "../dashboard/ProfilePage";
-import { TaxPage as TaxPageData } from "../dashboard/TaxPage";
-import { VippsAnonymousPage as VippsAnonymousPageData } from "../dashboard/VippsAnonymousPage";
 import { LiveQuery } from "../../components/shared/LiveQuery";
-import { ConsentState } from "../../proxy.page";
+import type { ConsentState } from "../../proxy.page";
 import { renderLatexInData } from "../../components/main/blocks/Paragraph/renderLatex";
 
 enum PageType {
@@ -28,14 +20,9 @@ enum PageType {
   ArticlePage = "article",
   FundraiserPage = "fundraiser",
   VippsAgreementPage = "vipps-agreement",
-  VippsAnonymousPage = "vipps-anonymous",
-  AgreementsPage = "agreements",
-  DonationsPage = "donations",
-  ProfilePage = "profile",
-  TaxPage = "tax",
 }
 
-// Content pages are split out so Min side (and each other) don't load every block type. They are
+// Content pages are split out so they don't load each other's block types. They are
 // server-rendered, and Next loads the chunk of the rendered one before hydrating, so content pages
 // paint and hydrate as before. A placeholder only shows on client-side navigation.
 const GenericPage = dynamic(() => import("../GenericPage").then((m) => m.GenericPage));
@@ -47,45 +34,7 @@ const VippsAgreementPage = dynamic(() =>
   import("../VippsAgreementPage").then((m) => m.VippsAgreementPage),
 );
 
-// Min side pages are split out so ordinary content pages don't load them (or Auth0). They are
-// still server-rendered, and Next loads the chunks of rendered ones before hydrating. The
-// placeholder matches what the profile layout shows while it checks the login.
-const dashboardPageLoading = () => <FullPageSpinner />;
-const DonationsPage = dynamic(
-  () => import("../dashboard/DonationsPage").then((m) => m.DonationsPage),
-  { loading: dashboardPageLoading },
-);
-const AgreementsPage = dynamic(
-  () => import("../dashboard/AgreementsPage").then((m) => m.AgreementsPage),
-  { loading: dashboardPageLoading },
-);
-const ProfilePage = dynamic(() => import("../dashboard/ProfilePage").then((m) => m.ProfilePage), {
-  loading: dashboardPageLoading,
-});
-const TaxPage = dynamic(() => import("../dashboard/TaxPage").then((m) => m.TaxPage), {
-  loading: dashboardPageLoading,
-});
-const VippsAnonymousPage = dynamic(
-  () => import("../dashboard/VippsAnonymousPage").then((m) => m.VippsAnonymousPage),
-  { loading: dashboardPageLoading },
-);
-
-// Min side pages only render once the login check passes, so start loading their code early
-const preloadDashboardPage: Partial<Record<PageType, () => Promise<unknown>>> = {
-  [PageType.DonationsPage]: () => import("../dashboard/DonationsPage"),
-  [PageType.AgreementsPage]: () => import("../dashboard/AgreementsPage"),
-  [PageType.ProfilePage]: () => import("../dashboard/ProfilePage"),
-  [PageType.TaxPage]: () => import("../dashboard/TaxPage"),
-  [PageType.VippsAnonymousPage]: () => import("../dashboard/VippsAnonymousPage"),
-};
-
 const Page: React.FC<InferGetStaticPropsType<typeof getStaticProps>> = (props) => {
-  useEffect(() => {
-    // nosemgrep: javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method -- pageType is set by getStaticProps, and the lookup is a fixed map of imports
-    preloadDashboardPage[props.pageType as PageType]?.();
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- preloads once per page type
-  }, [props.pageType]);
-
   if (props.draftMode) {
     switch (props.pageType as PageType) {
       case PageType.GenericPage:
@@ -114,16 +63,6 @@ const Page: React.FC<InferGetStaticPropsType<typeof getStaticProps>> = (props) =
       return <FundraiserPage {...(props as any)} />;
     case PageType.VippsAgreementPage:
       return <VippsAgreementPage {...(props as any)} />;
-    case PageType.AgreementsPage:
-      return <AgreementsPage {...(props as any)} />;
-    case PageType.VippsAnonymousPage:
-      return <VippsAnonymousPage {...(props as any)} />;
-    case PageType.DonationsPage:
-      return <DonationsPage {...(props as any)} />;
-    case PageType.ProfilePage:
-      return <ProfilePage {...(props as any)} />;
-    case PageType.TaxPage:
-      return <TaxPage {...(props as any)} />;
   }
 };
 
@@ -178,10 +117,6 @@ const inferPageTypeFromPath = async (path: string[]) => {
     resultsPagePath,
     vippsAgreementPagePath,
     dashboardPath,
-    agreementsPagePath,
-    taxPagePath,
-    profilePagePath,
-    vippsAnonymousPagePath,
   } = await fetchRouterContext();
 
   const isVippsAgreementPage =
@@ -211,29 +146,8 @@ const inferPageTypeFromPath = async (path: string[]) => {
     ? compareArrays(path.slice(0, dashboardPath.length), dashboardPath)
     : false;
 
-  if (isDashboard) {
-    const isAgreementsPage = agreementsPagePath
-      ? compareArrays(path.slice(0, agreementsPagePath.length), agreementsPagePath)
-      : false;
-    if (isAgreementsPage) return PageType.AgreementsPage;
-
-    const isVippsAnonymousPage = vippsAnonymousPagePath
-      ? compareArrays(path.slice(0, vippsAnonymousPagePath.length), vippsAnonymousPagePath)
-      : false;
-    if (isVippsAnonymousPage) return PageType.VippsAnonymousPage;
-
-    const isTaxPage = taxPagePath
-      ? compareArrays(path.slice(0, taxPagePath.length), taxPagePath)
-      : false;
-    if (isTaxPage) return PageType.TaxPage;
-
-    const isProfilePage = profilePagePath
-      ? compareArrays(path.slice(0, profilePagePath.length), profilePagePath)
-      : false;
-    if (isProfilePage) return PageType.ProfilePage;
-
-    return PageType.DonationsPage;
-  }
+  // Min Side is the App Router's (app/(minside)); the proxy never sends its paths here
+  if (isDashboard) return null;
   return PageType.GenericPage;
 };
 
@@ -265,6 +179,7 @@ const getPageStaticProps = async (
   const revalidate = isDanishSite || draftMode ? 1 : 3600;
 
   const pageType = await inferPageTypeFromPath(path);
+  if (pageType === null) return { notFound: true } as const;
 
   switch (pageType) {
     case PageType.GenericPage: {
@@ -345,65 +260,6 @@ const getPageStaticProps = async (
         revalidate,
       } as const;
     }
-    case PageType.VippsAnonymousPage: {
-      const props = await VippsAnonymousPageData.getStaticProps({ draftMode, consentState });
-      return {
-        props: {
-          ...props,
-          pageType,
-          consentState,
-        },
-        revalidate,
-      } as const;
-    }
-    case PageType.DonationsPage: {
-      const props = await DonationsPageData.getStaticProps({ draftMode, consentState, path });
-      return {
-        props: {
-          ...props,
-          pageType,
-          consentState,
-        },
-        revalidate,
-      } as const;
-    }
-    case PageType.AgreementsPage: {
-      const props = await AgreementsPageData.getStaticProps({
-        draftMode,
-        consentState,
-        slug: path,
-      });
-      return {
-        props: {
-          ...props,
-          pageType,
-          consentState,
-        },
-        revalidate,
-      } as const;
-    }
-    case PageType.ProfilePage: {
-      const props = await ProfilePageData.getStaticProps({ draftMode, consentState });
-      return {
-        props: {
-          ...props,
-          pageType,
-          consentState,
-        },
-        revalidate,
-      } as const;
-    }
-    case PageType.TaxPage: {
-      const props = await TaxPageData.getStaticProps({ draftMode, path, consentState });
-      return {
-        props: {
-          ...props,
-          pageType,
-          consentState,
-        },
-        revalidate,
-      } as const;
-    }
   }
 };
 
@@ -419,24 +275,18 @@ export async function getStaticPaths() {
     process.env.E2E_DEFER_API_PAGES === "1"
       ? Promise.resolve([])
       : getFundraiserPagePaths(routerContext.fundraisersPath),
-    getDonationsPageSubpaths(),
-    getTaxPageSubPaths(),
-  ]).then(
-    ([
-      genericPagePaths,
-      articlePaths,
-      fundraiserPagePaths,
-      donationsPageSubpaths,
-      taxPageSubPaths,
-    ]) => [
-      ...genericPagePaths,
-      ...articlePaths,
-      ...fundraiserPagePaths,
-      ...donationsPageSubpaths,
-      ...taxPageSubPaths,
-      ...(Object.values(routerContext).filter((path) => path !== null) as string[][]),
-    ],
-  );
+  ]).then(([genericPagePaths, articlePaths, fundraiserPagePaths]) => [
+    ...genericPagePaths,
+    ...articlePaths,
+    ...fundraiserPagePaths,
+    // The content site's own listing pages; Min Side's paths belong to the App Router
+    ...([
+      routerContext.articlesPagePath,
+      routerContext.resultsPagePath,
+      routerContext.vippsAgreementPagePath,
+      routerContext.fundraisersPath,
+    ].filter((path) => path !== null) as string[][]),
+  ]);
 
   const consentStates: ConsentState[] = ["accepted", "rejected", "undecided"];
 

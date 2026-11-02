@@ -1,10 +1,9 @@
-import { useContext, useState } from "react";
-import { DonorContext } from "../donorProvider";
+import type { Donor } from "../../../../models";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Lightbox } from "../../../shared/components/Lightbox/Lightbox";
 import { EffektTextInput } from "../../../shared/components/EffektTextInput/EffektTextInput";
-import { saveDonor } from "../../_queries";
-import { useAuth0 } from "@auth0/auth0-react";
-import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
+import { useMinsideTrpc } from "../../../../lib/trpc/useTrpcClient";
 import { AlertCircle, Check } from "react-feather";
 import { toast } from "react-toastify";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
@@ -21,10 +20,12 @@ export type MissingNameModalConfig = {
   success_message: string;
 };
 
-export const MissingNameModal: React.FC<{ config: MissingNameModalConfig }> = ({ config }) => {
-  const { donor, setDonor } = useContext(DonorContext);
-  const { user, getAccessTokenSilently } = useAuth0();
-  const trpc = useTrpcClient(getAccessTokenSilently);
+export const MissingNameModal: React.FC<{ config: MissingNameModalConfig; donor: Donor }> = ({
+  config,
+  donor,
+}) => {
+  const trpc = useMinsideTrpc();
+  const router = useRouter();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -34,17 +35,16 @@ export const MissingNameModal: React.FC<{ config: MissingNameModalConfig }> = ({
 
   const saveName = async () => {
     setLoading(true);
-    if (donor && user) {
-      const updatedDonor = { ...donor, name };
-      const result = await saveDonor(updatedDonor, user, trpc);
-      if (result === null) {
-        failureToast(config.failure_message);
-      } else {
-        successToast(config.success_message);
-        setDonor(updatedDonor);
-        setDismissed(true);
-      }
-    } else {
+    try {
+      await trpc.minside.updateProfile.mutate({
+        donorId: donor.id,
+        name,
+        newsletter: donor.newsletter,
+      });
+      successToast(config.success_message);
+      setDismissed(true);
+      router.refresh();
+    } catch {
       failureToast(config.failure_message);
     }
     setLoading(false);

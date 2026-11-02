@@ -35,7 +35,7 @@ export const createWebTrpcClient = ({
   url = apiUrl(),
 }: {
   flavor: ApiFlavor;
-  /** Returns the Auth0 access token (getAccessToken from hooks/useApi) */
+  /** Returns the access token (on the server, the session's: lib/minside/dal.ts) */
   getToken: () => Promise<string>;
   url?: string;
 }): TrpcClient =>

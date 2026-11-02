@@ -1,7 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useAuth0 } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../../hooks/useApi";
-import { useSWRConfig } from "swr";
+import { useRouter } from "next/navigation";
 import AnimateHeight from "react-animate-height";
 import { AlertCircle, Check, Info } from "react-feather";
 import { toast } from "react-toastify";
@@ -13,7 +11,7 @@ import {
   DKPaymentMethod,
   TaxUnit,
 } from "../../../../../models";
-import { isMinsideDistributionsKey, useCauseAreas } from "../../../../../_queries";
+import { useCauseAreas } from "../../../../../_queries";
 import { DatePickerInput } from "../../../../shared/components/DatePicker/DatePickerInput";
 import {
   EffektButton,
@@ -33,8 +31,10 @@ import {
   getDKMembershipDisplay,
   MEMBERSHIP_ORGANIZATION_ID,
 } from "./dkMembershipDisplay";
-import { getUserId } from "../../../../../lib/user";
-import { cancelDKAgreement, updateDKAgreement } from "./_queries";
+import {
+  cancelDKAgreementAction,
+  updateDKAgreementAction,
+} from "../../../../../app/(minside)/minside-app/actions";
 import {
   getStandardOrganizationId,
   getStandardOrganizationIds,
@@ -72,8 +72,7 @@ export const DKAgreementDetails: React.FC<{
   configuration,
   causeAreaContexts,
 }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-  const { mutate } = useSWRConfig();
+  const router = useRouter();
 
   const [distribution, setDistribution] = useState<Distribution | null>(() =>
     inputDistribution ? hydrateDistributionAmounts(inputDistribution, inputSum) : null,
@@ -154,11 +153,7 @@ export const DKAgreementDetails: React.FC<{
     if (!canSave) {
       return;
     }
-    if (!user) {
-      throw new Error("User is not logged in");
-    }
 
-    const token = await getAccessToken(getAccessTokenSilently);
     // Cause areas added at 0 for editing are not a change
     const distributionChanged = !isSameDistribution(distribution, lastSavedDistribution);
     const agreementSum =
@@ -191,22 +186,17 @@ export const DKAgreementDetails: React.FC<{
 
     setLoadingChanges(true);
 
-    const result = await updateDKAgreement(
-      getUserId(user),
+    const result = await updateDKAgreementAction(
       agreementId,
       distributionChanged || sumChanged ? distributionPayload : null,
       dayChanged ? day : null,
       sumChanged ? agreementSum : null,
-      token,
     );
 
     if (result !== null) {
       successToast(configuration.toasts_configuration.success_text);
       setLastSavedDistribution(cloneDistribution(distribution));
-      await Promise.all([
-        mutate(`/donors/${getUserId(user)}/recurring/`),
-        mutate(isMinsideDistributionsKey(getUserId(user))),
-      ]);
+      router.refresh();
     } else {
       failureToast(configuration.toasts_configuration.failure_text);
     }
@@ -232,17 +222,12 @@ export const DKAgreementDetails: React.FC<{
   };
 
   const cancel = async () => {
-    if (!user) {
-      throw new Error("User is not logged in");
-    }
-
     setLightboxOpen(false);
-    const token = await getAccessToken(getAccessTokenSilently);
-    const cancelled = await cancelDKAgreement(getUserId(user), agreementId, token);
+    const cancelled = await cancelDKAgreementAction(agreementId);
 
     if (cancelled) {
       successToast(configuration.toasts_configuration.success_text);
-      await mutate(`/donors/${getUserId(user)}/recurring/`);
+      router.refresh();
       return;
     }
 

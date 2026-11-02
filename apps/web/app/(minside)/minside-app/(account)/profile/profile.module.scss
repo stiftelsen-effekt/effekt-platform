@@ -1,0 +1,13 @@
+// The profile form and, beside it, what we do with the donor's data. The form's heading is the
+// page title, so the data column starts where the form does.
+.gridContainer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  column-gap: 100px;
+  align-items: start;
+
+  @media (max-width: 1180px) {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 40px;
+  }
+}

@@ -1,5 +1,6 @@
-import { useAuth0, User } from "@auth0/auth0-react";
-import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
+import { useMinsideSession } from "../../../../context/MinsideSessionContext";
+import { useRouter } from "next/navigation";
+import { useMinsideTrpc } from "../../../../lib/trpc/useTrpcClient";
 import { useCallback, useState } from "react";
 import { TaxUnit } from "../../../../models";
 import { Lightbox } from "../../../shared/components/Lightbox/Lightbox";
@@ -9,7 +10,7 @@ import { toast } from "react-toastify";
 
 import styles from "./TaxUnitModal.module.scss";
 import { AlertCircle, Check } from "react-feather";
-import { useTaxUnits } from "../../../../_queries";
+import { useMinsideTaxUnits } from "../../../../_queries";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
 import { validateTin, formatTinInput } from "../../../../util/tin-validation";
 import { TaxUnitTypes } from "./taxUnitTypes";
@@ -21,10 +22,11 @@ export const DKTaxUnitEditModal: React.FC<{
   onFailure: () => void;
   onClose: () => void;
 }> = ({ open, initial, onSuccess, onFailure, onClose }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-  const trpc = useTrpcClient(getAccessTokenSilently);
+  const { donorId } = useMinsideSession();
+  const trpc = useMinsideTrpc();
+  const router = useRouter();
 
-  const { loading: loadingUnits } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { loading: loadingUnits } = useMinsideTaxUnits();
 
   const initialSsnDigits = initial.ssn.replace(/\D/g, "");
   const [name, setName] = useState(initial.name === "Anonym" ? "" : initial.name);
@@ -38,14 +40,12 @@ export const DKTaxUnitEditModal: React.FC<{
   const create = useCallback(async () => {
     setLoading(true);
 
-    if (!user) {
-      return;
-    }
     const ssnDigits = ssn.replace(/\D/g, "");
-    const result = await updateTaxUnit({ ...initial, name: name, ssn: ssnDigits }, user, trpc);
+    const result = await updateTaxUnit({ ...initial, name: name, ssn: ssnDigits }, donorId, trpc);
 
     if (result && typeof result !== "string") {
       successToast();
+      router.refresh();
       onSuccess(result);
       setError("");
     } else if (typeof result === "string") {
@@ -59,7 +59,7 @@ export const DKTaxUnitEditModal: React.FC<{
       setLoading(false);
       setError("");
     }
-  }, [name, ssn, user, trpc, initial, onSuccess, onFailure]);
+  }, [router, name, ssn, donorId, trpc, initial, onSuccess, onFailure]);
 
   if (loadingUnits) {
     return <Spinner />;

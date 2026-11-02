@@ -6,10 +6,8 @@ import dynamic from "next/dynamic";
 
 // import { usePreviewSubscription } from "../lib/sanity";
 import { RouterContext, RouterContextValue, fetchRouterContext } from "../context/RouterContext";
-import { getProfileLayoutStaticProps } from "../components/profile/layout/layoutStaticProps";
 import { Layout } from "../components/main/layout/layout";
-import { FullPageSpinner } from "../components/shared/layout/FullPageSpinner/FullPageSpinner";
-import { ConsentState } from "../proxy.page";
+import type { ConsentState } from "../proxy.page";
 import {
   createWidgetStore,
   WidgetStoreProvider,
@@ -20,13 +18,6 @@ import { useTrackingEnabled } from "../hooks/useTrackingEnabled";
 import { createVisibilityHiddenHandler } from "../util/visibilityBeacon";
 
 const PreviewProvider = lazy(() => import("../components/shared/PreviewProvider"));
-// The Min side layout (with Auth0) is only loaded on dashboard pages. It is still server-rendered,
-// and Next loads its chunk before hydrating. On client-side navigation the placeholder matches
-// what the layout itself shows while it checks the login.
-const ProfileLayout = dynamic(
-  () => import("../components/profile/layout/layout").then((m) => m.ProfileLayout),
-  { loading: () => <FullPageSpinner /> },
-);
 const VisualEditing = dynamic(
   () => import("@sanity/visual-editing/next-pages-router").then((mod) => mod.VisualEditing),
   { ssr: false },
@@ -36,7 +27,6 @@ const globalWidgetStore = createWidgetStore();
 
 export enum LayoutType {
   Default = "default",
-  Profile = "profile",
 }
 
 export type GeneralPageProps = Record<string, unknown> & {
@@ -108,15 +98,9 @@ function MyApp({
         <PlausibleProvider enabled={tracking}>
           <WidgetStoreProvider store={globalWidgetStore}>
             <RouterContext.Provider value={routerContextValue}>
-              {appStaticProps.layout === LayoutType.Default ? (
-                <Layout {...appStaticProps.layoutProps}>
-                  <Component {...pageProps} />
-                </Layout>
-              ) : (
-                <ProfileLayout {...appStaticProps.layoutProps}>
-                  <Component {...pageProps} />
-                </ProfileLayout>
-              )}
+              <Layout {...appStaticProps.layoutProps}>
+                <Component {...pageProps} />
+              </Layout>
             </RouterContext.Provider>
           </WidgetStoreProvider>
         </PlausibleProvider>
@@ -131,15 +115,9 @@ function MyApp({
     <PlausibleProvider>
       <WidgetStoreProvider store={globalWidgetStore}>
         <RouterContext.Provider value={routerContextValue}>
-          {appStaticProps.layout === LayoutType.Default ? (
-            <Layout {...appStaticProps.layoutProps}>
-              <Component {...pageProps} />
-            </Layout>
-          ) : (
-            <ProfileLayout {...appStaticProps.layoutProps}>
-              <Component {...pageProps} />
-            </ProfileLayout>
-          )}
+          <Layout {...appStaticProps.layoutProps}>
+            <Component {...pageProps} />
+          </Layout>
         </RouterContext.Provider>
       </WidgetStoreProvider>
     </PlausibleProvider>
@@ -149,27 +127,18 @@ function MyApp({
 export async function getAppStaticProps({
   draftMode = false,
   consentState,
-  layout = LayoutType.Default,
   showGiveButton = true,
 }: {
   draftMode: boolean;
   consentState: ConsentState;
-  layout?: LayoutType;
   showGiveButton?: boolean;
 }) {
   const routerContext = await fetchRouterContext();
 
   const appStaticProps = {
     routerContext,
-    ...(layout === LayoutType.Default
-      ? {
-          layout: LayoutType.Default as const,
-          layoutProps: await Layout.getStaticProps({ draftMode, consentState, showGiveButton }),
-        }
-      : {
-          layout: LayoutType.Profile as const,
-          layoutProps: await getProfileLayoutStaticProps({ draftMode, consentState }),
-        }),
+    layout: LayoutType.Default as const,
+    layoutProps: await Layout.getStaticProps({ draftMode, consentState, showGiveButton }),
   };
   return appStaticProps;
 }

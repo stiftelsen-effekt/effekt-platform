@@ -11,3 +11,9 @@
     margin-right: auto;
   }
 }
+
+@media (max-width: 1180px) {
+  .title {
+    display: none;
+  }
+}

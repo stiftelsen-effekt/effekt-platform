@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic";
-import { useRouter } from "next/router";
+import { useRouter } from "next/compat/router";
 import React, { ComponentProps, useContext, useEffect, useState } from "react";
 import type { Widget as WidgetType } from "../../../shared/components/Widget/components/Widget";
 import { WidgetContext } from "../layout";
@@ -24,18 +24,30 @@ export interface WidgetPaneProps extends ComponentProps<typeof WidgetType> {
 
 export const WidgetPane: React.FC<WidgetPaneProps> = ({ darkMode, ...widgetProps }) => {
   const [widgetContext] = useContext(WidgetContext);
-  const { query } = useRouter();
+  const router = useRouter();
+  const query = router?.query;
 
   // The widget (its code, and its cause areas and referral types from the API) is only loaded
   // once the pane is first opened, and then kept for the rest of the visit. The pane is fixed
   // and hidden while closed, so this doesn't move the page. Links with ?distribution= or
   // ?recurring= open the pane from inside the widget (useQueryParamsPrefill), so those load it
   // right away.
-  const opensFromQuery = query.distribution !== undefined || query.recurring !== undefined;
+  const opensFromQuery = query?.distribution !== undefined || query?.recurring !== undefined;
   const [widgetLoaded, setWidgetLoaded] = useState(false);
   if (!widgetLoaded && (widgetContext.open || opensFromQuery)) {
     setWidgetLoaded(true);
   }
+
+  useEffect(() => {
+    if (!router) {
+      const search = new URLSearchParams(window.location.search);
+      if (search.has("distribution") || search.has("recurring")) {
+        // The URL is browser-only and must not change the server-rendered markup during hydration.
+        // oxlint-disable-next-line react/set-state-in-effect
+        setWidgetLoaded(true);
+      }
+    }
+  }, [router]);
 
   // On initial load, have no animation
   // Then reset on render

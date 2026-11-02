@@ -11,9 +11,9 @@ import {
   updateVippsAgreementDistribution,
   updateVippsAgreementPrice,
 } from "./_queries";
-import { useAuth0 } from "@auth0/auth0-react";
-import { useTrpcClient } from "../../../../../lib/trpc/useTrpcClient";
-import { useSWRConfig } from "swr";
+import { useMinsideSession } from "../../../../../context/MinsideSessionContext";
+import { useRouter } from "next/navigation";
+import { useMinsideTrpc } from "../../../../../lib/trpc/useTrpcClient";
 import { AlertCircle, Check, Info } from "react-feather";
 import style from "./AgreementDetails.module.scss";
 import {
@@ -22,9 +22,8 @@ import {
 } from "../../../../shared/components/EffektButton/EffektButton";
 import { Lightbox } from "../../../../shared/components/Lightbox/Lightbox";
 import { checkPaymentDate } from "../../../../../util/dates";
-import { getUserId } from "../../../../../lib/user";
 import { AgreementSingleCauseAreaDetails } from "./singleCauseAreaDetails/AgreementSingleCauseAreaDetails";
-import { isMinsideDistributionsKey, minsideKeys, useCauseAreas } from "../../../../../_queries";
+import { useCauseAreas } from "../../../../../_queries";
 import {
   AgreementMultipleCauseAreaDetails,
   AgreementMultipleCauseAreaDetailsConfiguration,
@@ -90,9 +89,9 @@ export const AgreementDetails: React.FC<{
   agreementCancelled,
   configuration,
 }) => {
-  const { getAccessTokenSilently, user } = useAuth0();
-  const trpc = useTrpcClient(getAccessTokenSilently);
-  const { mutate } = useSWRConfig();
+  const { donorId } = useMinsideSession();
+  const trpc = useMinsideTrpc();
+  const router = useRouter();
   // Parse and stringify to make a deep copy of the object
   const [distribution, setDistribution] = useState<Distribution>(() =>
     hydrateDistributionAmounts(inputDistribution, inputSum),
@@ -201,8 +200,6 @@ export const AgreementDetails: React.FC<{
       return;
     }
 
-    if (!user) throw new Error("User is not logged in");
-
     let distributionPayload: Distribution;
     try {
       distributionPayload = prepareDistributionForSave(
@@ -216,14 +213,6 @@ export const AgreementDetails: React.FC<{
     }
 
     setLoadingChanges(true);
-
-    const donorId = getUserId(user);
-    const revalidate = (agreementsKey: readonly unknown[]) => {
-      mutate(agreementsKey);
-      // The distributions are cached by KID; an AvtaleGiro agreement keeps its KID when its
-      // distribution is replaced
-      mutate(isMinsideDistributionsKey(donorId));
-    };
 
     if (type == "Vipps" || type == "AvtaleGiro") {
       const updates =
@@ -258,12 +247,7 @@ export const AgreementDetails: React.FC<{
         updates.filter((update): update is () => Promise<true | null> => !!update),
       );
 
-      // Revalidate either way: an earlier change may have gone through before one failed
-      revalidate(
-        type == "Vipps"
-          ? minsideKeys.vippsAgreements(donorId)
-          : minsideKeys.avtaleGiroAgreements(donorId),
-      );
+      router.refresh();
       if (saved) {
         successToast(configuration.toasts_configuration.success_text);
         setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
@@ -278,24 +262,22 @@ export const AgreementDetails: React.FC<{
   };
 
   const cancel = async () => {
-    if (!user) throw new Error("User is not logged in");
-
     setLightboxOpen(false);
     if (type === "Vipps") {
-      const cancelled = await cancelVippsAgreement(trpc, getUserId(user), agreementId);
+      const cancelled = await cancelVippsAgreement(trpc, donorId, agreementId);
       if (cancelled) {
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);
-        mutate(minsideKeys.vippsAgreements(getUserId(user)));
+        router.refresh();
       } else {
         failureToast(configuration.toasts_configuration.failure_text);
       }
     } else if (type === "AvtaleGiro") {
-      const cancelled = await cancelAvtaleGiroAgreement(trpc, getUserId(user), endpoint);
+      const cancelled = await cancelAvtaleGiroAgreement(trpc, donorId, endpoint);
       if (cancelled) {
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);
-        mutate(minsideKeys.avtaleGiroAgreements(getUserId(user)));
+        router.refresh();
       } else {
         failureToast(configuration.toasts_configuration.failure_text);
       }

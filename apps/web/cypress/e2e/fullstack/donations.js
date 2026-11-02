@@ -13,7 +13,6 @@ import {
   AMF,
   IMPACT,
 } from "../../../../../apps/api/prisma/e2e/data.mjs";
-import { trpcData, trpcQueryInput, trpcUrl } from "../../support/trpc";
 
 // The seeded donations (apps/api/prisma/e2e/seed.mjs): 7 donations, 5 200 kr in total, 2022–2025
 const TOTAL = 5200;
@@ -24,21 +23,16 @@ describe("Donations page (full stack)", () => {
     cy.task("resetE2EData");
     cy.loginFullstack(DONOR_ID);
 
-    cy.intercept("GET", trpcUrl("minside.donations")).as("donations");
-    cy.intercept("GET", trpcUrl("minside.donationsAggregated")).as("aggregated");
-    cy.intercept("GET", trpcUrl("minside.distributions")).as("distributions");
     // The impact comes with minside.donations: nothing may call the legacy impact API
     cy.intercept("https://impact.gieffektivt.no/**", () => {
       throw new Error("Min Side called the legacy impact API");
     }).as("legacyImpact");
 
     cy.visit("/min-side/");
-    cy.wait(["@donations", "@aggregated", "@distributions"], { timeout: 30000 });
   });
 
   it("gets the donor's donations, aggregates and distributions from the API", () => {
-    cy.get("@donations").then((interception) => {
-      const donations = trpcData(interception, "minside.donations");
+    cy.apiQuery("minside.donations", { donorId: DONOR_ID }).then((donations) => {
       expect(donations).to.have.length(7);
       expect(donations.find((d) => d.id === 900006)).to.deep.include({
         KID: KIDS.bank,
@@ -49,20 +43,15 @@ describe("Donations page (full stack)", () => {
       });
     });
 
-    cy.get("@aggregated").then((interception) => {
-      const rows = trpcData(interception, "minside.donationsAggregated");
+    cy.apiQuery("minside.donationsAggregated", { donorId: DONOR_ID }).then((rows) => {
       const total = rows.reduce((sum, row) => sum + parseFloat(row.value), 0);
       expect(Math.round(total)).to.equal(TOTAL);
       expect([...new Set(rows.map((row) => row.year))].sort()).to.deep.equal(YEARS);
     });
 
-    cy.get("@distributions").then((interception) => {
-      const distributions = trpcData(interception, "minside.distributions");
+    cy.apiQuery("minside.distributions", { donorId: DONOR_ID }).then((distributions) => {
       // All of the donor's distributions, fetched without a KID list in the page's first batch:
       // those of the donations (bank, Vipps (custom) and AvtaleGiro) among them, and only the donor's
-      expect(trpcQueryInput(interception, "minside.distributions")).to.deep.equal({
-        donorId: DONOR_ID,
-      });
       const kids = distributions.map((d) => d.kid);
       expect(kids).to.include.members([KIDS.bank, KIDS.vippsCustom, KIDS.avtalegiro]);
       expect(Object.values(KIDS)).to.include.members(kids);
@@ -84,19 +73,19 @@ describe("Donations page (full stack)", () => {
   it("shows the total and a list per year", () => {
     cy.get("[data-cy=aggregated-donation-totals]").should("contain.text", "5 200 kr");
     for (const year of YEARS) {
-      cy.get("[data-cy=year-menu]").should("contain.text", year);
-      cy.get("[data-cy=generic-list-header]").should("contain.text", year);
+      cy.get("[data-cy=year-menu]:visible").should("contain.text", year);
+      cy.get("[data-cy=generic-list-header]:visible").should("contain.text", year);
     }
   });
 
   it("lists a donation with its sum and KID", () => {
-    cy.get("[data-cy=generic-list-table]")
+    cy.get("[data-cy=generic-list-table]:visible")
       .contains("tbody", KIDS.bank)
       .should("contain.text", "2 500 kr");
   });
 
   it("shows the stored distribution when a donation is expanded", () => {
-    cy.get("[data-cy=generic-list-table]")
+    cy.get("[data-cy=generic-list-table]:visible")
       .contains("tbody", KIDS.vippsCustom)
       .as("donation")
       .find("[data-cy=generic-list-row-expand]")
@@ -108,10 +97,12 @@ describe("Donations page (full stack)", () => {
   });
 
   it("shows only that year's donations when a year is picked", () => {
-    cy.get("[data-cy=year-menu]").find("ul").contains("li", "2024").click();
-    cy.get("[data-cy=generic-list-header]").should("have.length", 1).and("contain.text", "2024");
+    cy.get("[data-cy=year-menu]:visible").find("ul").contains("li", "2024").click();
+    cy.get("[data-cy=generic-list-header]:visible")
+      .should("have.length", 1)
+      .and("contain.text", "2024");
     // 2024 has the Vipps and AvtaleGiro donations; the bank transfers are from other years
-    cy.get("[data-cy=generic-list-table]")
+    cy.get("[data-cy=generic-list-table]:visible")
       .should("contain.text", KIDS.vippsCustom)
       .and("contain.text", KIDS.avtalegiro)
       .and("not.contain.text", KIDS.bank);
@@ -132,8 +123,7 @@ describe("Donations page (full stack)", () => {
     };
 
     it("gets every donation's impact with the donations, computed on the server", () => {
-      cy.get("@donations").then((interception) => {
-        const donations = trpcData(interception, "minside.donations");
+      cy.apiQuery("minside.donations", { donorId: DONOR_ID }).then((donations) => {
         expect(donations.every((d) => Array.isArray(d.impact))).to.equal(true);
 
         const sums = outputs(donations);
@@ -161,7 +151,7 @@ describe("Donations page (full stack)", () => {
     });
 
     it("shows the totals per output in the impact table", () => {
-      cy.get("[data-cy=donation-aggregate-impact-distribution-row]").as("rows");
+      cy.get("[data-cy=donation-aggregate-impact-distribution-row]:visible").as("rows");
       cy.get("@rows").should("have.length", 4);
       // Sorted by name; rounded to whole outputs, or the first decimal that isn't 0
       const expected = [
@@ -177,8 +167,8 @@ describe("Donations page (full stack)", () => {
     });
 
     it("shows a year's totals", () => {
-      cy.get("[data-cy=year-menu]").find("ul").contains("li", "2025").click();
-      cy.get("[data-cy=donation-aggregate-impact-distribution-row]").as("rows");
+      cy.get("[data-cy=year-menu]:visible").find("ul").contains("li", "2025").click();
+      cy.get("[data-cy=donation-aggregate-impact-distribution-row]:visible").as("rows");
       cy.get("@rows").should("have.length", 2);
       cy.get("@rows").eq(0).find("strong").should("have.text", "7");
       cy.get("@rows").eq(0).should("contain.text", "malariabehandlinger");
@@ -187,7 +177,7 @@ describe("Donations page (full stack)", () => {
     });
 
     it("shows a donation's own impact when it is expanded", () => {
-      cy.get("[data-cy=generic-list-table]")
+      cy.get("[data-cy=generic-list-table]:visible")
         .contains("tbody", "2 500 kr")
         .as("donation")
         .find("[data-cy=generic-list-row-expand]")
