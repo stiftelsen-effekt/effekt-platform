@@ -11,7 +11,7 @@ import styles from "../styles/Articles.module.css";
 import { withStaticProps } from "../util/withStaticProps";
 import { GeneralPageProps, getAppStaticProps } from "./_app.page";
 import { token } from "../token";
-import { ConsentState } from "../proxy.page";
+import type { ConsentState } from "../proxy.page";
 
 export const ArticlesPage = withStaticProps(
   async ({

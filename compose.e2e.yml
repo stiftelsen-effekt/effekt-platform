@@ -52,6 +52,9 @@ services:
 
   auth:
     ports: !reset []
+    # The login page lists the test donors (scripts/e2e/mock-login.html, loginPagePath below)
+    volumes:
+      - ./scripts/e2e/mock-login.html:/app/login/login.html:ro
     environment:
       # Replaces the dev config: only the `web` issuer, used through `oidc` below.
       # Donor login: authorization_code via the login form, the numeric user-id claim is posted
@@ -61,6 +64,7 @@ services:
       JSON_CONFIG: |
         {
           "interactiveLogin": true,
+          "loginPagePath": "/app/login/login.html",
           "httpServer": "NettyWrapper",
           "tokenCallbacks": [
             {
@@ -121,10 +125,29 @@ services:
       timeout: 5s
       retries: 30
 
+  # Stand-in for the Vipps API (scripts/e2e/vipps-stub.mjs), so agreement changes work offline
+  vipps:
+    image: node:24.22.1
+    command: ["node", "/stub/vipps-stub.mjs"]
+    volumes:
+      - ./scripts/e2e/vipps-stub.mjs:/stub/vipps-stub.mjs:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/recurring/v3/agreements').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
   api:
     ports: !override
       - "${E2E_API_PORT:-5150}:5050"
     environment:
+      VIPPS_API_ORIGIN: http://vipps:8080
       AUTH_BASE_URL: http://oidc:8080/
       AUTH_ADDITIONAL_ISSUERS: http://localhost:${E2E_AUTH_PORT:-8191}/
       FRONTEND_URL: http://localhost:3100
@@ -135,6 +158,8 @@ services:
       seed-e2e:
         condition: service_completed_successfully
       oidc:
+        condition: service_healthy
+      vipps:
         condition: service_healthy
 
   admin:
@@ -160,8 +185,20 @@ configs:
           rewrite ^ /web/jwks break;
           proxy_pass http://auth:8080;
         }
+        # The mock's own discovery document names its internal host (auth:8080) and an issuer that
+        # doesn't match the tokens' iss. The server-side OIDC client (nextjs-auth0, Min Side on the
+        # App Router) discovers this one instead. auth0-spa-js and the API don't read discovery.
         location = /.well-known/openid-configuration {
-          rewrite ^ /web/.well-known/openid-configuration break;
+          default_type application/json;
+          return 200 '{"issuer":"http://localhost:${E2E_AUTH_PORT:-8191}/","authorization_endpoint":"http://localhost:${E2E_AUTH_PORT:-8191}/authorize","token_endpoint":"http://localhost:${E2E_AUTH_PORT:-8191}/oauth/token","jwks_uri":"http://localhost:${E2E_AUTH_PORT:-8191}/.well-known/jwks.json","end_session_endpoint":"http://localhost:${E2E_AUTH_PORT:-8191}/oidc/logout","revocation_endpoint":"http://localhost:${E2E_AUTH_PORT:-8191}/oauth/revoke","response_types_supported":["code"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["RS256"],"code_challenge_methods_supported":["S256"],"token_endpoint_auth_methods_supported":["client_secret_basic","client_secret_post"]}';
+        }
+        location = /oidc/logout {
+          rewrite ^ /web/endsession break;
+          proxy_pass http://auth:8080;
+        }
+        # Logout revokes the session's refresh token
+        location = /oauth/revoke {
+          rewrite ^ /web/revoke break;
           proxy_pass http://auth:8080;
         }
         location / {

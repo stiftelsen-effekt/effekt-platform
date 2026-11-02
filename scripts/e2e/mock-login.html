@@ -1,0 +1,121 @@
+<!doctype html>
+<!--
+  Login page of the local mock OIDC issuer (compose.e2e.yml, loginPagePath): pick a test donor to
+  log in as. Only used by the local stack (pnpm minside:local, pnpm e2e:fullstack). It posts the
+  same fields as the mock's own form (username, claims), so the login is the real
+  authorize → code → token flow, and cy.loginFullstack can still fill the manual form below.
+-->
+<html lang="no">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Test login</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --fg: #fafafa;
+        --muted: #a3a3a3;
+        --line: #333;
+        --card: #111;
+        --accent: #fff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main { max-width: 640px; margin: 0 auto; padding: 48px 16px 64px; }
+      h1 { font-size: 28px; font-weight: 500; margin: 0 0 4px; }
+      .note { color: var(--muted); margin: 0 0 32px; font-size: 14px; }
+      h2 {
+        font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--muted); margin: 32px 0 12px;
+      }
+      .donors { display: grid; gap: 10px; }
+      button.donor {
+        display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 16px;
+        width: 100%; padding: 16px 18px; text-align: left; cursor: pointer;
+        background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 12px;
+        font: inherit; transition: border-color 0.15s, background 0.15s;
+      }
+      button.donor:hover, button.donor:focus-visible { border-color: var(--accent); background: #181818; outline: none; }
+      .name { font-weight: 600; }
+      .id { grid-row: span 2; font: 13px ui-monospace, monospace; color: var(--muted); }
+      .desc { color: var(--muted); font-size: 14px; }
+      .manual { border-top: 1px solid var(--line); padding-top: 4px; }
+      label { display: block; margin-top: 12px; font-size: 14px; color: var(--muted); }
+      input[type="text"], textarea {
+        display: block; width: 100%; margin-top: 4px; padding: 10px 12px;
+        background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 8px;
+        font: 14px ui-monospace, monospace;
+      }
+      input[type="submit"] {
+        margin-top: 16px; padding: 10px 20px; border-radius: 999px; border: 0;
+        background: var(--accent); color: #000; font: inherit; cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Test login</h1>
+      <p class="note">Local mock issuer: choose who to log in as. No real accounts or data.</p>
+
+      <form method="post" id="login">
+        <h2>Norway (pnpm minside:local)</h2>
+        <div class="donors">
+          <button type="button" class="donor" data-donor="900001">
+            <span class="name">E2E donor</span><span class="id">900001</span>
+            <span class="desc">Vipps and AvtaleGiro agreements, two tax units, donations 2022–2025</span>
+          </button>
+          <button type="button" class="donor" data-donor="2">
+            <span class="name">Heavy donor</span><span class="id">2</span>
+            <span class="desc">238 donations over six years, Vipps and AvtaleGiro, a tax unit</span>
+          </button>
+          <button type="button" class="donor" data-donor="1">
+            <span class="name">Stress test</span><span class="id">1</span>
+            <span class="desc">3 250 donations</span>
+          </button>
+          <button type="button" class="donor" data-donor="99">
+            <span class="name">Light donor</span><span class="id">99</span>
+            <span class="desc">3 donations, no agreements or tax units</span>
+          </button>
+        </div>
+
+        <h2>Denmark (pnpm minside:local dk)</h2>
+        <div class="donors">
+          <button type="button" class="donor" data-donor="0" data-email="donor@example.org">
+            <span class="name">Danish test donor</span><span class="id">0</span>
+            <span class="desc">The Danish backend stub's synthetic donor (found by email, id 0)</span>
+          </button>
+        </div>
+
+        <h2>Other claims</h2>
+        <div class="manual">
+          <label>Username (any)
+            <input type="text" name="username" required placeholder="e2e-donor-900001" />
+          </label>
+          <label>Claims (JSON)
+            <textarea name="claims" rows="4" placeholder='{"https://gieffektivt.no/user-id": 900001}'></textarea>
+          </label>
+          <input type="submit" value="Log in" />
+        </div>
+      </form>
+    </main>
+    <script>
+      const form = document.getElementById("login");
+      for (const button of document.querySelectorAll("button.donor")) {
+        button.addEventListener("click", () => {
+          const id = Number(button.dataset.donor);
+          const claims = { "https://gieffektivt.no/user-id": id };
+          if (button.dataset.email) claims.email = button.dataset.email;
+          form.elements.username.value = `test-donor-${id}`;
+          form.elements.claims.value = JSON.stringify(claims);
+          form.submit();
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-4);
+  max-width: var(--ds-measure);
+  padding-top: var(--ds-space-6);
+  border-top: var(--ds-border-width) solid var(--ds-ink);
+  // A long address wraps rather than overflowing
+  overflow-wrap: anywhere;
+}

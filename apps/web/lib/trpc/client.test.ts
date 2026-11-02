@@ -12,5 +12,8 @@ describe("isProcedureAvailable", () => {
     // The Danish backend has no route for saving the donor's profile
     expect(isProcedureAvailable("dk", "minside.updateProfile")).toBe(false);
     expect(isProcedureAvailable("dk", "toString")).toBe(false);
+    // Nor for the donation status: Min Side shows the donations as received only there
+    expect(isProcedureAvailable("dk", "minside.donationStatus")).toBe(false);
+    expect(isProcedureAvailable("no", "minside.donationStatus")).toBe(true);
   });
 });

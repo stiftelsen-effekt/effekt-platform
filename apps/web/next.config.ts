@@ -4,6 +4,7 @@ import { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { withPlausibleProxy } from "next-plausible";
 import { getPlausibleScriptSrc, PLAUSIBLE_PROXY_PATHS } from "./lib/plausible";
+import { fetchMinsidePaths } from "./lib/minside/sanityPaths";
 
 const STUDIO_REWRITE = {
   source: "/studio/:path*",
@@ -47,6 +48,10 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
   },
   pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.js"],
+  // App Router (Min Side, app/) only: static shells prerendered at build, request data (the
+  // session, donor data) streamed behind <Suspense>. Both become the default in Next.js 17.
+  cacheComponents: true,
+  partialPrefetching: true,
   experimental: {
     optimizePackageImports: ["react-feather"],
     inlineCss: true,
@@ -919,10 +924,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-module.exports = (phase: string) => {
+module.exports = async (phase: string) => {
   if (phase === PHASE_PRODUCTION_BUILD) prepareSanityBuildCache();
-  return withPlausibleProxy({ src: getPlausibleScriptSrc(), ...PLAUSIBLE_PROXY_PATHS })(nextConfig);
+  const config: NextConfig = { ...nextConfig, env: { ...nextConfig.env, ...(await minsideEnv()) } };
+  return withPlausibleProxy({ src: getPlausibleScriptSrc(), ...PLAUSIBLE_PROXY_PATHS })(config);
 };
+
+/**
+ * Min Side's Sanity paths, read here once and inlined into the proxy, which rewrites them to the
+ * App Router (lib/minside/routes.ts). A failed lookup fails the build.
+ */
+async function minsideEnv(): Promise<Record<string, string>> {
+  return { MINSIDE_PATHS: JSON.stringify(await fetchMinsidePaths()) };
+}
 
 /**
  * A fresh directory for this build's Sanity answers (lib/sanity.client.ts), shared by the static

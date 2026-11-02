@@ -24,10 +24,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-export E2E_WEB_PORT="${E2E_WEB_PORT:-3100}"
-export E2E_API_PORT="${E2E_API_PORT:-5150}"
-export E2E_AUTH_PORT="${E2E_AUTH_PORT:-8191}"
-export E2E_DB_PORT="${E2E_DB_PORT:-3317}"
+# Ports and the web app's environment, shared with scripts/minside-local.sh
+source scripts/e2e/web-env.sh
 LOG_DIR="${E2E_LOG_DIR:-apps/web/cypress/logs}"
 mkdir -p "$LOG_DIR"
 
@@ -73,18 +71,6 @@ fi
   compose up -d --wait
 } >"$LOG_DIR/stack-up.log" 2>&1 &
 STACK_PID=$!
-
-# Public, non-secret build settings. Content comes read-only from the production Sanity dataset
-# (no token needed); everything the browser talks to besides Sanity is local.
-export NEXT_PUBLIC_SANITY_PROJECT_ID=vf0df6h3
-export NEXT_PUBLIC_SANITY_DATASET=production
-export NEXT_PUBLIC_EFFEKT_API="http://localhost:${E2E_API_PORT}"
-export NEXT_PUBLIC_SITE_URL="http://localhost:${E2E_WEB_PORT}"
-export NEXT_PUBLIC_AUTH_DOMAIN="http://localhost:${E2E_AUTH_PORT}"
-export NEXT_PUBLIC_AUTH_CLIENT_ID=effekt-web-e2e
-export NEXT_PUBLIC_AUTH_AUDIENCE=http://localhost:5050
-export NEXT_PUBLIC_AUTH_USER_ID_CLAIM=https://gieffektivt.no/user-id
-export NEXT_TELEMETRY_DISABLED=1
 
 wait_for_stack() {
   if ! wait "$STACK_PID"; then
