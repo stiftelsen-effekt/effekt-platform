@@ -42,9 +42,9 @@ describe("splitPinned", () => {
 
 describe("activeTrail", () => {
   it("returns the group and the parents above the best match", () => {
-    expect(activeTrail(groups, "/a/sub/1")).toEqual({ group: "A", parents: ["/a"] });
-    expect(activeTrail(groups, "/a/other")).toEqual({ group: "A", parents: [] });
-    expect(activeTrail(groups, "/b")).toEqual({ group: "B", parents: [] });
+    expect(activeTrail(groups, "/a/sub/1")).toEqual({ group: "A", to: "/a/sub", parents: ["/a"] });
+    expect(activeTrail(groups, "/a/other")).toEqual({ group: "A", to: "/a", parents: [] });
+    expect(activeTrail(groups, "/b")).toEqual({ group: "B", to: "/b", parents: [] });
   });
 
   it("returns undefined when nothing matches", () => {

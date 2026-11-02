@@ -2,7 +2,6 @@ import { PreviewBanner } from "./preview-banner";
 import { Link, useNavigate, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
   ChevronDownIcon,
-  ChevronRightIcon,
   ChevronsUpDownIcon,
   HandCoinsIcon,
   KeyRoundIcon,
@@ -43,10 +42,8 @@ import { CommandPalette, type PaletteCommand } from "./command-palette";
 import { flattenItems, navGroups, settingsItem, type NavGroup, type NavItem } from "./nav";
 import {
   activeTrail,
-  expandedStore,
   openGroupsStore,
   pinnedStore,
-  setExpanded,
   setGroupOpen,
   splitPinned,
   togglePinned,
@@ -116,28 +113,32 @@ function hiddenCount(item: NavItem, reviewCount?: number): number {
   );
 }
 
-/** One menu row: link, pin button (on hover) and, for parents, an expand chevron. */
+/**
+ * One menu row: link and pin button (on hover). A parent shows its sub-pages only while the
+ * current page is the parent or one of them, so the menu stays short without a second
+ * thing to open and close.
+ */
 function NavEntry({
   item,
   pinned,
   sub,
-  expanded,
+  activePaths,
   reviewCount,
   onNavigate,
 }: {
   item: NavItem;
   pinned?: boolean;
   sub?: boolean;
-  expanded: string[];
+  /** Paths of the current page and its parents; their sub-pages are shown. */
+  activePaths: string[];
   reviewCount?: number;
   onNavigate?: () => void;
 }) {
   const children = item.children ?? [];
-  const open = children.length > 0 && expanded.includes(item.to);
+  const open = children.length > 0 && activePaths.includes(item.to);
   const count = (countFor(item, reviewCount) ?? 0) + (open ? 0 : hiddenCount(item, reviewCount));
   const PinToggleIcon = pinned ? PinOffIcon : PinIcon;
   const pinAction = `${pinned ? "Unpin" : "Pin"} ${item.label}`;
-  const expandAction = `${open ? "Collapse" : "Expand"} ${item.label}`;
   return (
     <li>
       <div className="group/pin relative">
@@ -146,7 +147,7 @@ function NavEntry({
           sub={sub}
           onNavigate={onNavigate}
           count={count || undefined}
-          className={children.length > 0 ? "pr-14" : "pr-8"}
+          className="pr-8"
         />
         <button
           type="button"
@@ -155,7 +156,7 @@ function NavEntry({
           aria-label={pinAction}
           className={cn(
             "absolute top-1/2 grid size-6 -translate-y-1/2 place-content-center rounded-xs",
-            children.length > 0 ? "right-7" : "right-1",
+            "right-1",
             "text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring",
             "opacity-0 transition-opacity group-focus-within/pin:opacity-100 group-hover/pin:opacity-100",
             "max-lg:opacity-100",
@@ -163,20 +164,6 @@ function NavEntry({
         >
           <PinToggleIcon className="size-3.5" />
         </button>
-        {children.length > 0 && (
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={() => setExpanded(item.to, !open)}
-            title={expandAction}
-            aria-label={expandAction}
-            className="absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-content-center rounded-xs text-faint-foreground hover:bg-pressed hover:text-foreground focus-ring"
-          >
-            <ChevronRightIcon
-              className={cn("size-3.5 transition-transform", open && "rotate-90")}
-            />
-          </button>
-        )}
       </div>
       {open && (
         <ul className="mt-px mb-0.5 ml-[18px] grid gap-px border-l border-border pl-1">
@@ -185,7 +172,7 @@ function NavEntry({
               key={child.to}
               item={child}
               sub
-              expanded={expanded}
+              activePaths={activePaths}
               reviewCount={reviewCount}
               onNavigate={onNavigate}
             />
@@ -272,20 +259,16 @@ function Sidebar({
 }) {
   const pins = pinnedStore.use();
   const openGroups = openGroupsStore.use();
-  const expanded = expandedStore.use();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { pinned, groups: rest } = useMemo(() => splitPinned(groups, pins), [groups, pins]);
 
-  // Navigating (⌘K, links on pages) into a collapsed group or parent opens it.
+  // Navigating (⌘K, links on pages) into a collapsed group opens it.
   const trail = activeTrail(rest, pathname);
   const trailGroup = trail?.group ?? "";
-  const trailParents = trail?.parents.join("\n") ?? "";
+  const activePaths = trail ? [...trail.parents, trail.to] : [];
   useEffect(() => {
     if (trailGroup && !openGroupsStore.get().includes(trailGroup)) setGroupOpen(trailGroup, true);
-    for (const parent of trailParents ? trailParents.split("\n") : []) {
-      if (!expandedStore.get().includes(parent)) setExpanded(parent, true);
-    }
-  }, [trailGroup, trailParents]);
+  }, [trailGroup]);
 
   return (
     <div className="flex h-full flex-col gap-4 bg-canvas px-3 pt-4 pb-3">
@@ -327,7 +310,7 @@ function Sidebar({
                   key={item.to}
                   item={item}
                   pinned
-                  expanded={expanded}
+                  activePaths={activePaths}
                   reviewCount={reviewCount}
                   onNavigate={onNavigate}
                 />
@@ -374,7 +357,7 @@ function Sidebar({
                       <NavEntry
                         key={item.to}
                         item={item}
-                        expanded={expanded}
+                        activePaths={activePaths}
                         reviewCount={reviewCount}
                         onNavigate={onNavigate}
                       />

@@ -66,25 +66,16 @@ function matches(item: NavItem, pathname: string) {
 export function activeTrail(
   groups: NavGroup[],
   pathname: string,
-): { group?: string; parents: string[] } | undefined {
-  let best: { group?: string; parents: string[]; length: number } | undefined;
+): { group?: string; to: string; parents: string[] } | undefined {
+  let best: { group?: string; to: string; parents: string[]; length: number } | undefined;
   const visit = (items: NavItem[], group: string | undefined, parents: string[]) => {
     for (const item of items) {
       if (matches(item, pathname) && (!best || item.to.length > best.length)) {
-        best = { group, parents, length: item.to.length };
+        best = { group, to: item.to, parents, length: item.to.length };
       }
       visit(item.children ?? [], group, [...parents, item.to]);
     }
   };
   for (const group of groups) visit(group.items, group.label, []);
-  return best && { group: best.group, parents: best.parents };
-}
-
-export const expandedStore = createPersistentStore<string[]>("nav-expanded", []);
-
-export function setExpanded(to: string, open: boolean) {
-  expandedStore.set((items) => {
-    const without = items.filter((item) => item !== to);
-    return open ? [...without, to] : without;
-  });
+  return best && { group: best.group, to: best.to, parents: best.parents };
 }
