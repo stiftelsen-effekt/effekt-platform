@@ -8,7 +8,7 @@
 // Env: DB_HOST (127.0.0.1), DB_PORT (3306), DB_USER, DB_PASS: an admin account for a real run;
 // any account that can read information_schema for EffektDonasjonDB is enough for --dry-run.
 // PSEUDO_DB_READERS: comma-separated accounts that get SELECT on EffektPseudoDB, e.g.
-// "claude@%,analysis_mcp@%" (existing accounts only; nothing else is granted to them).
+// "mcp_claude_tag@%,claude@%" (existing accounts only; nothing else is granted to them).
 //
 // How it's built: the views are owned by a dedicated, LOCKED account (pseudo_view_definer) that
 // can read EffektDonasjonDB and the pseudonym key. Readers only get SELECT on the views, so they
@@ -37,8 +37,9 @@ const q = (id) => `\`${String(id).replace(/`/g, "``")}\``;
 const lit = (s) => `'${String(s).replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
 
 function hashExpr(kind, column) {
+  if (!Object.hasOwn(NORMALISE, kind)) throw new Error(`Unknown hash kind '${kind}'`);
+  // nosemgrep: javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method -- kind is checked against the fixed NORMALISE table above
   const normalise = NORMALISE[kind];
-  if (!normalise) throw new Error(`Unknown hash kind '${kind}'`);
   const src = `t.${q(column)}`;
   const norm = normalise(src);
   return `IF(NULLIF(${norm}, '') IS NULL, NULL, CONCAT('${kind}_', LEFT(SHA2(CONCAT(pk.k, ':${kind}:', ${norm}), 256), 16)))`;
@@ -155,6 +156,7 @@ async function main() {
   const definer = `${lit(DEFINER)}@'%'`;
   const tempPassword = randomBytes(24).toString("base64url");
   const run = async (conn, sql) => {
+    // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- operator-run DDL built from policy.mjs and the live schema (identifiers quoted with q()), no request input
     await conn.query(sql);
   };
 

@@ -1,7 +1,7 @@
 # EffektPseudoDB: pseudonymised production data
 
 `EffektPseudoDB` is a schema of read-only views over the production database `EffektDonasjonDB`.
-It gives Claude (Claude Tag in Slack, through the analysis MCP connector at `/mcp`) and other
+It gives Claude Tag in Slack (through its own MCP connector at `/mcp-tag`) and other
 read-only consumers live, close-to-complete production data. People are not identifiable at a
 glance, so answers can be posted in shared channels.
 
@@ -40,7 +40,7 @@ Re-run the script after migrations that add or rename tables or columns. It is i
 # Cloud SQL proxy on 127.0.0.1:3306; root password from Secret Manager.
 pnpm install
 DB_USER=root DB_PASS="$(gcloud secrets versions access latest --secret=effekt-db-root-password)" \
-PSEUDO_DB_READERS="mcp_readonly@%,claude@%" \
+PSEUDO_DB_READERS="mcp_claude_tag@%,claude@%" \
   node scripts/pseudo-db/apply.mjs            # --dry-run prints the SQL instead
 ```
 
@@ -49,11 +49,36 @@ If it stops with "Policy needs attention", classify the listed columns in `polic
 
 ## Who can read it
 
-| Account        | Used by                                                                            |
-| -------------- | ---------------------------------------------------------------------------------- |
-| `mcp_readonly` | the analysis MCP connector (`MCP_DB_USER` on the API); Claude Tag's data connector |
-| `claude`       | local Claude Code sessions (the `mysql` MCP server)                                |
+| Account          | Used by                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `mcp_claude_tag` | the Claude Tag connector (`/mcp-tag`); also reads `EffektAnalysisDB` |
+| `claude`         | local Claude Code sessions (the `mysql` MCP server)                  |
 
-The MCP server lists both `EffektAnalysisDB` (default) and `EffektPseudoDB`
-(`MCP_PSEUDO_DB_NAME`, default `EffektPseudoDB`). Its column blocklist (`answer`, `other_comment`,
-`PaymentExternal_ID`) applies here too.
+The team's analysis connector (`/mcp`, account `mcp_readonly`) is unchanged: it reads
+`EffektAnalysisDB` only and can't see `EffektPseudoDB`.
+
+## The Claude Tag connector (`/mcp-tag`)
+
+A separate MCP endpoint on the API, only for Claude Tag. It isn't in the claude.ai connector
+library (every connector there is visible to all members), and it has no OAuth, so nobody can
+sign in to it with their own account.
+
+- **Data:** `EffektPseudoDB` (default) and `EffektAnalysisDB`, through `mcp_claude_tag`. There is
+  no column blocklist; the views decide what is exposed. Its instructions ask Claude to answer
+  with aggregates in shared channels.
+- **Auth:** `Authorization: Bearer <MCP_TAG_TOKEN>`. The token is in Secret Manager
+  (`effektapi-mcp-tag-token`). Claude Tag attaches it at its proxy, so it never reaches the
+  session sandbox.
+- **API config:** `MCP_TAG_TOKEN`, `MCP_TAG_DB_USER=mcp_claude_tag`, `MCP_TAG_DB_PASS` (secret
+  `effektapi-mcp-tag-db-pass`), `MCP_TAG_DB_NAME=EffektPseudoDB`. Without them the endpoint
+  returns 404.
+- **Claude Tag setup (Owner, Admin settings → Claude Tag):**
+  1. Attach the plugin [`claude-tag/plugins/effekt-data`](../claude-tag/plugins/effekt-data),
+     whose `.mcp.json` points at `https://data.gieffektivt.no/mcp-tag`, to the channel or
+     workspace (from a skills repository or the org plugin library). A `.mcp.json` in a cloned
+     repository is not loaded; it has to come from an attached plugin.
+  2. Add a custom connector: credential type **Bearer** with the token, allowed website
+     `data.gieffektivt.no` with **all methods** (MCP uses POST), applied where the plugin is.
+- **Rotating the token:** add a new version of `effektapi-mcp-tag-token`, redeploy `effektapi`
+  (`gcloud run services update effektapi --region europe-north1 --update-secrets
+MCP_TAG_TOKEN=effektapi-mcp-tag-token:latest`), then update the Bearer connector.
