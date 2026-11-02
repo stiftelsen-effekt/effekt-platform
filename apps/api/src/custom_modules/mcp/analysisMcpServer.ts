@@ -4,8 +4,11 @@ import { runReadOnlyQuery } from "../analysisDbPool";
 /**
  * A small, dependency-free implementation of the Model Context Protocol (MCP)
  * over Streamable HTTP, exposing READ-ONLY SQL access to the anonymized analysis
- * database (EffektAnalysisDB) so Claude Tag (and other Claude custom connectors)
- * can answer analytics questions. Auth is an Auth0 JWT with analysis_mcp.
+ * database (EffektAnalysisDB) and the pseudonymised views of the operational
+ * database (EffektPseudoDB, docs/pseudo-db.md) so Claude Tag (and other Claude
+ * custom connectors) can answer data questions. Auth is an Auth0 JWT with
+ * analysis_mcp. Which schemas are actually reachable is decided by the DB
+ * user's grants; information_schema only lists what the user may read.
  *
  * We hand-roll the protocol rather than using @modelcontextprotocol/sdk because
  * the current SDK requires zod v4, whose type definitions cannot be parsed by
@@ -16,6 +19,8 @@ import { runReadOnlyQuery } from "../analysisDbPool";
  */
 
 const SCHEMA = config.mcp_db_name || "EffektAnalysisDB";
+const PSEUDO_SCHEMA = config.mcp_pseudo_db_name || "EffektPseudoDB";
+const SCHEMAS = [SCHEMA, PSEUDO_SCHEMA];
 
 export const SERVER_INFO = { name: "effekt-analysis-mcp", version: "1.0.0" };
 
@@ -39,14 +44,16 @@ const BLOCKED_TABLES = [
 ];
 const BLOCKED_COLUMNS = ["paymentexternal_id", "other_comment", "answer"];
 
-const INSTRUCTIONS = `This server gives read-only SQL access to Stiftelsen Effekt's anonymized analytics database "${SCHEMA}" (MySQL).
+const INSTRUCTIONS = `This server gives read-only SQL access to two MySQL schemas of Stiftelsen Effekt (Gi Effektivt):
+- "${SCHEMA}" (the default schema): the anonymized analytics database, refreshed nightly, with pre-built reporting views.
+- "${PSEUDO_SCHEMA}": live, pseudonymised views of the production database (same table and column names as production). Names, e-mails, phone numbers, national ID numbers and bank accounts are replaced by stable pseudonyms in *_hash columns (the same person gets the same pseudonym in every table, so they can be joined and counted); secrets and free-text greetings are left out. Use it for up-to-date figures and for questions about how the production data looks. Qualify its tables, e.g. ${PSEUDO_SCHEMA}.Donations.
 
 Effekt is a Norwegian effective-altruism nonprofit that routes donations to evidence-based charities. All monetary amounts are in Norwegian Kroner (NOK).
 
 How to use:
-1. Call list_tables to see available tables and views.
-2. Call describe_table to inspect columns before writing SQL.
-3. Call run_sql with a single read-only SELECT (or WITH ... SELECT). Prefer the pre-built v_* views for reporting.
+1. Call list_tables to see available tables and views in both schemas.
+2. Call describe_table to inspect columns before writing SQL (pass database for ${PSEUDO_SCHEMA}).
+3. Call run_sql with a single read-only SELECT (or WITH ... SELECT). Prefer the pre-built v_* views in ${SCHEMA} for reporting.
 
 Useful objects:
 - Tables: Donors, Donations, Tax_unit, Referral_types, Referral_records, Recurring_donor_periods, Donor_LTV, Donor_LTV_predictions, Only_GE_Donations, Only_rec_orgs_Donations.
@@ -54,7 +61,8 @@ Useful objects:
 
 Rules & privacy:
 - Read-only. INSERT/UPDATE/DELETE/DDL and multiple statements are rejected.
-- The data is pseudonymized: Donor_ID is a stable pseudonym, not a real identity. Do not attempt to re-identify individuals.
+- The data is pseudonymized: Donor_ID is a stable pseudonym, not a real identity. Do not attempt to re-identify individuals or reverse *_hash values.
+- Answers are often read in shared channels: report aggregates and trends, and don't list rows about individual donors unless the person asking clearly needs them for their work.
 - Some residual-PII fields are blocked and cannot be queried; free-text survey responses are not accessible.
 - Results are capped at ${MAX_RESULT_ROWS} rows. Add GROUP BY / aggregation for large questions.`;
 
@@ -79,18 +87,21 @@ interface JsonRpcResponse {
 const TOOLS = [
   {
     name: "list_tables",
-    description:
-      "List all tables and views available in the analysis database, with their type (BASE TABLE or VIEW).",
+    description: `List all tables and views available in ${SCHEMAS.join(" and ")}, with their schema and type (BASE TABLE or VIEW).`,
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "describe_table",
-    description:
-      "Return the columns (name, data type, nullability, comment) of a given table or view in the analysis database.",
+    description: `Return the columns (name, data type, nullability, comment) of a table or view in ${SCHEMA} (default) or ${PSEUDO_SCHEMA}.`,
     inputSchema: {
       type: "object",
       properties: {
         table: { type: "string", description: "Table or view name, e.g. 'Donations'." },
+        database: {
+          type: "string",
+          enum: SCHEMAS,
+          description: `Schema to look in (default ${SCHEMA}).`,
+        },
       },
       required: ["table"],
       additionalProperties: false,
@@ -98,8 +109,7 @@ const TOOLS = [
   },
   {
     name: "run_sql",
-    description:
-      "Execute a single read-only SQL SELECT (or WITH ... SELECT) against the analysis database and return the rows as JSON. Only SELECT queries are permitted.",
+    description: `Execute a single read-only SQL SELECT (or WITH ... SELECT) and return the rows as JSON. Unqualified tables refer to ${SCHEMA}; qualify ${PSEUDO_SCHEMA} tables (e.g. ${PSEUDO_SCHEMA}.Donations). Only SELECT queries are permitted.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -246,21 +256,34 @@ function textResult(text: string, isError = false) {
 /* -------------------------------- tools ---------------------------------- */
 
 async function toolListTables() {
-  const { rows } = await runReadOnlyQuery<{ TABLE_NAME: string; TABLE_TYPE: string }>(
-    `SELECT TABLE_NAME, TABLE_TYPE
+  const { rows } = await runReadOnlyQuery<{
+    TABLE_SCHEMA: string;
+    TABLE_NAME: string;
+    TABLE_TYPE: string;
+  }>(
+    `SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
        FROM information_schema.TABLES
-      WHERE TABLE_SCHEMA = ?
-      ORDER BY TABLE_TYPE, TABLE_NAME`,
-    [SCHEMA],
+      WHERE TABLE_SCHEMA IN (?)
+      ORDER BY TABLE_SCHEMA, TABLE_TYPE, TABLE_NAME`,
+    [SCHEMAS],
   );
   const visible = rows.filter((r) => !BLOCKED_TABLES.includes(r.TABLE_NAME.toLowerCase()));
   return textResult(jsonStringifySafe(visible));
 }
 
 async function toolDescribeTable(args: any) {
-  const table = args?.table;
+  let table = args?.table;
+  let database = args?.database ?? SCHEMA;
+  // Accept "Schema.Table" too.
+  if (typeof table === "string" && table.includes(".") && args?.database === undefined) {
+    [database, table] = table.split(".", 2);
+  }
   if (typeof table !== "string" || !IDENTIFIER_RE.test(table)) {
     return textResult("Invalid 'table' argument: must be a plain identifier.", true);
+  }
+  database = SCHEMAS.find((s) => s.toLowerCase() === String(database).toLowerCase());
+  if (!database) {
+    return textResult(`Invalid 'database' argument: must be one of ${SCHEMAS.join(", ")}.`, true);
   }
   if (BLOCKED_TABLES.includes(table.toLowerCase())) {
     return textResult(`Table '${table}' is not accessible.`, true);
@@ -270,10 +293,10 @@ async function toolDescribeTable(args: any) {
        FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
       ORDER BY ORDINAL_POSITION`,
-    [SCHEMA, table],
+    [database, table],
   );
   if (rows.length === 0) {
-    return textResult(`No table or view named '${table}' found in ${SCHEMA}.`, true);
+    return textResult(`No table or view named '${table}' found in ${database}.`, true);
   }
   const visible = rows.filter(
     (r: any) => !BLOCKED_COLUMNS.includes(String(r.COLUMN_NAME).toLowerCase()),
