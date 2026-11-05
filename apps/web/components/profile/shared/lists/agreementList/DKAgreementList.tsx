@@ -53,7 +53,7 @@ type DKAgreementListConfiguration = {
 export const DKAgreementList: React.FC<{
   agreements: DKAgreement[];
   distributions?: Map<string, Distribution>;
-  /** Newest donation per KID; undefined while the donations load or if they failed */
+  /** Newest donation per KID, undefined while the donations load or if they failed */
   lastPayments?: Map<string, string>;
   taxUnits?: TaxUnit[];
   expandable?: boolean;
