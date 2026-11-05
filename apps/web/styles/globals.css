@@ -95,7 +95,7 @@ h3.inngress {
   line-height: 40px;
 }
 
-/* A block title chosen as h2 or h3 (heading_level) looks like the paragraph it was before */
+/* A paragraph title chosen as h2 or h3 (heading_level) looks like the paragraph it was before */
 h2.inngress,
 h3.inngress {
   font-family: "ESKlarheitGrotesk", sans-serif;

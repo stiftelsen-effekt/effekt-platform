@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { headingTag } from "./headingLevel";
+import { headingTag } from "./headingLevels";
 
 describe("headingTag", () => {
   it("keeps a paragraph when nothing is chosen", () => {
