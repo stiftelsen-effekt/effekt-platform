@@ -75,6 +75,10 @@ export default defineType({
                     title: "Created by",
                     value: "createdBy",
                   },
+                  {
+                    title: "Last payment (Denmark only)",
+                    value: "lastPayment",
+                  },
                 ],
               },
             }),
@@ -98,6 +102,10 @@ export default defineType({
                   {
                     title: "Payment method",
                     value: "paymentmethod",
+                  },
+                  {
+                    title: "Last payment date (Denmark only)",
+                    value: "lastpayment",
                   },
                 ],
               },

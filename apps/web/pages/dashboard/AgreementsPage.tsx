@@ -9,6 +9,7 @@ import {
   useAgreementsDistributions,
   useAvtalegiroAgreements,
   useDKAgreements,
+  useDonations,
   useTaxUnits,
   useVippsAgreements,
 } from "../../_queries";
@@ -16,6 +17,7 @@ import { useMemo, useState } from "react";
 import { InfoBox } from "../../components/shared/components/Infobox/Infobox";
 import { ErrorMessage } from "../../components/profile/shared/ErrorMessage/ErrorMessage";
 import { distributionsByKid } from "../../components/profile/shared/distributionsByKid";
+import { lastPaymentByKid } from "../../components/profile/shared/lists/agreementList/dkLastPayment";
 import { Clock } from "react-feather";
 import AgreementsMenu, {
   AgreementsMenuOptions,
@@ -144,6 +146,20 @@ const DKAgreementsPageContent: React.FC<{
   // leave the spinner up for good
   const loadFailed = !!(dkAgreementsError || taxUnitsError);
 
+  // The donations are only fetched when a list has a "last payment" column, and the page does
+  // not wait for them: the column stays empty until they arrive
+  const showsLastPayment = [
+    page?.active_list_configuration,
+    page?.inactive_list_configuration,
+  ].some((list) =>
+    list?.columns?.some((column: { type?: string }) => column.type === "lastpayment"),
+  );
+  const { data: donations } = useDonations(user, getAccessTokenSilently, showsLastPayment);
+  const lastPayments = useMemo(
+    () => (Array.isArray(donations) ? lastPaymentByKid(donations) : undefined),
+    [donations],
+  );
+
   if (!cookieBannerConfig) return null;
 
   if (!page) {
@@ -265,6 +281,7 @@ const DKAgreementsPageContent: React.FC<{
             <DKAgreementList
               agreements={activeAgreements}
               distributions={distributionsMap}
+              lastPayments={lastPayments}
               taxUnits={taxUnits}
               expandable={true}
               configuration={page?.active_list_configuration}
@@ -276,6 +293,7 @@ const DKAgreementsPageContent: React.FC<{
             <DKAgreementList
               agreements={inactiveAgreements}
               distributions={distributionsMap}
+              lastPayments={lastPayments}
               taxUnits={taxUnits}
               expandable={false}
               configuration={page?.inactive_list_configuration}
