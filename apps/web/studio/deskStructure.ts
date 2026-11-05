@@ -20,7 +20,7 @@ import { StructureResolver } from "sanity/structure";
 import { isFeatureOn, SiteFeature } from "./features";
 
 export const deskStructure: StructureResolver = async (S, context) => {
-  // Read once when the Studio loads; a failed read keeps every item, as before this setting
+  // Read once when the Studio loads. A failed read keeps every item, as before this setting
   const disabledFeatures: string[] | null = await context
     .getClient({ apiVersion: "2024-09-19" })
     .fetch(`*[_type == "site_settings"][0].disabled_features`)
