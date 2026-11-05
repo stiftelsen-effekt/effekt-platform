@@ -20,7 +20,7 @@ export default defineType({
       type: "string",
       options: { list: [...HEADING_LEVELS], layout: "radio", direction: "horizontal" },
       description:
-        "Looks the same either way. Choose a heading to put it in the page outline for search engines and screen readers: h2 for a main section, h3 under it.",
+        "Looks the same either way. Choose a heading to put the title in the page outline for search engines and screen readers: h2 for a main section, h3 under it.",
     }),
     defineField({
       name: "content",
