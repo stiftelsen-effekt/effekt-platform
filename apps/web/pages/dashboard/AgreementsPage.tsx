@@ -146,8 +146,8 @@ const DKAgreementsPageContent: React.FC<{
   // leave the spinner up for good
   const loadFailed = !!(dkAgreementsError || taxUnitsError);
 
-  // The donations are only fetched when a list has a "last payment" column, and the page does
-  // not wait for them: the column stays empty until they arrive
+  // The donations are only fetched when a list has a "last payment" column. The page does not
+  // wait for them: the column stays empty until they arrive
   const showsLastPayment = [
     page?.active_list_configuration,
     page?.inactive_list_configuration,
