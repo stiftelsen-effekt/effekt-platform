@@ -8,7 +8,6 @@ import { ANONYMOUS_DONOR } from "../../../../config/anonymous-donor";
 import AnimateHeight from "react-animate-height";
 import { usePlausible } from "next-plausible";
 import { currencyForLocale } from "../../../../utils/currency";
-import { withPlausibleParam } from "../../../../utils/plausibleRedirect";
 import panes from "../../Panes.module.scss";
 import payment from "../PaymentPane.module.scss";
 
@@ -66,18 +65,7 @@ export const BankPane: React.FC<{
                 className={payment.completeButton}
                 onClick={() => {
                   if (config.completed_redirect && config.completed_redirect.slug) {
-                    // The pane is gone after the redirect, so the page we land on sends the
-                    // revenue event from these parameters (PlausibleRevenueTracker block).
-                    const redirect =
-                      donation.kid && totalSumIncludingTip
-                        ? withPlausibleParam(config.completed_redirect.slug, {
-                            revenue: String(totalSumIncludingTip),
-                            method: "bank",
-                            recurring: false,
-                            kid: donation.kid,
-                          })
-                        : config.completed_redirect.slug;
-                    window.open(redirect, "_parent");
+                    window.open(config.completed_redirect.slug, "_parent");
                   } else {
                     setHasCompletedTransaction(true);
                   }
