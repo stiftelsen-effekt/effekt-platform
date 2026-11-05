@@ -104,6 +104,7 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
                 key={block._key}
                 tocKey={block._key}
                 title={block.title}
+                titleLevel={block.heading_level}
                 blocks={block.content}
               />
             );
@@ -326,6 +327,7 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
               <Inngress
                 key={block._key || block._id}
                 header={block.heading}
+                headerLevel={block.heading_level}
                 content={block.body}
                 links={block.sidelinks}
               />
