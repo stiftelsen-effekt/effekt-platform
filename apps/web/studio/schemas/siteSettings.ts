@@ -116,7 +116,7 @@ export default defineType({
       of: [{ type: "string" }],
       options: { list: [...SITE_FEATURES], layout: "grid" },
       description:
-        "Features this country's site does not support. They are hidden from the Studio menu, and a turned off dashboard also hides its button in the main menu. Reload the Studio after changing this.",
+        "Features this country's site does not support. They are hidden from the Studio menu. A turned off dashboard also hides its button in the main menu. Reload the Studio after changing this.",
     }),
     defineField({
       title: "Footer columns",
