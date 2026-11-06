@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lastPaymentByKid } from "./dkLastPayment";
+import { formatLastPayment, lastPaymentByKid } from "./lastPayment";
 
 describe("lastPaymentByKid", () => {
   it("keeps the newest donation per KID, whatever the order", () => {
@@ -15,5 +15,23 @@ describe("lastPaymentByKid", () => {
 
   it("has nothing for a KID without donations", () => {
     expect(lastPaymentByKid([]).get("111")).toBeUndefined();
+  });
+});
+
+describe("formatLastPayment", () => {
+  it("stays empty while the donations load", () => {
+    expect(formatLastPayment(undefined, false, "Ingen ennå")).toBe("");
+  });
+
+  it("shows the editor's text when the agreement has no payment yet", () => {
+    expect(formatLastPayment(undefined, true, "Ingen ennå")).toBe("Ingen ennå");
+  });
+
+  it("shows nothing when the editor left the text empty", () => {
+    expect(formatLastPayment(undefined, true, undefined)).toBe("");
+  });
+
+  it("shows the date of the last payment", () => {
+    expect(formatLastPayment("2026-10-01T10:00:00", true, "Ingen ennå")).toBe("01.10.2026");
   });
 });

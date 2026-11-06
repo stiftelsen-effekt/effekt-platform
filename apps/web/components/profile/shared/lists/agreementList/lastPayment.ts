@@ -1,3 +1,5 @@
+import { dateNumeric } from "../../../../../util/formatting";
+
 /** The fields of a Min Side donation this needs */
 type DonationWithKid = { KID: string; timestamp: string };
 
@@ -14,4 +16,17 @@ export function lastPaymentByKid(donations: readonly DonationWithKid[]): Map<str
     }
   }
   return latest;
+}
+
+/**
+ * The text of a "last payment" cell. Empty until the donations have loaded, so the column does
+ * not claim "none" too early. Without a payment it shows the editor's text from the column.
+ */
+export function formatLastPayment(
+  lastPayment: string | undefined,
+  loaded: boolean,
+  emptyText: string | undefined,
+): string {
+  if (!loaded) return "";
+  return lastPayment ? dateNumeric(lastPayment) : (emptyText ?? "");
 }

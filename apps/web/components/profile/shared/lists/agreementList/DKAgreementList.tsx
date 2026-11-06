@@ -2,17 +2,13 @@ import { PortableText } from "@portabletext/react";
 import { DKAgreement, DKPaymentMethod, Distribution, TaxUnit } from "../../../../../models";
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
-import {
-  FormattingLocale,
-  dateNumeric,
-  getFormattingLocale,
-  thousandize,
-} from "../../../../../util/formatting";
+import { FormattingLocale, getFormattingLocale, thousandize } from "../../../../../util/formatting";
 import { useMainLocale } from "../../../../../context/MainLocaleContext";
 
 import { AgreementDetailsConfiguration } from "./AgreementDetails";
 import { DKAgreementDetails } from "./DKAgreementDetails";
 import { distributionTargetsMembershipFee } from "./dkMembershipDisplay";
+import { formatLastPayment } from "./lastPayment";
 import { CauseAreaContext } from "../../../../shared/components/Widget/types/WidgetProps";
 
 const PAYMENT_METHOD_LABELS: Record<DKPaymentMethod, string> = {
@@ -39,6 +35,7 @@ type DKAgreementListConfigurationColumn = {
   payment_date_format_template?: string;
   payment_date_last_day_of_month_template?: string;
   payment_date_membership_format_template?: string;
+  last_payment_empty_text?: string;
   hide_on_mobile?: boolean;
 };
 
@@ -173,8 +170,6 @@ const formatColumnValue = (
     case "paymentmethod":
       return PAYMENT_METHOD_LABELS[value as DKPaymentMethod] || value;
     case "lastpayment":
-      // Empty until the donations have loaded, so the column does not claim "none" too early
-      if (!lastPaymentsLoaded) return "";
-      return value ? dateNumeric(value) : "Ingen endnu";
+      return formatLastPayment(value, lastPaymentsLoaded, column.last_payment_empty_text);
   }
 };
