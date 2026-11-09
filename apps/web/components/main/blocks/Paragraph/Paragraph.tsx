@@ -1,6 +1,7 @@
 import React, { createElement, useEffect } from "react";
 import elements from "./Paragraph.module.scss";
 import { PortableText } from "@portabletext/react";
+import { stegaClean } from "@sanity/client/stega";
 import { customComponentRenderers, observeCitationLayout, reflowCitations } from "./Citation";
 import { headingTag } from "../../../../studio/headingLevels";
 
@@ -21,7 +22,7 @@ export const Paragraph: React.FC<ParagraphProps> = ({ title, titleLevel, tocKey,
   return (
     <div className={elements.paragraphwrapper}>
       {createElement(
-        headingTag(titleLevel),
+        headingTag(stegaClean(titleLevel)),
         { className: "inngress", "data-toc-key": tocKey },
         title,
       )}
