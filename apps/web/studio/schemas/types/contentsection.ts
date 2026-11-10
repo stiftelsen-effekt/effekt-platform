@@ -90,6 +90,7 @@ export default defineType({
         { type: "teamintroduction" },
         { type: "discountratecomparison" },
         { type: "itncoverage" },
+        { type: "moralweightscalculator" },
         { type: "plausiblerevenuetracker" },
         { type: "donationwidgetblock" },
         { type: "dkmembershipwidget" },

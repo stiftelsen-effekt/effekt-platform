@@ -51,6 +51,7 @@ import { DKMembershipDisplay } from "./DKMembershipDisplay/DKMemberShipDisplay";
 import { DKRenewPayment } from "./DKRenewPayment/DKRenewPayment";
 import { MediaCoverageTeaser } from "./MediaCoverageTeaser/MediaCoverageTeaser";
 import { FormsparkForm } from "./FormSparkForm/FormSparkForm";
+import { MoralWeightsCalculator } from "./MoralWeightsCalculator/MoralWeightsCalculator";
 
 /* Dynamic imports */
 const WealthCalculatorTeaser = dynamic(() =>
@@ -491,6 +492,31 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
                 mapExplenation={block.map_explenation}
                 graphExplenation={block.graph_explenation}
                 caption={block.caption}
+              />
+            );
+          case "moralweightscalculator":
+            return (
+              <MoralWeightsCalculator
+                key={block._key || block._id}
+                title={block.title}
+                description={block.description}
+                outcomes={(block.outcomes ?? []).map((o: any) => ({
+                  label: o.label,
+                  detail: o.detail,
+                  count: o.count,
+                  weight: o.weight,
+                  fixed: o.fixed,
+                  weightMax: o.weight_max,
+                  weightLabel: o.weight_label,
+                }))}
+                presets={block.presets}
+                presetsLabel={block.presets_label}
+                unitLabel={block.unit_label}
+                multipleTemplate={block.multiple_template}
+                winnerTemplate={block.winner_template}
+                tieTemplate={block.tie_template}
+                breakevenTemplate={block.breakeven_template}
+                locale={block.number_locale}
               />
             );
           case "plausiblerevenuetracker":
