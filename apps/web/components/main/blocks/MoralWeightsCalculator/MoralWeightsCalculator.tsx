@@ -19,6 +19,8 @@ export type MoralWeightsCalculatorProps = {
   presetsLabel?: string;
   unitLabel?: string;
   multipleTemplate?: string;
+  /** Placeholder: {value}. Shown under each option as what it is worth in benchmark people */
+  equivalentTemplate?: string;
   winnerTemplate?: string;
   tieTemplate?: string;
   breakevenTemplate?: string;
@@ -59,6 +61,33 @@ const useAnimatedNumber = (target: number, enabled: boolean, duration = 500) => 
   return skip ? target : display;
 };
 
+const MAX_ICONS = 24;
+
+/** One small person per person (or child, or case) the money reaches, drawn in when in view. */
+const People: React.FC<{ count: number; label: string; revealed: boolean }> = ({
+  count,
+  label,
+  revealed,
+}) => {
+  const shown = Math.min(Math.round(count), MAX_ICONS);
+  return (
+    <div className={styles.people} role="img" aria-label={label} data-revealed={revealed}>
+      {Array.from({ length: shown }, (_, i) => (
+        <svg
+          key={i}
+          className={styles.person}
+          style={{ animationDelay: `${i * 35}ms` }}
+          viewBox="0 0 12 20"
+          aria-hidden="true"
+        >
+          <circle cx="6" cy="4" r="3.4" />
+          <path d="M0.8 19.5v-6.2a5.2 5.2 0 0 1 10.4 0v6.2z" />
+        </svg>
+      ))}
+    </div>
+  );
+};
+
 const AnimatedValue: React.FC<{ value: number; enabled: boolean; locale: string }> = ({
   value,
   enabled,
@@ -73,6 +102,7 @@ export const MoralWeightsCalculator: React.FC<MoralWeightsCalculatorProps> = ({
   presetsLabel,
   unitLabel = "",
   multipleTemplate = "{value} × {benchmark}",
+  equivalentTemplate = "",
   winnerTemplate = "{label}",
   tieTemplate = "{labels}",
   breakevenTemplate = "{benchmark}: {label} {value}",
@@ -137,7 +167,7 @@ export const MoralWeightsCalculator: React.FC<MoralWeightsCalculatorProps> = ({
     <div className={styles.wrapper} ref={rootRef} data-revealed={revealed}>
       {/* Without JavaScript nothing scrolls into view: show the bars at their full length */}
       <noscript>
-        <style>{`.${styles.bar}{transform:scaleX(var(--share))!important}`}</style>
+        <style>{`.${styles.bar}{transform:scaleX(var(--share))!important}.${styles.person}{opacity:1!important;transform:none!important}`}</style>
       </noscript>
       {title && <h2 className={styles.title}>{title}</h2>}
       {description && <p className={styles.description}>{description}</p>}
@@ -168,7 +198,10 @@ export const MoralWeightsCalculator: React.FC<MoralWeightsCalculatorProps> = ({
             <div className={styles.slider} key={outcome.label}>
               <div className={styles.sliderHeader}>
                 <label htmlFor={inputId}>{outcome.weightLabel ?? outcome.label}</label>
-                <output htmlFor={inputId}>{formatNumber(weights[i], locale)}</output>
+                <output htmlFor={inputId}>
+                  {formatNumber(weights[i], locale)}
+                  {outcome.weightUnit ? ` ${outcome.weightUnit}` : ""}
+                </output>
               </div>
               <input
                 id={inputId}
@@ -195,6 +228,12 @@ export const MoralWeightsCalculator: React.FC<MoralWeightsCalculatorProps> = ({
                 {unitLabel && <span className={styles.unit}> {unitLabel}</span>}
               </span>
             </div>
+            {result.detail && <p className={styles.detail}>{result.detail}</p>}
+            <People
+              count={outcomes[i].count}
+              label={`${formatNumber(outcomes[i].count, locale)} ${outcomes[i].countLabel ?? ""}`.trim()}
+              revealed={revealed}
+            />
             <div className={styles.track} aria-hidden="true">
               <div
                 className={styles.bar}
@@ -205,7 +244,13 @@ export const MoralWeightsCalculator: React.FC<MoralWeightsCalculatorProps> = ({
               />
             </div>
             <div className={styles.resultFooter}>
-              {result.detail && <span>{result.detail}</span>}
+              {i > 0 && equivalentTemplate && (
+                <span>
+                  {fillTemplate(equivalentTemplate, {
+                    value: formatNumber(result.equivalent, locale),
+                  })}
+                </span>
+              )}
               {i > 0 && (
                 <span className={styles.multiple}>
                   {fillTemplate(multipleTemplate, {

@@ -28,6 +28,14 @@ describe("computeResults", () => {
     expect(lives.multiple).toBeCloseTo(15.47, 2);
   });
 
+  it("says how many people on the benchmark the value is worth", () => {
+    const [cash, clubfoot, lives] = computeResults(outcomes, [1, 30, 116]);
+    expect([cash.equivalent, clubfoot.equivalent, lives.equivalent]).toEqual([15, 240, 232]);
+    // If one benchmark person counted for 2, the same value is worth half as many of them
+    expect(computeResults(outcomes, [2, 30, 116])[2].equivalent).toBe(116);
+    expect(computeResults(outcomes, [0, 30, 116])[2].equivalent).toBe(0);
+  });
+
   it("marks the largest value as best and scales bars to it", () => {
     const results = computeResults(outcomes, [1, 30, 116]);
     expect(results.map((r) => r.best)).toEqual([false, true, false]);

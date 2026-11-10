@@ -61,6 +61,12 @@ export default defineType({
               validation: (Rule) => Rule.required().min(0),
             }),
             defineField({
+              name: "count_label",
+              type: "string",
+              title: "What the count counts",
+              description: "Used for screen readers, e.g. 'barn' or 'personer'",
+            }),
+            defineField({
               name: "fixed",
               type: "boolean",
               title: "Fixed weight (benchmark)",
@@ -70,6 +76,13 @@ export default defineType({
               name: "weight_label",
               type: "string",
               title: "Slider label",
+              hidden: ({ parent }: { parent?: { fixed?: boolean } }) => !!parent?.fixed,
+            }),
+            defineField({
+              name: "weight_unit",
+              type: "string",
+              title: "Slider unit",
+              description: "Shown next to the slider value, e.g. 'personer'",
               hidden: ({ parent }: { parent?: { fixed?: boolean } }) => !!parent?.fixed,
             }),
             defineField({
@@ -138,6 +151,13 @@ export default defineType({
       title: "Multiple text",
       description: "Placeholders: {value}, {benchmark}",
       initialValue: "{value} × {benchmark}",
+    }),
+    defineField({
+      name: "equivalent_template",
+      type: "string",
+      title: "Equivalent text",
+      description:
+        "Shown under each option except the first: what it is worth in benchmark people. Placeholder: {value}",
     }),
     defineField({
       name: "winner_template",

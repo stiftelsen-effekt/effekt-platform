@@ -508,11 +508,14 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
                   fixed: o.fixed,
                   weightMax: o.weight_max,
                   weightLabel: o.weight_label,
+                  weightUnit: o.weight_unit,
+                  countLabel: o.count_label,
                 }))}
                 presets={block.presets}
                 presetsLabel={block.presets_label}
                 unitLabel={block.unit_label}
                 multipleTemplate={block.multiple_template}
+                equivalentTemplate={block.equivalent_template}
                 winnerTemplate={block.winner_template}
                 tieTemplate={block.tie_template}
                 breakevenTemplate={block.breakeven_template}

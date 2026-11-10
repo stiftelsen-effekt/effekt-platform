@@ -19,6 +19,10 @@ export type Outcome = {
   /** Slider range for non fixed outcomes */
   weightMax?: number;
   weightLabel?: string;
+  /** Shown next to the slider value, e.g. "people" */
+  weightUnit?: string;
+  /** What the count counts, e.g. "children" */
+  countLabel?: string;
 };
 
 export type Preset = { label: string; weights: number[] };
@@ -27,6 +31,11 @@ export type OutcomeResult = {
   label: string;
   detail?: string;
   value: number;
+  /**
+   * How many people the benchmark would have to help to be worth the same: value divided by the
+   * benchmark's weight per person. With the benchmark weight 1 this equals the value.
+   */
+  equivalent: number;
   /** value / the benchmark's value */
   multiple: number;
   /** value / the largest value, 0 to 1, for drawing the bar */
@@ -47,10 +56,12 @@ export const computeResults = (outcomes: Outcome[], weights: number[]): OutcomeR
   const values = outcomes.map((outcome, i) => outcomeValue(outcome.count, weights[i] ?? 0));
   const max = Math.max(...values, 0);
   const benchmark = values[0] || 0;
+  const benchmarkWeight = weights[0] ?? 0;
   return outcomes.map((outcome, i) => ({
     label: outcome.label,
     detail: outcome.detail,
     value: values[i],
+    equivalent: benchmarkWeight > 0 ? values[i] / benchmarkWeight : 0,
     multiple: benchmark > 0 ? values[i] / benchmark : 0,
     share: max > 0 ? values[i] / max : 0,
     // Ties are not "best": nothing wins when every outcome is worth the same.
