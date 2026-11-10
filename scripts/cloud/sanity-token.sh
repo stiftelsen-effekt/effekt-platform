@@ -33,7 +33,9 @@ token="$(node -e 'try { process.stdout.write(require(process.argv[1]).authToken 
   exit 1
 }
 
-email="$(curl -fsS -H "Authorization: Bearer ${token}" https://api.sanity.io/v2021-06-07/users/me |
+# The header comes from stdin (-H @-), so the token isn't in curl's arguments, where `ps` sees it
+email="$(printf 'Authorization: Bearer %s\n' "$token" |
+  curl -fsS -H @- https://api.sanity.io/v2021-06-07/users/me |
   node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).email||""))')"
 if [ "$email" != "$EXPECTED_EMAIL" ]; then
   echo "That login is ${email:-unknown}, not ${EXPECTED_EMAIL}; the token was discarded." >&2
