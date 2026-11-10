@@ -135,6 +135,10 @@ export const MoralWeightsCalculator: React.FC<MoralWeightsCalculatorProps> = ({
 
   return (
     <div className={styles.wrapper} ref={rootRef} data-revealed={revealed}>
+      {/* Without JavaScript nothing scrolls into view: show the bars at their full length */}
+      <noscript>
+        <style>{`.${styles.bar}{transform:scaleX(var(--share))!important}`}</style>
+      </noscript>
       {title && <h2 className={styles.title}>{title}</h2>}
       {description && <p className={styles.description}>{description}</p>}
 
@@ -194,7 +198,10 @@ export const MoralWeightsCalculator: React.FC<MoralWeightsCalculatorProps> = ({
             <div className={styles.track} aria-hidden="true">
               <div
                 className={styles.bar}
-                style={{ transform: `scaleX(${revealed ? result.share : 0})` }}
+                style={{
+                  ["--share" as string]: result.share,
+                  transform: `scaleX(${revealed ? result.share : 0})`,
+                }}
               />
             </div>
             <div className={styles.resultFooter}>
