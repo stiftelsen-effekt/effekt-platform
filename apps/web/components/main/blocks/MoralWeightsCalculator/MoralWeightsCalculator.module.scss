@@ -166,13 +166,13 @@
 .people {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-bottom: 0.7rem;
+  gap: 0.35rem;
+  margin-bottom: 0.8rem;
 }
 
 .person {
-  width: 0.6rem;
-  height: 1rem;
+  width: 0.8rem;
+  height: 1.35rem;
   fill: var(--primary);
   opacity: 0;
   transform: translateY(0.4rem);
