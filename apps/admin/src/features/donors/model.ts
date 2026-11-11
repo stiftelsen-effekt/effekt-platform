@@ -38,6 +38,7 @@ export const donorsList = defineList({
     newsletter: param.boolean,
     org: param.numberList,
     referral: param.numberList,
+    campaignCode: param.text,
   },
   sortable: [
     "id",
@@ -87,6 +88,7 @@ export function toDonorFilter(filters: DonorListFilters): DonorFilter | undefine
     newsletter: filters.newsletter,
     recipientOrgIDs: filters.org,
     referralTypeIDs: filters.referral,
+    campaignCode: filters.campaignCode,
   };
   const present = Object.fromEntries(
     Object.entries(filter).filter(([, value]) => value !== undefined),
