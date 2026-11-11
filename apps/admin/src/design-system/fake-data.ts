@@ -258,6 +258,8 @@ function amountFor(rand: () => number) {
 
 export type FakeDonor = DonorListRow & { name: string };
 
+const campaignCodes = ["SUMMER24", "XMAS24", "FACEBOOK", "NEWSLETTER24"];
+
 export const donors: FakeDonor[] = Array.from({ length: 400 }, (_, index) => {
   const rand = mulberry32(index + 1);
   const first = firstNames[index % firstNames.length]!;
@@ -271,6 +273,7 @@ export const donors: FakeDonor[] = Array.from({ length: 400 }, (_, index) => {
     donationsCount: 1 + Math.floor(rand() * 40),
     donationsSum: Math.round(rand() * 120000),
     newsletter: rand() > 0.4,
+    campaignCode: rand() > 0.6 ? campaignCodes[Math.floor(rand() * campaignCodes.length)]! : null,
   };
 });
 
