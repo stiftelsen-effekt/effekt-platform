@@ -12,7 +12,7 @@
 #   E2E_SKIP_STACK_BUILD=1
 #                      use the effekt-backend-dev:local image as it is, without building it
 #   E2E_BACKEND_FROM_HOST=1
-#                      run the backend from node:24.22.1 with this checkout's install mounted
+#                      run the backend from node:24.22.3 with this checkout's install mounted
 #                      (compose.e2e-ci.yml; Linux x64 only, as in CI) instead of from that image
 #   E2E_WAIT_FOR=<file>
 #                      wait (up to 3 min) until this file exists before starting the stack: CI
