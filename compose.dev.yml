@@ -18,7 +18,7 @@ x-backend: &backend
     # Dependencies live in the image (Linux build of Prisma engines etc.); source is bind-mounted.
     # Only package files and the Prisma schema are copied, so a local .env never ends up in the image.
     dockerfile_inline: |
-      FROM node:24.22.1
+      FROM node:24.22.3
       WORKDIR /app
       RUN corepack enable
       COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -189,7 +189,7 @@ services:
   # Source is bind-mounted for hot reload; node_modules live in volumes so the container gets
   # Linux builds of native packages instead of the host's.
   admin:
-    image: node:24.22.1
+    image: node:24.22.3
     working_dir: /repo/apps/admin
     command:
       - sh

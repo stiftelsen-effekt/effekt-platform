@@ -15,7 +15,7 @@ steps:
     args: ["scripts/deploy/guard.sh"]
 
   - id: install
-    name: "node:24.22.1"
+    name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["guard"]
     # The admin and the backend (pnpm build:types); apps/web is not needed here.
@@ -28,7 +28,7 @@ steps:
       ]
 
   - id: typecheck
-    name: "node:24.22.1"
+    name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["install"]
     args:
@@ -40,7 +40,7 @@ steps:
       ]
 
   - id: test
-    name: "node:24.22.1"
+    name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["install"]
     args:
@@ -54,7 +54,7 @@ steps:
   # Builds while the tests run. After typecheck, not alongside it: both write the generated
   # route tree (src/routeTree.gen.ts).
   - id: build
-    name: "node:24.22.1"
+    name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["typecheck"]
     env:

@@ -8,7 +8,7 @@
 # started by scripts/cloud/session-start.sh) instead of installing itself into a container.
 
 x-from-host: &from-host
-  image: node:24.22.1
+  image: node:24.22.3
   pull_policy: missing
   working_dir: /app/apps/api
   # Read-only: nothing in these containers may change the VM's install. `pnpm exec` is a stand-in

@@ -77,7 +77,7 @@ the data, plus pushing and deploying. Three things cut that down:
   (GitHub Actions cache, scope `preview-image`). PR builds only read it. While a PR doesn't
   change `pnpm-lock.yaml`, the dependency layers are reused and only the API and admin are
   compiled. PRs never write the cache, so one PR can't poison another's build.
-- **Slim runtime image.** The release stage is `node:24.22.1-slim` plus OpenSSL (as in the
+- **Slim runtime image.** The release stage is `node:24.22.3-slim` plus OpenSSL (as in the
   production image), so Cloud Run pulls far less before the seed job and the service start.
 - **Database templates.** Pushes to main also seed a template database,
   `preview_tpl_<seed key>_<commit>` (`scripts/preview/template.sh`, Cloud Run Job

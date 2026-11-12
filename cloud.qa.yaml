@@ -1,5 +1,5 @@
 steps:
-  - name: "node:24.22.1"
+  - name: "node:24.22.3"
     entrypoint: bash
     id: install
     # The API (apps/api) and the workspace root (Prettier, Oxlint): admin and apps/web have their own
@@ -11,20 +11,20 @@ steps:
       ]
   # With every spec file starting at once on 32 vCPUs, a heavy beforeAll (the dev data specs
   # generate five years of data) can exceed Vitest's 5s hook timeout
-  - name: "node:24.22.1"
+  - name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["install"]
     args:
       ["-c", "corepack enable && pnpm --filter stiftelsen-effekt-backend test --hookTimeout=30000"]
-  - name: "node:24.22.1"
+  - name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["install"]
     args: ["-c", "corepack enable && pnpm --filter stiftelsen-effekt-backend typecheck"]
-  - name: "node:24.22.1"
+  - name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["install"]
     args: ["-c", "corepack enable && pnpm run format:check"]
-  - name: "node:24.22.1"
+  - name: "node:24.22.3"
     entrypoint: bash
     waitFor: ["install"]
     # Oxlint on the whole repository (about a second)
