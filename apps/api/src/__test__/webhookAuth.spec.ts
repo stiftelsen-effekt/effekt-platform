@@ -173,5 +173,48 @@ describe("webhook authentication", () => {
         .send(payload)
         .expect(200);
     });
+
+    const answerPayload = (recipient: string) =>
+      JSON.stringify({
+        data: {
+          recipient,
+          meta: {
+            surveys: [
+              { survey_id: 4, question_id: 5, answers: [{ answer: "Fint", answer_id: "7" }] },
+            ],
+          },
+        },
+      });
+
+    const postAnswer = (raw: string) =>
+      request(app)
+        .post("/mail/mailersend/survey/response")
+        .set("Content-Type", "application/json")
+        .set("Signature", sign("whsec", raw))
+        .send(raw)
+        .expect(200);
+
+    it("skips recent duplicates for a known donor", async () => {
+      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
+      await postAnswer(answerPayload("x@example.test"));
+      expect(saveStub.calledOnce).to.be.true;
+      expect(saveStub.firstCall.args[0]).to.include({ DonorID: 1, answer: "Fint" });
+      expect(saveStub.firstCall.args[1]).to.deep.equal({ skipRecentDuplicate: true });
+    });
+
+    it("keeps every answer that falls back to the anonymous donor", async () => {
+      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
+      (DAO.donors.getIDbyEmail as sinon.SinonStub).resolves(null);
+      await postAnswer(answerPayload("unknown@example.test"));
+      expect(saveStub.firstCall.args[0]).to.include({ DonorID: 1464 });
+      expect(saveStub.firstCall.args[1]).to.deep.equal({ skipRecentDuplicate: false });
+    });
+
+    it("still answers 200 when every answer was a duplicate", async () => {
+      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
+      saveStub.resolves(false);
+      const res = await postAnswer(answerPayload("x@example.test"));
+      expect(res.body.content).to.equal("OK");
+    });
   });
 });
