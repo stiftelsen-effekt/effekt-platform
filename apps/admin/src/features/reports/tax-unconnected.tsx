@@ -41,10 +41,16 @@ export function UnconnectedGifts({ overview }: { overview: Overview }) {
           Donors with a tax unit who gave in {overview.year} on KIDs without one, for example an old
           AvtaleGiro or a gift registered by hand. These gifts are not reported, though the donor
           has registered. Connect puts the KIDs on the donor's tax unit, so later gifts on them are
-          covered too. Gifts from before {overview.year} on the same KIDs stay as they were.
+          covered too. Gifts from before {overview.year} on the same KIDs stay as they were. KIDs
+          that also hold another donor's gifts are left out: change those donations one by one.
         </p>
       }
     >
+      {rows.length > 0 && !overview.connectGifts.allowed && (
+        <Callout tone="warning" title="These gifts can't be connected here">
+          {overview.connectGifts.reason}
+        </Callout>
+      )}
       {rows.length === 0 ? (
         <Callout tone="success" title="Every gift is on the donor's tax unit">
           Nothing to check here.
@@ -100,7 +106,11 @@ export function UnconnectedGifts({ overview }: { overview: Overview }) {
                     </span>
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
-                    <Connect year={overview.year} row={row} />
+                    <Connect
+                      year={overview.year}
+                      row={row}
+                      allowed={overview.connectGifts.allowed}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -112,7 +122,7 @@ export function UnconnectedGifts({ overview }: { overview: Overview }) {
   );
 }
 
-function Connect({ year, row }: { year: number; row: Row }) {
+function Connect({ year, row, allowed }: { year: number; row: Row; allowed: boolean }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const connect = useMutation(trpc.reports.tax.connectToTaxUnit.mutationOptions());
@@ -136,7 +146,7 @@ function Connect({ year, row }: { year: number; row: Row }) {
         `Gifts before ${year} on these KIDs stay without a tax unit, on a copy of the KID.`,
       ]}
       trigger={
-        <Button size="sm" onClick={() => setUnitId(only)}>
+        <Button size="sm" disabled={!allowed} onClick={() => setUnitId(only)}>
           <LinkIcon />
           Connect gifts
         </Button>
@@ -153,7 +163,10 @@ function Connect({ year, row }: { year: number; row: Row }) {
           `${plural(result.kids, "KID", "KIDs")} of #${row.donorId} now have the tax unit` +
             (result.copiedKids > 0
               ? `; ${plural(result.earlierDonationsKept, "earlier donation", "earlier donations")} kept as before.`
-              : "."),
+              : ".") +
+            (result.skippedKids > 0
+              ? ` ${plural(result.skippedKids, "KID", "KIDs")} not changed (another donor's gifts on it, or an older fundraiser gift): change those donations one by one.`
+              : ""),
         );
         await queryClient.invalidateQueries({ queryKey: trpc.reports.tax.pathKey() });
       }}
