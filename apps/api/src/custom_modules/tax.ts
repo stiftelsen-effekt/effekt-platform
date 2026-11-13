@@ -4,14 +4,22 @@ import { donationHelpers } from "./donationHelpers";
 import { validateXML } from "xmllint-wasm";
 import { Decimal } from "decimal.js";
 import { EANTaxUnitsRow, parseEanTaxUnits } from "./parsers/eanTaxUnits";
-import type { TaxUnitYearSum } from "./DAO_modules/tax";
+import { type DonorForComparison, type TaxUnitYearSum, taxYearRange } from "./DAO_modules/tax";
+import type { TaxReportExclusionRow } from "./DAO_modules/taxreportexclusions";
+import type { TaxReportRow } from "./DAO_modules/taxreports";
 import {
   classifyDonorsWithoutTaxUnit,
+  reminderDue,
   noticeExclusionLabels,
   type NoticeExclusion,
   type NoticeStatus,
 } from "./missingTaxUnitNotices";
-import { checkNorwegianId, describeNorwegianIdProblem, maskIdNumbers } from "./norwegianId";
+import {
+  checkNorwegianId,
+  describeNorwegianIdProblem,
+  maskIdNumberForList,
+  maskIdNumbers,
+} from "./norwegianId";
 import { norwegianTaxDeductionLimits } from "./taxdeductions";
 
 export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId: number) {
@@ -126,6 +134,11 @@ export type TaxReportOverview = {
   year: number;
   minSum: number;
   maximumDeduction: number;
+  /**
+   * Whether the year is in norwegianTaxDeductionLimits. Without it the maximum is a guess
+   * (DEFAULT_MAXIMUM_DEDUCTION) and the missing tax unit notice can't be sent.
+   */
+  limitsInCode: boolean;
   /** Decimal strings in kroner */
   totals: {
     /** All donations confirmed in the year */
@@ -134,9 +147,11 @@ export type TaxReportOverview = {
     reported: string;
     /** On tax units with less than minSum */
     belowMinimum: string;
+    /** On tax units an admin has left out of the report (Tax_report_exclusions) */
+    leftOut: string;
     /** On distributions without a tax unit */
     withoutTaxUnit: string;
-    /** all - (reported + belowMinimum + withoutTaxUnit); "0.00" when the figures add up */
+    /** all - (reported + belowMinimum + leftOut + withoutTaxUnit); "0.00" when the figures add up */
     difference: string;
   };
   counts: {
@@ -146,17 +161,19 @@ export type TaxReportOverview = {
     persons: number;
     organizations: number;
     belowMinimumUnits: number;
+    leftOutUnits: number;
     /** Reported units above the maximum deduction */
     aboveMaximum: number;
   };
   /**
    * Donors with at least minSum in the year on distributions without a tax unit, and whether
-   * they get the missing tax unit notice, are left out (and why) or have been sent it. Names, no
-   * email addresses.
+   * they get the missing tax unit notice, are left out (and why) or have been sent it, with name
+   * and email address (to judge who should get it).
    */
   withoutTaxUnit: {
     donorId: number;
     name: string | null;
+    email: string | null;
     donationsSum: string;
     fundraiserSum: string;
     donations: number;
@@ -167,12 +184,37 @@ export type TaxReportOverview = {
     /** Who sent the notice or left the donor out by hand, and when */
     statusBy: string | null;
     statusAt: Date | null;
+    /** Reminders sent after the notice, and the last one */
+    reminders: number;
+    lastReminded: Date | null;
+    /**
+     * Whether a reminder would go to the donor now: sent, the rules don't leave them out, and no
+     * notice or reminder in the last REMINDER_GAP_DAYS
+     */
+    canRemind: boolean;
   }[];
   /**
    * Donors sent the notice for the year who are no longer in withoutTaxUnit: they have since
    * registered a tax unit (or their gifts moved onto one)
    */
   sentNoLongerWithout: number;
+  /**
+   * Donors with an active tax unit whose gifts in the year are on their own KIDs without one:
+   * not reported, though the donor registered. Connect them with connectGiftsToTaxUnit.
+   */
+  /**
+   * Whether the year's gifts can still be connected (canConnectGiftsInYear), and if not, why
+   */
+  connectGifts: { allowed: boolean; reason: string | null };
+  unconnected: {
+    donorId: number;
+    name: string | null;
+    email: string | null;
+    donationsSum: string;
+    donations: number;
+    kids: number;
+    taxUnits: { id: number; name: string; maskedNumber: string }[];
+  }[];
   /** Possible duplicates, without the number */
   duplicates: {
     reason: "sameNumber" | "severalUnits";
@@ -184,10 +226,48 @@ export type TaxReportOverview = {
   invalidNumbers: {
     donorIds: number[];
     taxUnitIds: number[];
+    /** The tax unit's name */
+    name: string;
+    /** The first four characters and a dot per other character (maskIdNumberForList) */
+    maskedNumber: string;
     problem: string;
     sum: string;
-    /** Whether the unit is in the report (at least minSum) */
+    /** Whether the unit is in the report (at least minSum, not left out) */
     reported: boolean;
+    /** Left out of the report by an admin */
+    leftOut: boolean;
+  }[];
+  /** The XML files made for the year, newest first, and which was sent to Skatteetaten */
+  files: TaxReportRow[];
+  /**
+   * Against the latest file marked as sent: tax units whose amount in the report would now be
+   * different (whole kroner), for a correction with RF-1310. Null when no file is marked as sent.
+   */
+  changes: {
+    basis: { id: number; submitted: Date };
+    rows: {
+      donorIds: number[];
+      taxUnitIds: number[];
+      name: string;
+      maskedNumber: string;
+      /** Whole kroner, Gi Effektivt's part */
+      filed: string;
+      now: string;
+      difference: string;
+    }[];
+  } | null;
+  /** Tax units left out of the report by an admin, with the reason */
+  leftOut: {
+    donorIds: number[];
+    taxUnitIds: number[];
+    name: string;
+    maskedNumber: string;
+    sum: string;
+    /** Whether the unit would be reported if it weren't left out (at least minSum) */
+    aboveMinimum: boolean;
+    reason: string;
+    by: string;
+    at: Date;
   }[];
 };
 
@@ -199,25 +279,35 @@ export async function getTaxReportOverview(
   year: number,
   minSum: number,
 ): Promise<TaxReportOverview> {
-  const [rows, totals, withoutTaxUnit, notices] = await Promise.all([
-    DAO.tax.getTaxXMLReportUnits(year),
-    DAO.tax.getDonationTotalsInYear(year),
-    DAO.tax.getDonorsWithoutTaxUnitInYear(year, minSum),
-    DAO.taxunitnotices.getForYear(year),
-  ]);
+  const [rows, totals, withoutTaxUnit, notices, unconnected, exclusions, files] = await Promise.all(
+    [
+      DAO.tax.getTaxXMLReportUnits(year),
+      DAO.tax.getDonationTotalsInYear(year),
+      DAO.tax.getDonorsWithoutTaxUnitInYear(year, minSum),
+      DAO.taxunitnotices.getForYear(year),
+      DAO.tax.getUnconnectedGiftsInYear(year),
+      DAO.taxreportexclusions.getForYear(year),
+      DAO.taxreports.getForYear(year),
+    ],
+  );
+  const connectProblem = connectGiftsProblem(year);
   const stillWithout = new Set(withoutTaxUnit.map((row) => row.donorId));
   const units = groupTaxUnitsBySsn(rows);
   const maximumDeduction =
     norwegianTaxDeductionLimits[year]?.maximumDeductionLimit ?? DEFAULT_MAXIMUM_DEDUCTION;
 
-  const reported = units.filter((unit) => unit.sum.gte(minSum));
-  const below = units.filter((unit) => unit.sum.lt(minSum));
+  const exclusionOf = exclusionLookup(exclusions);
+  const leftOutUnits = units.filter((unit) => exclusionOf(unit));
+  const counted = units.filter((unit) => !exclusionOf(unit));
+  const reported = counted.filter((unit) => unit.sum.gte(minSum));
+  const below = counted.filter((unit) => unit.sum.lt(minSum));
   const sumOf = (list: GroupedTaxUnit[]) =>
     list.reduce((acc, unit) => acc.add(unit.sum), new Decimal(0));
   const reportedSum = sumOf(reported);
   const belowSum = sumOf(below);
+  const leftOutSum = sumOf(leftOutUnits);
   const all = new Decimal(totals.total);
-  const difference = all.sub(reportedSum).sub(belowSum).sub(totals.withoutTaxUnit);
+  const difference = all.sub(reportedSum).sub(belowSum).sub(leftOutSum).sub(totals.withoutTaxUnit);
 
   const duplicates: TaxReportOverview["duplicates"] = units
     .filter((unit) => unit.donorIds.length > 1)
@@ -247,9 +337,12 @@ export async function getTaxReportOverview(
           {
             donorIds: unit.donorIds,
             taxUnitIds: unit.taxUnitIds,
+            name: unit.name,
+            maskedNumber: maskIdNumberForList(unit.ssn),
             problem,
             sum: money(unit.sum),
-            reported: unit.sum.gte(minSum),
+            reported: unit.sum.gte(minSum) && !exclusionOf(unit),
+            leftOut: !!exclusionOf(unit),
           },
         ]
       : [];
@@ -259,10 +352,12 @@ export async function getTaxReportOverview(
     year,
     minSum,
     maximumDeduction,
+    limitsInCode: year in norwegianTaxDeductionLimits,
     totals: {
       all: money(all),
       reported: money(reportedSum),
       belowMinimum: money(belowSum),
+      leftOut: money(leftOutSum),
       withoutTaxUnit: money(new Decimal(totals.withoutTaxUnit)),
       difference: money(difference),
     },
@@ -273,11 +368,13 @@ export async function getTaxReportOverview(
       organizations: reported.filter((unit) => checkNorwegianId(unit.ssn).kind === "organization")
         .length,
       belowMinimumUnits: below.length,
+      leftOutUnits: leftOutUnits.length,
       aboveMaximum: reported.filter((unit) => unit.sum.gt(maximumDeduction)).length,
     },
     withoutTaxUnit: classifyDonorsWithoutTaxUnit(withoutTaxUnit, minSum, notices).map((donor) => ({
       donorId: donor.donorId,
       name: donor.name,
+      email: donor.email,
       donationsSum: donor.donationsSum,
       fundraiserSum: donor.fundraiserSum,
       donations: donor.donations,
@@ -287,12 +384,194 @@ export async function getTaxReportOverview(
       status: donor.status,
       statusBy: donor.statusBy,
       statusAt: donor.statusAt,
+      reminders: donor.reminders,
+      lastReminded: donor.lastReminded,
+      canRemind: donor.status === "sent" && !donor.ruleExclusion && reminderDue(donor),
     })),
     sentNoLongerWithout: notices.filter(
       (notice) => notice.status === "sent" && !stillWithout.has(notice.donorId),
     ).length,
+    connectGifts: { allowed: connectProblem === null, reason: connectProblem },
+    unconnected: unconnected.map((row) => ({
+      ...row,
+      taxUnits: row.taxUnits.map(({ ssn, ...unit }) => ({
+        ...unit,
+        maskedNumber: maskIdNumberForList(ssn),
+      })),
+    })),
     duplicates,
     invalidNumbers,
+    files,
+    changes: await changesSinceFiled(files, units, (unit) =>
+      unit.sum.gte(minSum) && !exclusionOf(unit) ? unit.sum : new Decimal(0),
+    ),
+    leftOut: leftOutUnits.map((unit) => {
+      const exclusion = exclusionOf(unit)!;
+      return {
+        donorIds: unit.donorIds,
+        taxUnitIds: unit.taxUnitIds,
+        name: unit.name,
+        maskedNumber: maskIdNumberForList(unit.ssn),
+        sum: money(unit.sum),
+        aboveMinimum: unit.sum.gte(minSum),
+        reason: exclusion.reason,
+        by: exclusion.createdBy,
+        at: exclusion.created,
+      };
+    }),
+  };
+}
+
+const wholeKroner = (value: Decimal) => value.toDecimalPlaces(0, Decimal.ROUND_HALF_UP);
+
+/**
+ * Tax units whose amount in the report (whole kroner, as in the file) differs now from the latest
+ * file marked as sent: gifts registered, changed or moved since, merged donors, units left out or
+ * put back. Gi Effektivt's part only; EA Giverportal's rows are not in our database.
+ */
+async function changesSinceFiled(
+  files: TaxReportRow[],
+  units: GroupedTaxUnit[],
+  amountNow: (unit: GroupedTaxUnit) => Decimal,
+): Promise<TaxReportOverview["changes"]> {
+  const basis = files.find((file) => file.submitted);
+  if (!basis?.submitted) return null;
+  const filed = await DAO.taxreports.getUnitAmounts(basis.id);
+  const rows: NonNullable<TaxReportOverview["changes"]>["rows"] = [];
+  const seen = new Set<number>();
+  const push = (unit: Omit<GroupedTaxUnit, "sum">, was: Decimal, now: Decimal) => {
+    const [a, b] = [wholeKroner(was), wholeKroner(now)];
+    if (a.eq(b)) return;
+    rows.push({
+      donorIds: unit.donorIds,
+      taxUnitIds: unit.taxUnitIds,
+      name: unit.name,
+      maskedNumber: maskIdNumberForList(unit.ssn),
+      filed: money(a),
+      now: money(b),
+      difference: money(b.sub(a)),
+    });
+  };
+  for (const unit of units) {
+    unit.taxUnitIds.forEach((id) => seen.add(id));
+    const was = unit.taxUnitIds.reduce((acc, id) => acc.add(filed.get(id) ?? 0), new Decimal(0));
+    push(unit, was, amountNow(unit));
+  }
+  // In the file, but without gifts in the year now (moved, or the tax unit is gone)
+  for (const [taxUnitId, amount] of filed) {
+    if (seen.has(taxUnitId)) continue;
+    const unit = await DAO.tax.getById(taxUnitId);
+    push(
+      {
+        ssn: unit?.ssn ?? "",
+        name: unit?.name ?? "Tax unit no longer exists",
+        donorIds: unit ? [unit.donorId] : [],
+        taxUnitIds: [taxUnitId],
+      },
+      new Decimal(amount),
+      new Decimal(0),
+    );
+  }
+  rows.sort((a, b) => Math.abs(Number(b.difference)) - Math.abs(Number(a.difference)));
+  return { basis: { id: basis.id, submitted: basis.submitted }, rows };
+}
+
+/**
+ * The exclusion that leaves a grouped unit (one number) out of the report, if any. Only when all
+ * its tax units are left out: leaving a number out records each unit that had it then, so a unit
+ * that gets the number later (a corrected number, a merge, another donor) keeps it in the file
+ * instead of being dropped without anyone deciding so.
+ */
+export function exclusionLookup(exclusions: TaxReportExclusionRow[]) {
+  const byUnit = new Map(exclusions.map((exclusion) => [exclusion.taxUnitId, exclusion]));
+  return (unit: { taxUnitIds: number[] }) =>
+    unit.taxUnitIds.every((id) => byUnit.has(id))
+      ? (byUnit.get(unit.taxUnitIds[0]!) ?? null)
+      : null;
+}
+
+/**
+ * Why gifts in the year can't be connected to a tax unit now, or null when they can. Only years
+ * not yet filed with Skatteetaten: this year, and last year until the deadline on 31 January.
+ * Connecting puts the tax unit on the KIDs, so it also covers their gifts in the years after the
+ * chosen one; for those two years the only later gifts are this year's, which isn't filed either.
+ * An older year's gifts would need a correction (RF-1310), and connecting them would also change
+ * years that are already filed.
+ */
+export function connectGiftsProblem(year: number, now = new Date()): string | null {
+  const oslo = DateTime.fromJSDate(now).setZone("Europe/Oslo");
+  if (year === oslo.year) return null;
+  if (year === oslo.year - 1 && oslo.month === 1) return null;
+  if (year > oslo.year) return `${year} hasn't started`;
+  return (
+    `${year} is filed with Skatteetaten, and connecting would also change the years after it. ` +
+    "Gifts can be connected for this year, and for last year until 31 January."
+  );
+}
+
+export type ConnectGiftsResult = {
+  /** KIDs that got the tax unit */
+  kids: number;
+  /** KIDs copied (without tax unit) to keep their gifts from before the year as they were */
+  copiedKids: number;
+  /** Donations moved to those copies */
+  earlierDonationsKept: number;
+  /**
+   * KIDs left as they were: they also hold another donor's gifts (which would be reported on this
+   * donor's unit), or they are a fundraiser KID with gifts from before the year
+   */
+  skippedKids: number;
+};
+
+/**
+ * Connects the donor's gifts in the gift year on their own KIDs without a tax unit to one of
+ * their active tax units, so they are reported. The KIDs themselves get the tax unit, so later
+ * gifts on them (an AvtaleGiro going on) are covered too. Gifts from before the year on the same
+ * KID were reported (or left out) for their year and must stay as they are: they move to a copy
+ * of the KID without tax unit first, as connectDonationsForFirstTaxUnit does. Fundraiser KIDs
+ * hold one gift each and get the tax unit directly. Only for years not yet filed
+ * (connectGiftsProblem), and KIDs that also hold another donor's gifts are left alone.
+ */
+export async function connectGiftsToTaxUnit(
+  year: number,
+  donorId: number,
+  taxUnitId: number,
+  now = new Date(),
+): Promise<ConnectGiftsResult> {
+  const problem = connectGiftsProblem(year, now);
+  if (problem) throw new Error(problem);
+  const unit = await DAO.tax.getById(taxUnitId);
+  if (!unit || unit.donorId !== donorId)
+    throw new Error(`Tax unit ${taxUnitId} does not belong to donor ${donorId}`);
+  if (unit.archived) throw new Error(`Tax unit ${taxUnitId} is archived`);
+
+  const all = await DAO.tax.getKIDsWithoutTaxUnitInYear(donorId, year);
+  // A fundraiser KID is one gift's own; one with earlier gifts isn't, so it is left for a person
+  const kids = all.filter((kid) => !kid.otherDonors && !(kid.fundraiser && kid.hasEarlier));
+  const before = taxYearRange(year).from;
+  let copiedKids = 0;
+  let earlierDonationsKept = 0;
+  const needCopy = kids.filter((kid) => kid.hasEarlier && !kid.fundraiser);
+  const { distributions } = needCopy.length
+    ? await DAO.distributions.getAllByDonor(donorId)
+    : { distributions: [] };
+
+  for (const { kid, fundraiser, hasEarlier } of kids) {
+    if (hasEarlier && !fundraiser) {
+      const old = distributions.find((distribution) => distribution.kid === kid);
+      if (!old) throw new Error(`Distribution ${kid} not found`);
+      const copy = await donationHelpers.createKID(15, donorId);
+      await DAO.distributions.add({ ...old, kid: copy, taxUnitId: null });
+      earlierDonationsKept += await DAO.tax.moveDonationsBefore(kid, copy, before);
+      copiedKids++;
+    }
+    await DAO.distributions.addTaxUnitToDistribution(kid, taxUnitId);
+  }
+  return {
+    kids: kids.length,
+    copiedKids,
+    earlierDonationsKept,
+    skippedKids: all.length - kids.length,
   };
 }
 
@@ -311,6 +590,10 @@ export type TaxXmlReportResult =
       units: number;
       sum: string;
       giverportalSum: string;
+      /** Units left out of the file by an admin (Tax_report_exclusions) */
+      leftOut: number;
+      /** Per tax unit of ours in the file, its own amount (Gi Effektivt's part), for Tax_reports */
+      ourUnits: { taxUnitId: number; amount: string }[];
     }
   | { ok: false; errors: TaxReportError[] };
 
@@ -340,8 +623,18 @@ export async function createXMLReportToTaxAuthorities(
     };
   }
 
+  const exclusionOf = exclusionLookup(await DAO.taxreportexclusions.getForYear(year));
+  const leftOutNumbers = new Set<string>();
+  let leftOut = 0;
   const units = new Map<string, GroupedTaxUnit & { giverportal: Decimal }>();
-  for (const unit of groupTaxUnitsBySsn(await DAO.tax.getTaxXMLReportUnits(year))) {
+  const ourRows = await DAO.tax.getTaxXMLReportUnits(year);
+  for (const unit of groupTaxUnitsBySsn(ourRows)) {
+    // Left out by an admin: the number is out of the file, EA Giverportal's row for it too
+    if (exclusionOf(unit)) {
+      if (unit.ssn !== "") leftOutNumbers.add(unit.ssn);
+      leftOut++;
+      continue;
+    }
     units.set(unit.ssn === "" ? `unit:${unit.taxUnitIds[0]}` : unit.ssn, {
       ...unit,
       giverportal: new Decimal(0),
@@ -352,6 +645,7 @@ export async function createXMLReportToTaxAuthorities(
   for (const row of eanTaxUnits) {
     const ssn = row.ssn.replace(/\s/g, "");
     const label = `EA Giverportal row for “${row.name}”`;
+    if (leftOutNumbers.has(ssn)) continue;
     const problem = describeNorwegianIdProblem(ssn);
     if (problem) {
       errors.push({ kind: "invalidNumber", message: `${label}: ${problem}` });
@@ -443,6 +737,13 @@ export async function createXMLReportToTaxAuthorities(
     giverportalSum: money(
       reported.reduce((acc, unit) => acc.add(unit.giverportal), new Decimal(0)),
     ),
+    leftOut,
+    ourUnits: (() => {
+      const inFile = new Set(reported.flatMap((unit) => unit.taxUnitIds));
+      return ourRows
+        .filter((row) => inFile.has(row.taxUnitId))
+        .map((row) => ({ taxUnitId: row.taxUnitId, amount: row.donationsSum }));
+    })(),
   };
 }
 
@@ -575,3 +876,23 @@ export const validateXml = async (
     errors: result.errors.map((e) => e.message.replace(/^Schemas validity error : /, "").trim()),
   };
 };
+
+/** One donor in compareDonors, with the tax units' numbers masked */
+export type DonorComparison = Omit<DonorForComparison, "taxUnits"> & {
+  taxUnits: { id: number; name: string; maskedNumber: string; archived: boolean }[];
+};
+
+/**
+ * The donors side by side, to judge whether they are one person before merging (Possible
+ * duplicate donors). Numbers are masked like the other lists on the page.
+ */
+export async function compareDonors(donorIds: number[]): Promise<DonorComparison[]> {
+  const donors = await DAO.tax.getDonorsForComparison(donorIds);
+  return donors.map((donor) => ({
+    ...donor,
+    taxUnits: donor.taxUnits.map(({ ssn, ...unit }) => ({
+      ...unit,
+      maskedNumber: maskIdNumberForList(ssn),
+    })),
+  }));
+}

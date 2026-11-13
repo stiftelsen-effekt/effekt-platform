@@ -4,7 +4,7 @@ import { DAO } from "../DAO";
 import { getTaxUnitsWithDeductions } from "../taxdeductions";
 import { Distributions, Tax_unit } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
-import { type InstantRange, instantRangeClauses, osloYearRange } from "../osloDays";
+import { type InstantRange, instantRangeClauses, osloYearRange, sqlInstant } from "../osloDays";
 
 //region Get
 /**
@@ -398,6 +398,235 @@ async function deleteById(_id: number, _donorId: number, _transferId?: number): 
 }
 
 //endregion
+export type DonorForComparison = {
+  id: number;
+  name: string | null;
+  email: string;
+  registered: Date;
+  trashed: boolean;
+  donations: number;
+  /** Decimal string: all the donor's confirmed donations */
+  donationsSum: string;
+  lastDonation: Date | null;
+  /** KIDs (distributions) */
+  kids: number;
+  /** AvtaleGiro and Vipps agreements, and how many of them are active */
+  agreements: number;
+  activeAgreements: number;
+  taxUnits: { id: number; name: string; ssn: string | null; archived: boolean }[];
+};
+
+/**
+ * What an admin needs to judge whether donors are one person, and what a merge would move:
+ * contact details, donations, KIDs, agreements and tax units per donor
+ */
+async function getDonorsForComparison(donorIds: number[]): Promise<DonorForComparison[]> {
+  if (donorIds.length === 0) return [];
+  const [donors] = await DAO.query<RowDataPacket[]>(
+    `
+    SELECT
+      D.ID as id,
+      D.full_name as name,
+      D.email,
+      D.date_registered as registered,
+      D.trash,
+      (SELECT COUNT(*) FROM Donations WHERE Donations.Donor_ID = D.ID) as donations,
+      (SELECT COALESCE(SUM(sum_confirmed), 0) FROM Donations WHERE Donations.Donor_ID = D.ID)
+        as donationsSum,
+      (SELECT MAX(timestamp_confirmed) FROM Donations WHERE Donations.Donor_ID = D.ID)
+        as lastDonation,
+      (SELECT COUNT(*) FROM Distributions WHERE Distributions.Donor_ID = D.ID) as kids,
+      (SELECT COUNT(*) FROM Avtalegiro_agreements AS AG
+        INNER JOIN Distributions AS DI ON DI.KID = AG.KID
+        WHERE DI.Donor_ID = D.ID) as avtalegiro,
+      (SELECT COUNT(*) FROM Avtalegiro_agreements AS AG
+        INNER JOIN Distributions AS DI ON DI.KID = AG.KID
+        WHERE DI.Donor_ID = D.ID AND AG.active = 1 AND AG.cancelled IS NULL) as avtalegiroActive,
+      (SELECT COUNT(*) FROM Vipps_agreements AS VA WHERE VA.donorID = D.ID) as vipps,
+      (SELECT COUNT(*) FROM Vipps_agreements AS VA
+        WHERE VA.donorID = D.ID AND UPPER(VA.status) = 'ACTIVE') as vippsActive
+
+      FROM Donors as D
+      WHERE D.ID IN (?)
+    `,
+    [donorIds],
+  );
+  const [units] = await DAO.query<RowDataPacket[]>(
+    `SELECT ID as id, Donor_ID as donorId, full_name as name, ssn, archived
+     FROM Tax_unit WHERE Donor_ID IN (?) ORDER BY ID`,
+    [donorIds],
+  );
+  return donorIds.flatMap((donorId) => {
+    const row = donors.find((donor) => Number(donor.id) === donorId);
+    if (!row) return [];
+    return [
+      {
+        id: donorId,
+        name: row.name ?? null,
+        email: String(row.email),
+        registered: row.registered,
+        trashed: Boolean(row.trash),
+        donations: Number(row.donations),
+        donationsSum: String(row.donationsSum),
+        lastDonation: row.lastDonation ?? null,
+        kids: Number(row.kids),
+        agreements: Number(row.avtalegiro) + Number(row.vipps),
+        activeAgreements: Number(row.avtalegiroActive) + Number(row.vippsActive),
+        taxUnits: units
+          .filter((unit) => Number(unit.donorId) === donorId)
+          .map((unit) => ({
+            id: Number(unit.id),
+            name: String(unit.name ?? ""),
+            ssn: unit.ssn ?? null,
+            archived: unit.archived !== null && unit.archived !== undefined,
+          })),
+      },
+    ];
+  });
+}
+
+export type UnconnectedGiftsRow = {
+  donorId: number;
+  name: string | null;
+  email: string | null;
+  /** Decimal string: the donor's gifts in the year on their own KIDs without a tax unit */
+  donationsSum: string;
+  donations: number;
+  kids: number;
+  /** The donor's active tax units, to connect the gifts to */
+  taxUnits: { id: number; name: string; ssn: string | null }[];
+};
+
+/**
+ * Donors with an active tax unit whose gifts in the gift year (taxYearRange) are on their own
+ * KIDs without one, any sum. Those gifts are not reported, though the donor has registered for
+ * the deduction. The anonymous donor is left out.
+ */
+async function getUnconnectedGiftsInYear(year: number): Promise<UnconnectedGiftsRow[]> {
+  const [rows] = await DAO.query<RowDataPacket[]>(
+    `
+    SELECT
+      D.Donor_ID as donorId,
+      ANY_VALUE(Donors.full_name) as name,
+      ANY_VALUE(Donors.email) as email,
+      SUM(D.sum_confirmed) as donationsSum,
+      COUNT(*) as donations,
+      COUNT(DISTINCT D.KID_fordeling) as kids
+
+      FROM Donations as D
+
+      INNER JOIN Donors
+        ON Donors.ID = D.Donor_ID
+
+      INNER JOIN Distributions as DI
+        ON DI.KID = D.KID_fordeling AND DI.Donor_ID = D.Donor_ID
+
+      LEFT JOIN Tax_unit as TU
+        ON TU.ID = DI.Tax_unit_ID
+
+      WHERE ${confirmedInTaxYear(year)}
+        AND TU.ID IS NULL
+        AND D.Donor_ID <> 1464 -- ANONYMOUS_DONOR_ID
+        -- As connectGiftsToTaxUnit: not KIDs that also hold another donor's gifts, nor fundraiser
+        -- KIDs with gifts from before the year
+        AND NOT EXISTS (
+          SELECT 1 FROM Donations AS O
+          WHERE O.KID_fordeling = DI.KID AND O.Donor_ID <> DI.Donor_ID
+        )
+        AND NOT (
+          DI.Fundraiser_transaction_ID IS NOT NULL AND EXISTS (
+            SELECT 1 FROM Donations AS E
+            WHERE E.KID_fordeling = DI.KID AND E.timestamp_confirmed < ${sqlInstant(taxYearRange(year).from)}
+          )
+        )
+        AND EXISTS (
+          SELECT 1 FROM Tax_unit WHERE Tax_unit.Donor_ID = D.Donor_ID AND Tax_unit.archived IS NULL
+        )
+
+      GROUP BY D.Donor_ID
+
+      ORDER BY SUM(D.sum_confirmed) DESC
+  `,
+  );
+  if (rows.length === 0) return [];
+  const [units] = await DAO.query<RowDataPacket[]>(
+    `SELECT ID as id, Donor_ID as donorId, full_name as name, ssn
+     FROM Tax_unit WHERE archived IS NULL AND Donor_ID IN (?) ORDER BY ID`,
+    [rows.map((row) => row.donorId)],
+  );
+  return rows.map((row) => ({
+    donorId: Number(row.donorId),
+    name: row.name ?? null,
+    email: row.email ?? null,
+    donationsSum: String(row.donationsSum),
+    donations: Number(row.donations),
+    kids: Number(row.kids),
+    taxUnits: units
+      .filter((unit) => Number(unit.donorId) === Number(row.donorId))
+      .map((unit) => ({
+        id: Number(unit.id),
+        name: String(unit.name ?? ""),
+        ssn: unit.ssn ?? null,
+      })),
+  }));
+}
+
+/**
+ * The donor's own KIDs without a tax unit that have gifts in the gift year, and whether each also
+ * has gifts from before the year (already reported, or left out, for an earlier year)
+ */
+async function getKIDsWithoutTaxUnitInYear(
+  donorId: number,
+  year: number,
+): Promise<{ kid: string; fundraiser: boolean; hasEarlier: boolean; otherDonors: boolean }[]> {
+  const from = taxYearRange(year).from;
+  const [rows] = await DAO.query<RowDataPacket[]>(
+    `
+    SELECT
+      DI.KID as kid,
+      DI.Fundraiser_transaction_ID as fundraiserTransactionId,
+      EXISTS (
+        SELECT 1 FROM Donations AS E
+        WHERE E.KID_fordeling = DI.KID AND E.timestamp_confirmed < ${sqlInstant(from)}
+      ) as hasEarlier,
+      -- Gifts from another donor on the KID would be reported on this donor's unit
+      EXISTS (
+        SELECT 1 FROM Donations AS O
+        WHERE O.KID_fordeling = DI.KID AND O.Donor_ID <> DI.Donor_ID
+      ) as otherDonors
+
+      FROM Distributions as DI
+
+      LEFT JOIN Tax_unit as TU
+        ON TU.ID = DI.Tax_unit_ID
+
+      WHERE DI.Donor_ID = ?
+        AND TU.ID IS NULL
+        AND EXISTS (
+          SELECT 1 FROM Donations AS D
+          WHERE D.KID_fordeling = DI.KID AND D.Donor_ID = DI.Donor_ID AND ${confirmedInTaxYear(year)}
+        )
+  `,
+    [donorId],
+  );
+  return rows.map((row) => ({
+    kid: String(row.kid),
+    fundraiser: row.fundraiserTransactionId !== null && row.fundraiserTransactionId !== undefined,
+    hasEarlier: Boolean(Number(row.hasEarlier)),
+    otherDonors: Boolean(Number(row.otherDonors)),
+  }));
+}
+
+/** Moves the KID's donations confirmed before the instant to another KID */
+async function moveDonationsBefore(kid: string, newKid: string, before: Date): Promise<number> {
+  const [result] = await DAO.query<ResultSetHeader>(
+    `UPDATE Donations SET KID_fordeling = ?
+     WHERE KID_fordeling = ? AND timestamp_confirmed < ${sqlInstant(before)}`,
+    [newKid, kid],
+  );
+  return result.affectedRows;
+}
+
 export const tax = {
   getById,
   getByDonorId,
@@ -408,6 +637,10 @@ export const tax = {
   getTaxXMLReportUnits,
   getDonationTotalsInYear,
   getDonorsWithoutTaxUnitInYear,
+  getDonorsForComparison,
+  getUnconnectedGiftsInYear,
+  getKIDsWithoutTaxUnitInYear,
+  moveDonationsBefore,
   addTaxUnit,
   updateTaxUnit,
   deleteById,
