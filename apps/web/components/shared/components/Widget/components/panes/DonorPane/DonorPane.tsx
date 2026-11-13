@@ -17,6 +17,7 @@ import {
   DonorFormValues,
   donorFromForm,
   initialDonorFormValues,
+  referralCodePlaceholderFallback,
   validateDonorForm,
 } from "./donorForm";
 import { PaymentMethod } from "../../../types/Enums";
@@ -128,6 +129,10 @@ export const DonorPane: React.FC<{
     setValue("referralCode", donation.referralCode);
   }
 
+  // Shown when Sanity turns it on, and whenever the link brought a code, so the donor can see
+  // which campaign the donation is attributed to and change or remove the code
+  const showReferralCodeField = !!text.show_referral_code_field || !!donation.referralCodePrefilled;
+
   const mapPaymentMethod = (method: string): PaymentMethod => {
     const mapped = paymentMethodMap[method];
     if (!mapped) throw new Error(`Unknown payment method: ${method}`);
@@ -215,7 +220,7 @@ export const DonorPane: React.FC<{
 
     dispatch(submitDonorInfo(donorFromForm(formData, !!text.show_name_field)));
 
-    if (text.show_referral_code_field) {
+    if (showReferralCodeField) {
       dispatch(setReferralCode(formData.referralCode));
     }
 
@@ -293,13 +298,15 @@ export const DonorPane: React.FC<{
                 />
                 {errors.email && <ErrorField text={text.email_invalid_error_text} />}
               </div>
-              {text.show_referral_code_field && (
+              {showReferralCodeField && (
                 <div className={forms.inputFieldWrapper}>
                   <input
                     data-cy="referral-code-input"
                     type="text"
                     autoComplete="off"
-                    placeholder={text.referral_code_placeholder}
+                    placeholder={
+                      text.referral_code_placeholder || referralCodePlaceholderFallback[locale]
+                    }
                     name="referralCode"
                     value={values.referralCode}
                     onChange={(e) => setValue("referralCode", e.target.value)}

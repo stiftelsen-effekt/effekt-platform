@@ -8,7 +8,7 @@ import {
   setCauseAreaSelection,
   setOrgAmount,
   setPrefilledShares,
-  setReferralCode,
+  prefillReferralCode,
   prefillActions,
 } from "../store/actions";
 import { RecurringDonation, ShareType } from "../types/Enums";
@@ -238,13 +238,13 @@ export const useQueryParamsPrefill = ({
 
     const referralValue = getReferralCodeFromQuery({ referral, referralCode });
     if (referralValue) {
-      dispatch(setReferralCode(referralValue));
+      dispatch(prefillReferralCode(referralValue));
       storeReferralCode(referralValue);
       hasAppliedQueryParams.current = true;
     } else {
       const storedReferralCode = getStoredReferralCode();
       if (storedReferralCode) {
-        dispatch(setReferralCode(storedReferralCode));
+        dispatch(prefillReferralCode(storedReferralCode));
         hasAppliedQueryParams.current = true;
       }
     }
