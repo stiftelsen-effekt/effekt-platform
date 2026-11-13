@@ -627,14 +627,15 @@ export default defineType({
       group: "pane2",
       initialValue: false,
       description:
-        "If true, the donor can enter a referral/campaign code on pane 2. Codes from the URL (?referral=) are still sent even when this is off.",
+        "If true, the donor can enter a referral/campaign code on pane 2. When the link has a code (?referral=), the field is shown with that code filled in even when this is off.",
     }),
     defineField({
       name: "referral_code_placeholder",
       title: "Referral code placeholder",
       type: "string",
       group: "pane2",
-      description: "Placeholder shown in the referral code input when the field is visible.",
+      description:
+        'Placeholder shown in the referral code input when the field is visible. Falls back to "Kampanjekode" (or the language\'s equivalent) when empty.',
       validation: (Rule) =>
         Rule.custom((value, ctx) => {
           if (
