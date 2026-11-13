@@ -724,8 +724,9 @@ model Tax_unit {
   registered DateTime? @default(now()) @db.DateTime(0)
   archived   DateTime? @db.DateTime(0)
 
-  FB_payment_ID FB_payment_ID[]
-  Distributions Distributions[]
+  FB_payment_ID         FB_payment_ID[]
+  Distributions         Distributions[]
+  Tax_report_exclusions Tax_report_exclusions[]
 
   // When a donor is deleted we also delete the tax unit.
   Donors Donors @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, map: "FK_tax_unit_donor_id")
@@ -734,13 +735,62 @@ model Tax_unit {
 }
 
 /// The missing tax unit notice per donor and gift year (Reports › Tax deduction)
+/// An XML file made for Skatteetaten: who, when, its totals, and whether it was sent
+model Tax_reports {
+  ID              Int       @id @default(autoincrement())
+  Year            Int /// Gift year of the report
+  Units           Int /// Units in the file, EA Giverportal's included
+  Sum             Decimal   @db.Decimal(15, 2) /// Whole kroner per unit, added up
+  Giverportal_sum Decimal   @db.Decimal(15, 2)
+  Left_out        Int       @default(0) /// Units left out by hand (Tax_report_exclusions)
+  Created_by      String    @db.VarChar(255) /// Admin (JWT email or sub) who made the file
+  Created         DateTime  @default(now()) @db.DateTime(0)
+  Submitted       DateTime? @db.DateTime(0) /// Marked as the file sent to Skatteetaten
+  Submitted_by    String?   @db.VarChar(255)
+
+  Tax_report_units Tax_report_units[]
+
+  @@index([Year], map: "Year_idx")
+}
+
+/// Per tax unit of ours, the amount (Gi Effektivt's part) in a Tax_reports file
+model Tax_report_units {
+  ID            Int     @id @default(autoincrement())
+  Tax_report_ID Int
+  Tax_unit_ID   Int /// No foreign key: the record stays if the tax unit is merged away
+  Amount        Decimal @db.Decimal(15, 2)
+
+  Tax_reports Tax_reports @relation(fields: [Tax_report_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Tax_report_units_to_Tax_reports")
+
+  @@index([Tax_report_ID], map: "Tax_report_ID_idx")
+  @@index([Tax_unit_ID], map: "Tax_unit_ID_idx")
+}
+
+/// Tax units left out of the year's report to Skatteetaten by an admin, with the reason
+model Tax_report_exclusions {
+  ID          Int      @id @default(autoincrement())
+  Tax_unit_ID Int
+  Year        Int /// Gift year of the report
+  Reason      String   @db.VarChar(500) /// Why, e.g. a number Altinn rejected for a donor we can't reach
+  Created_by  String   @db.VarChar(255) /// Admin (JWT email or sub) who left the unit out
+  Created     DateTime @default(now()) @db.DateTime(0)
+
+  Tax_unit Tax_unit @relation(fields: [Tax_unit_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Tax_report_exclusions_to_Tax_unit")
+
+  @@unique([Tax_unit_ID, Year], map: "Tax_unit_ID_Year_UNIQUE")
+  @@index([Year], map: "Year_idx")
+}
+
 model Tax_unit_notices {
-  ID         Int      @id @default(autoincrement())
-  Donor_ID   Int
-  Year       Int /// Gift year the notice is about
-  Status     String   @db.VarChar(16) /// excluded (left out by an admin) | sent
-  Updated_by String   @db.VarChar(255) /// Admin (JWT email or sub) who left the donor out or sent it
-  Updated    DateTime @default(now()) @db.DateTime(0)
+  ID               Int       @id @default(autoincrement())
+  Donor_ID         Int
+  Year             Int /// Gift year the notice is about
+  Status           String    @db.VarChar(16) /// excluded (left out by an admin) | sent
+  Updated_by       String    @db.VarChar(255) /// Admin (JWT email or sub) who left the donor out or sent it
+  Updated          DateTime  @default(now()) @db.DateTime(0)
+  Reminders        Int       @default(0) /// Reminders sent after the notice
+  Last_reminded    DateTime? @db.DateTime(0)
+  Last_reminded_by String?   @db.VarChar(255) /// Admin (JWT email or sub) who sent the last reminder
 
   Donors Donors @relation(fields: [Donor_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Tax_unit_notices_to_Donors")
 

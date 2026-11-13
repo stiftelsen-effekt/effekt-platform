@@ -108,6 +108,12 @@ export async function updateDonation(
         existingDonation.KID,
         validatedDistribution.causeAreas,
       );
+      // The tax unit is on the KID too, and this KID is the donation's alone, so a new tax unit
+      // is set on it in place (0 and null both mean none)
+      const taxUnitId = validatedDistribution.taxUnitId || null;
+      if (taxUnitId !== (existingDistribution.taxUnitId || null)) {
+        await DAO.distributions.setDistributionTaxUnit(existingDonation.KID, taxUnitId);
+      }
     } else {
       // For non-fundraiser donations, use the existing KID consolidation logic
       const existingBySplitKID = await DAO.distributions.getKIDbySplit(validatedDistribution);

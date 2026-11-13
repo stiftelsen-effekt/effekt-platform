@@ -46,7 +46,12 @@ export const PlausibleRevenueTracker: React.FC<{
           const { revenue, method, recurring, kid } = trackingData;
 
           if (revenue && method && kid) {
-            plausible(type === "donation" ? "CompletedDonation" : "StartedAgreement", {
+            // One thank-you page can receive both one-off donations and new agreements (the
+            // Danish site sends every donor to the same page), so the donation's own recurring
+            // flag decides the event. The block type is only the fallback.
+            const isAgreement = typeof recurring === "boolean" ? recurring : type === "agreement";
+
+            plausible(isAgreement ? "StartedAgreement" : "CompletedDonation", {
               revenue: {
                 currency: currency,
                 amount: parseFloat(revenue),
@@ -58,7 +63,7 @@ export const PlausibleRevenueTracker: React.FC<{
               },
             });
 
-            if (type === "donation") {
+            if (!isAgreement) {
               // Facebook Pixel tracking
               // @ts-ignore
               if (typeof window.fbq !== "undefined" && window.fbq !== null) {

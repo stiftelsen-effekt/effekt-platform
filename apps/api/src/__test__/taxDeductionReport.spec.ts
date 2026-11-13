@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import type { Request, Response } from "express";
 import sinon from "sinon";
+import { DateTime } from "luxon";
 import { DAO } from "../custom_modules/DAO";
 import type { DonorWithoutTaxUnitRow, TaxUnitYearSum } from "../custom_modules/DAO_modules/tax";
 import type { TaxUnitNoticeRow } from "../custom_modules/DAO_modules/taxunitnotices";
@@ -14,12 +15,14 @@ import {
   sendMissingTaxUnitNotices,
 } from "../custom_modules/missingTaxUnitNotices";
 import * as mail from "../custom_modules/mail";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 import { checkNorwegianId, maskIdNumbers } from "../custom_modules/norwegianId";
 import { osloYearRange } from "../custom_modules/osloDays";
 import { LAST_UTC_TAX_YEAR, taxYearRange } from "../custom_modules/DAO_modules/tax";
 import {
   createXMLReportToTaxAuthorities,
   compareDonors,
+  connectGiftsProblem,
   getTaxReportOverview,
   groupTaxUnitsBySsn,
 } from "../custom_modules/tax";
@@ -78,11 +81,40 @@ const callerWith = (permissions?: string[]) =>
   });
 
 const ADMIN = "admin@example.org";
+const file = (id: number, submitted: Date | null) => ({
+  id,
+  year: 2025,
+  units: 3,
+  sum: "31500.00",
+  giverportalSum: "0.00",
+  leftOut: 0,
+  createdBy: ADMIN,
+  created: new Date("2026-01-15T09:00:00Z"),
+  submitted,
+  submittedBy: submitted ? ADMIN : null,
+});
 const notice = (
   donorId: number,
   status: TaxUnitNoticeRow["status"],
-  updated = new Date("2026-11-10T09:00:00Z"),
-): TaxUnitNoticeRow => ({ donorId, status, updatedBy: ADMIN, updated });
+  updated = new Date("2026-10-01T09:00:00Z"),
+): TaxUnitNoticeRow => ({
+  donorId,
+  status,
+  updatedBy: ADMIN,
+  updated,
+  reminders: 0,
+  lastReminded: null,
+  lastRemindedBy: null,
+});
+
+// Tax_report_exclusions: none unless a test says otherwise
+// Tax_reports: no files unless a test says otherwise
+beforeEach(() => {
+  sinon.stub(DAO.taxreportexclusions, "getForYear").resolves([]);
+  sinon.stub(DAO.taxreports, "getForYear").resolves([]);
+  sinon.stub(DAO.taxreports, "record").resolves(77);
+});
+afterEach(() => sinon.restore());
 
 describe("Norwegian ID check (mod 11)", () => {
   it("accepts valid national IDs and organization numbers", () => {
@@ -273,6 +305,14 @@ describe("Tax_unit_notices SQL", () => {
     expect(query.thirdCall.args[0]).to.contain("ON DUPLICATE KEY UPDATE Status = 'sent'");
   });
 
+  it("records a reminder only on donors who were sent the notice", async () => {
+    const query = sinon.stub(DAO, "query").resolves([{ affectedRows: 1 }, []] as any);
+    await DAO.taxunitnotices.markReminded(2025, [1], ADMIN);
+    expect(query.firstCall.args[0]).to.contain("Reminders = Reminders + 1");
+    expect(query.firstCall.args[0]).to.contain("Status = 'sent'");
+    expect(query.firstCall.args[1]).to.deep.equal([ADMIN, 2025, [1]]);
+  });
+
   it("does nothing for an empty list", async () => {
     const query = sinon.stub(DAO, "query");
     expect(await DAO.taxunitnotices.exclude(2025, [], ADMIN)).to.equal(0);
@@ -325,6 +365,17 @@ describe("Tax report overview", () => {
       .stub(DAO.tax, "getDonorsWithoutTaxUnitInYear")
       .resolves([withoutUnit({ donorId: 20, donationsSum: "1000.30", donations: 3 })]);
     sinon.stub(DAO.taxunitnotices, "getForYear").resolves([]);
+    sinon.stub(DAO.tax, "getUnconnectedGiftsInYear").resolves([
+      {
+        donorId: 15,
+        name: "Donor 15",
+        email: "donor15@example.org",
+        donationsSum: "750.00",
+        donations: 2,
+        kids: 1,
+        taxUnits: [{ id: 7, name: "Unit 7", ssn: PERSON_C }],
+      },
+    ]);
   });
   afterEach(() => sinon.restore());
 
@@ -334,6 +385,7 @@ describe("Tax report overview", () => {
       all: "33100.39",
       reported: "31500.10",
       belowMinimum: "599.99",
+      leftOut: "0.00",
       withoutTaxUnit: "1000.30",
       difference: "0.00",
     });
@@ -385,6 +437,82 @@ describe("Tax report overview", () => {
     expect((await getTaxReportOverview(2025, 500)).totals.difference).to.equal("0.01");
   });
 
+  it("counts units left out by an admin apart, still adding up, and lists them with the reason", async () => {
+    (DAO.taxreportexclusions.getForYear as sinon.SinonStub).resolves([
+      // Leaving PERSON_A out recorded both its units (excludeUnit)
+      { taxUnitId: 1, reason: "Altinn: unknown number", createdBy: ADMIN, created: new Date() },
+      { taxUnitId: 2, reason: "Altinn: unknown number", createdBy: ADMIN, created: new Date() },
+      { taxUnitId: 5, reason: "Can't reach the donor", createdBy: ADMIN, created: new Date() },
+    ]);
+    const overview = await getTaxReportOverview(2025, 500);
+    expect(overview.totals).to.deep.include({
+      reported: "30000.00",
+      leftOut: "1500.10",
+      difference: "0.00",
+    });
+    expect(overview.counts).to.deep.include({ reportedUnits: 1, leftOutUnits: 2 });
+    expect(
+      overview.leftOut.map((unit) => [unit.taxUnitIds, unit.reason, unit.aboveMinimum]),
+    ).to.deep.equal([
+      [[5], "Can't reach the donor", true],
+      [[1, 2], "Altinn: unknown number", true],
+    ]);
+    // A left-out unit with an invalid number no longer blocks the file
+    expect(overview.invalidNumbers[0]).to.deep.include({ reported: false, leftOut: true });
+    expect(JSON.stringify(overview)).to.not.contain(PERSON_A);
+  });
+
+  it("lists no changes until a file is marked as sent", async () => {
+    (DAO.taxreports.getForYear as sinon.SinonStub).resolves([file(3, null)]);
+    const overview = await getTaxReportOverview(2025, 500);
+    expect(overview.files).to.have.length(1);
+    expect(overview.changes).to.equal(null);
+  });
+
+  it("lists units whose amount in the report changed since the sent file, in whole kroner", async () => {
+    (DAO.taxreports.getForYear as sinon.SinonStub).resolves([file(4, null), file(3, new Date())]);
+    const amounts = sinon.stub(DAO.taxreports, "getUnitAmounts").resolves(
+      new Map([
+        // PERSON_A: 300.10 + 200.00 now; filed 300.10 + 100.00
+        [1, "300.10"],
+        [2, "100.00"],
+        // PERSON_B: unchanged
+        [3, "30000.00"],
+        // Unit 5 (invalid number) is reported now too, unchanged
+        [5, "1000.00"],
+        // In the file, no gifts in the year now
+        [40, "800.00"],
+      ]),
+    );
+    sinon.stub(DAO.tax, "getById").resolves(null);
+    const overview = await getTaxReportOverview(2025, 500);
+    expect(amounts.firstCall.args).to.deep.equal([3]);
+    expect(overview.changes?.basis.id).to.equal(3);
+    expect(
+      overview.changes?.rows.map((row) => [row.taxUnitIds, row.filed, row.now, row.difference]),
+    ).to.deep.equal([
+      [[40], "800.00", "0.00", "-800.00"],
+      [[1, 2], "400.00", "500.00", "100.00"],
+    ]);
+    expect(JSON.stringify(overview.changes)).to.not.contain(PERSON_A);
+  });
+
+  it("lists gifts not on the donor's own tax unit, with the units masked", async () => {
+    const overview = await getTaxReportOverview(2025, 500);
+    expect(overview.unconnected).to.deep.equal([
+      {
+        donorId: 15,
+        name: "Donor 15",
+        email: "donor15@example.org",
+        donationsSum: "750.00",
+        donations: 2,
+        kids: 1,
+        taxUnits: [{ id: 7, name: "Unit 7", maskedNumber: `${PERSON_C.slice(0, 4)}•••••••` }],
+      },
+    ]);
+    expect(JSON.stringify(overview)).to.not.contain(PERSON_C);
+  });
+
   it("lists duplicates and invalid numbers by donor, without the numbers", async () => {
     const overview = await getTaxReportOverview(2025, 500);
     expect(overview.duplicates).to.deep.equal([
@@ -400,6 +528,7 @@ describe("Tax report overview", () => {
         problem: "Invalid check digit (national ID)",
         sum: "1000.00",
         reported: true,
+        leftOut: false,
       },
       {
         donorIds: [14],
@@ -409,6 +538,7 @@ describe("Tax report overview", () => {
         problem: "Wrong length (10 characters, expected 11 or 9)",
         sum: "100.00",
         reported: false,
+        leftOut: false,
       },
     ]);
     const json = JSON.stringify(overview);
@@ -448,7 +578,64 @@ describe("Skatteetaten XML report", () => {
     expect(result.xml).to.contain("<beloep>1001</beloep>");
     expect(result.xml).to.contain("<antallOppgaver>3</antallOppgaver>");
     expect(result.xml).to.contain("<sumBeloep>2201</sumBeloep>");
-    expect(result).to.deep.include({ units: 3, sum: "2201.00", giverportalSum: "1100.50" });
+    expect(result).to.deep.include({
+      units: 3,
+      sum: "2201.00",
+      giverportalSum: "1100.50",
+      leftOut: 0,
+    });
+    // Our units in the file with their own amounts, for Tax_reports
+    expect(result.ourUnits).to.deep.equal([
+      { taxUnitId: 1, amount: "300.40" },
+      { taxUnitId: 2, amount: "300.40" },
+      { taxUnitId: 3, amount: "499.00" },
+    ]);
+  });
+
+  it("leaves units out of the file by number, EA Giverportal's row too", async () => {
+    sinon
+      .stub(DAO.tax, "getTaxXMLReportUnits")
+      .resolves([
+        unit(1, 10, PERSON_A, "600"),
+        unit(2, 12, PERSON_BAD_CHECK, "800"),
+        unit(3, 13, ORGANIZATION, "700"),
+      ]);
+    (DAO.taxreportexclusions.getForYear as sinon.SinonStub).resolves([
+      { taxUnitId: 1, reason: "Altinn", createdBy: ADMIN, created: new Date() },
+      { taxUnitId: 2, reason: "Bad number", createdBy: ADMIN, created: new Date() },
+    ]);
+    const result = await createXMLReportToTaxAuthorities(
+      2025,
+      500,
+      // TRUE for a number we left out would otherwise be an error
+      csv([["Left out", PERSON_A, "100", "TRUE"]]),
+      contact,
+      fetchXsd,
+    );
+    if (!result.ok) expect.fail(JSON.stringify(result.errors));
+    expect(result.xml).to.not.contain(PERSON_A);
+    expect(result.xml).to.not.contain(PERSON_BAD_CHECK);
+    expect(result).to.deep.include({ units: 1, sum: "700.00", giverportalSum: "0.00", leftOut: 2 });
+  });
+
+  it("keeps a number in the file when a unit with it isn't left out", async () => {
+    // Unit 1 was left out; unit 4 got the same number later (a corrected number, another donor)
+    sinon
+      .stub(DAO.tax, "getTaxXMLReportUnits")
+      .resolves([unit(1, 10, PERSON_A, "600"), unit(4, 14, PERSON_A, "400")]);
+    (DAO.taxreportexclusions.getForYear as sinon.SinonStub).resolves([
+      { taxUnitId: 1, reason: "Altinn", createdBy: ADMIN, created: new Date() },
+    ]);
+    const result = await createXMLReportToTaxAuthorities(
+      2025,
+      500,
+      csv([["EA person", PERSON_A, "100", "TRUE"]]),
+      contact,
+      fetchXsd,
+    );
+    if (!result.ok) expect.fail(JSON.stringify(result.errors));
+    expect(result.xml).to.contain(PERSON_A);
+    expect(result).to.deep.include({ units: 1, leftOut: 0, giverportalSum: "100.00" });
   });
 
   it("returns invalid numbers as errors instead of skipping them, without the number", async () => {
@@ -548,6 +735,21 @@ describe("tRPC reports.tax", () => {
     const result = await callerWith(["admin"]).reports.tax.skatteetaten(formData);
     expect(result.file).to.equal(null);
     expect(result.errors).to.have.length(1);
+    // Only files actually made are recorded
+    expect((DAO.taxreports.record as sinon.SinonStub).callCount).to.equal(0);
+  });
+
+  it("marks a file as sent, saying who, and lists the years with a sent file", async () => {
+    const mark = sinon.stub(DAO.taxreports, "markSubmitted").resolves(true);
+    sinon
+      .stub(DAO.taxreports, "getSubmittedYears")
+      .resolves([{ year: 2025, submitted: new Date("2026-01-19T10:00:00Z") }]);
+    const caller = callerWith(["admin"]).reports.tax;
+    expect(await caller.markSubmitted({ reportId: 3 })).to.deep.equal({ changed: true });
+    expect(mark.firstCall.args).to.deep.equal([3, ADMIN]);
+    expect(await caller.submittedYears()).to.deep.equal([
+      { year: 2025, submitted: new Date("2026-01-19T10:00:00Z") },
+    ]);
   });
 
   it("sends the missing tax unit notice in test mode to the test address", async () => {
@@ -565,6 +767,7 @@ describe("tRPC reports.tax", () => {
       testLimit: 1,
     });
     expect(result).to.deep.equal({
+      round: "notice",
       total: 1,
       success: 1,
       failed: 0,
@@ -627,6 +830,7 @@ describe("tRPC reports.tax", () => {
       confirmYear: 2025,
     });
     expect(result).to.deep.equal({
+      round: "notice",
       total: 2,
       success: 2,
       failed: 0,
@@ -695,6 +899,291 @@ describe("tRPC reports.tax", () => {
     }
     expect(error?.message).to.match(/confirmYear/);
     expect(send.callCount).to.equal(0);
+  });
+});
+
+describe("Sending to chosen donors, reminders and the preview", () => {
+  let markSent: sinon.SinonStub;
+  let markReminded: sinon.SinonStub;
+  beforeEach(() => {
+    sinon.stub(DAO.tax, "getDonorsWithoutTaxUnitInYear").resolves([
+      withoutUnit({ donorId: 1, email: "a@example.org", donationsSum: "900.00" }),
+      withoutUnit({ donorId: 2, email: "b@example.org", donationsSum: "800.00" }),
+      withoutUnit({ donorId: 3, email: "c@example.org", donationsSum: "700.00" }),
+      // Sent, and has since been deleted: no reminder
+      withoutUnit({ donorId: 4, email: "d@example.org", donationsSum: "600.00", trashed: true }),
+    ]);
+    sinon.stub(DAO.taxunitnotices, "getForYear").resolves([notice(3, "sent"), notice(4, "sent")]);
+    markSent = sinon.stub(DAO.taxunitnotices, "markSent").resolves();
+    markReminded = sinon.stub(DAO.taxunitnotices, "markReminded").resolves();
+  });
+  afterEach(() => sinon.restore());
+
+  it("sends the notice only to the ticked donors of Gets the notice", async () => {
+    const send = sinon.stub(mail, "sendMissingTaxUnitNotice").resolves(true);
+    const result = await callerWith(["admin"]).reports.tax.missingTaxUnitNotice({
+      year: 2025,
+      minSum: 500,
+      confirmYear: 2025,
+      // 3 is in Sent: the notice round doesn't send to it again
+      donorIds: [2, 3],
+    });
+    expect(send.getCalls().map((call) => call.args[2])).to.deep.equal(["b@example.org"]);
+    expect(result).to.deep.include({ round: "notice", total: 1, donorsMarkedSent: 1 });
+    expect(markSent.firstCall.args).to.deep.equal([2025, [2], ADMIN]);
+  });
+
+  it("reminds the donors in Sent the rules still allow, and records the reminder", async () => {
+    const send = sinon.stub(mail, "sendMissingTaxUnitNotice").resolves(true);
+    const result = await callerWith(["admin"]).reports.tax.missingTaxUnitNotice({
+      year: 2025,
+      minSum: 500,
+      confirmYear: 2025,
+      round: "reminder",
+    });
+    expect(send.getCalls().map((call) => [call.args[2], call.args[3]])).to.deep.equal([
+      ["c@example.org", { reminder: true }],
+    ]);
+    expect(result).to.deep.include({ round: "reminder", total: 1, donorsMarkedSent: 1 });
+    expect(markReminded.firstCall.args).to.deep.equal([2025, [3], ADMIN]);
+    expect(markSent.callCount).to.equal(0);
+  });
+
+  it("doesn't remind donors sent the notice or reminded in the last week", async () => {
+    const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    (DAO.taxunitnotices.getForYear as sinon.SinonStub).resolves([
+      // Reminded two days ago, and sent the notice yesterday: neither gets one now
+      { ...notice(1, "sent", daysAgo(30)), reminders: 1, lastReminded: daysAgo(2) },
+      notice(2, "sent", daysAgo(1)),
+      // Reminded eight days ago: due again
+      { ...notice(3, "sent", daysAgo(30)), reminders: 1, lastReminded: daysAgo(8) },
+    ]);
+    const send = sinon.stub(mail, "sendMissingTaxUnitNotice").resolves(true);
+    const result = await callerWith(["admin"]).reports.tax.missingTaxUnitNotice({
+      year: 2025,
+      minSum: 500,
+      confirmYear: 2025,
+      round: "reminder",
+      donorIds: [1, 2, 3],
+    });
+    expect(send.getCalls().map((call) => call.args[2])).to.deep.equal(["c@example.org"]);
+    expect(result).to.deep.include({ total: 1 });
+    expect(markReminded.firstCall.args).to.deep.equal([2025, [3], ADMIN]);
+  });
+
+  it("a reminder needs the year confirmed like the notice", async () => {
+    const send = sinon.stub(mail, "sendMissingTaxUnitNotice").resolves(true);
+    try {
+      await callerWith(["admin"]).reports.tax.missingTaxUnitNotice({
+        year: 2025,
+        minSum: 500,
+        round: "reminder",
+      });
+      expect.fail("expected BAD_REQUEST");
+    } catch (err: any) {
+      expect(err.code).to.equal("BAD_REQUEST");
+    }
+    expect(send.callCount).to.equal(0);
+  });
+
+  it("previews the round: how many, and the email for the first recipient, sending nothing", async () => {
+    const send = sinon.stub(mail, "sendMissingTaxUnitNotice").resolves(true);
+    const build = sinon
+      .stub(mail, "buildMissingTaxUnitNotice")
+      .resolves({ templateId: "template-1", personalization: { name: "Donor" } });
+    const preview = await callerWith(["admin"]).reports.tax.noticePreview({
+      year: 2025,
+      minSum: 500,
+      round: "notice",
+    });
+    expect(preview).to.deep.include({ round: "notice", emails: 2, donors: 2, problem: null });
+    expect(preview.example).to.deep.include({ donorIds: [1], email: "a@example.org" });
+    expect(preview.mail).to.deep.equal({
+      templateId: "template-1",
+      personalization: { name: "Donor" },
+    });
+    expect(build.firstCall.args[2]).to.deep.equal({ reminder: false });
+    expect(send.callCount).to.equal(0);
+    expect(markSent.callCount).to.equal(0);
+
+    build.resolves(null);
+    const reminder = await callerWith(["admin"]).reports.tax.noticePreview({
+      year: 2025,
+      minSum: 500,
+      round: "reminder",
+    });
+    expect(reminder).to.deep.include({ emails: 1, mail: null });
+    expect(reminder.problem).to.match(/limits/);
+  });
+
+  it("shows reminders in the overview, and who a reminder would go to", async () => {
+    sinon.stub(DAO.tax, "getTaxXMLReportUnits").resolves([]);
+    sinon
+      .stub(DAO.tax, "getDonationTotalsInYear")
+      .resolves({ total: "0", withoutTaxUnit: "0", donations: 0 });
+    sinon.stub(DAO.tax, "getUnconnectedGiftsInYear").resolves([]);
+    (DAO.taxunitnotices.getForYear as sinon.SinonStub).resolves([
+      { ...notice(3, "sent"), reminders: 2, lastReminded: new Date("2026-10-20T09:00:00Z") },
+      notice(4, "sent"),
+    ]);
+    const overview = await getTaxReportOverview(2025, 500);
+    const row = (id: number) => overview.withoutTaxUnit.find((donor) => donor.donorId === id)!;
+    expect(row(3)).to.deep.include({ reminders: 2, canRemind: true });
+    expect(row(4)).to.deep.include({ reminders: 0, canRemind: false });
+    expect(row(1).canRemind).to.equal(false);
+
+    // Reminded yesterday: not due again for a week
+    (DAO.taxunitnotices.getForYear as sinon.SinonStub).resolves([
+      { ...notice(3, "sent"), reminders: 1, lastReminded: new Date(Date.now() - 86_400_000) },
+    ]);
+    const later = await getTaxReportOverview(2025, 500);
+    expect(later.withoutTaxUnit.find((donor) => donor.donorId === 3)!.canRemind).to.equal(false);
+  });
+});
+
+describe("Leaving tax units out of the report", () => {
+  it("saves the reason and who, and puts units back", async () => {
+    sinon
+      .stub(DAO.tax, "getById")
+      .resolves({ id: 5, donorId: 13, name: "Unit 5", ssn: PERSON_A, archived: null as any });
+    // Unit 6 has the same number (another donor): it is recorded too; unit 7 isn't
+    sinon
+      .stub(DAO.tax, "getTaxXMLReportUnits")
+      .resolves([
+        unit(5, 13, PERSON_A, "600"),
+        unit(6, 14, PERSON_A.replace(/^(\d{6})/, "$1 "), "100"),
+        unit(7, 15, ORGANIZATION, "700"),
+      ]);
+    const exclude = sinon.stub(DAO.taxreportexclusions, "exclude").resolves(true);
+    const include = sinon.stub(DAO.taxreportexclusions, "include").resolves(1);
+    const caller = callerWith(["admin"]).reports.tax;
+    expect(
+      await caller.excludeUnit({ year: 2025, taxUnitId: 5, reason: "  Altinn: unknown  " }),
+    ).to.deep.equal({ changed: true });
+    expect(exclude.firstCall.args).to.deep.equal([2025, [5, 6], "Altinn: unknown", ADMIN]);
+    expect(await caller.includeUnits({ year: 2025, taxUnitIds: [5] })).to.deep.equal({
+      changed: 1,
+    });
+    expect(include.firstCall.args).to.deep.equal([2025, [5]]);
+  });
+
+  it("needs a reason", async () => {
+    try {
+      await callerWith(["admin"]).reports.tax.excludeUnit({ year: 2025, taxUnitId: 5, reason: "" });
+      expect.fail("expected BAD_REQUEST");
+    } catch (err: any) {
+      expect(err.code).to.equal("BAD_REQUEST");
+    }
+  });
+});
+
+describe("Connecting gifts to the donor's tax unit", () => {
+  afterEach(() => sinon.restore());
+  // The year being given now: the only years open for connecting are this one and, in January,
+  // the last one
+  const thisYear = DateTime.now().setZone("Europe/Oslo").year;
+
+  const setUp = () => {
+    sinon
+      .stub(DAO.tax, "getById")
+      .callsFake(async (id: number) =>
+        id === 7
+          ? { id: 7, donorId: 15, name: "Unit 7", ssn: PERSON_C, archived: null as any }
+          : id === 8
+            ? { id: 8, donorId: 15, name: "Old", ssn: PERSON_C, archived: "2024-01-01" as any }
+            : { id, donorId: 99, name: "Other", ssn: PERSON_A, archived: null as any },
+      );
+    sinon.stub(DAO.tax, "getKIDsWithoutTaxUnitInYear").resolves([
+      { kid: "111", fundraiser: false, hasEarlier: false, otherDonors: false },
+      // An AvtaleGiro KID with gifts from earlier years too: those stay as reported
+      { kid: "222", fundraiser: false, hasEarlier: true, otherDonors: false },
+      { kid: "333", fundraiser: true, hasEarlier: false, otherDonors: false },
+      // Also holds another donor's gifts, which would be reported on this unit: left alone
+      { kid: "444", fundraiser: false, hasEarlier: false, otherDonors: true },
+      // A fundraiser KID with an earlier gift isn't one gift's own: left alone
+      { kid: "555", fundraiser: true, hasEarlier: true, otherDonors: false },
+    ]);
+    sinon.stub(DAO.distributions, "getAllByDonor").resolves({
+      donorID: 15,
+      distributions: [{ kid: "222", donorId: 15, taxUnitId: null, causeAreas: [] } as any],
+    });
+    sinon.stub(donationHelpers, "createKID").resolves("999999999999999");
+    return {
+      add: sinon.stub(DAO.distributions, "add").resolves(true),
+      move: sinon.stub(DAO.tax, "moveDonationsBefore").resolves(4),
+      connect: sinon.stub(DAO.distributions, "addTaxUnitToDistribution").resolves(),
+    };
+  };
+
+  it("puts the year's KIDs on the tax unit and keeps earlier gifts on a copy without it", async () => {
+    const { add, move, connect } = setUp();
+    const result = await callerWith(["admin"]).reports.tax.connectToTaxUnit({
+      year: thisYear,
+      donorId: 15,
+      taxUnitId: 7,
+    });
+    expect(result).to.deep.equal({
+      kids: 3,
+      copiedKids: 1,
+      earlierDonationsKept: 4,
+      skippedKids: 2,
+    });
+    expect(add.firstCall.args[0]).to.deep.include({ kid: "999999999999999", taxUnitId: null });
+    expect(move.firstCall.args.slice(0, 2)).to.deep.equal(["222", "999999999999999"]);
+    // From the start of the gift year
+    expect((move.firstCall.args[2] as Date).toISOString()).to.equal(
+      taxYearRange(thisYear).from.toISOString(),
+    );
+    expect(connect.getCalls().map((call) => call.args)).to.deep.equal([
+      ["111", 7],
+      ["222", 7],
+      ["333", 7],
+    ]);
+  });
+
+  it("refuses another donor's tax unit, and an archived one", async () => {
+    const { connect } = setUp();
+    for (const taxUnitId of [9, 8]) {
+      try {
+        await callerWith(["admin"]).reports.tax.connectToTaxUnit({
+          year: thisYear,
+          donorId: 15,
+          taxUnitId,
+        });
+        expect.fail("expected BAD_REQUEST");
+      } catch (err: any) {
+        expect(err.code).to.equal("BAD_REQUEST");
+      }
+    }
+    expect(connect.callCount).to.equal(0);
+  });
+
+  it("refuses a year that is filed, since the years after it would change too", async () => {
+    const { connect } = setUp();
+    try {
+      await callerWith(["admin"]).reports.tax.connectToTaxUnit({
+        year: thisYear - 2,
+        donorId: 15,
+        taxUnitId: 7,
+      });
+      expect.fail("expected BAD_REQUEST");
+    } catch (err: any) {
+      expect(err.code).to.equal("BAD_REQUEST");
+      expect(err.message).to.match(/filed with Skatteetaten/);
+    }
+    expect(connect.callCount).to.equal(0);
+  });
+
+  it("opens this year, and last year until 31 January (Oslo time)", () => {
+    const at = (iso: string) => new Date(iso);
+    expect(connectGiftsProblem(2026, at("2026-11-13T12:00:00Z"))).to.equal(null);
+    expect(connectGiftsProblem(2025, at("2026-11-13T12:00:00Z"))).to.match(/filed/);
+    expect(connectGiftsProblem(2027, at("2026-11-13T12:00:00Z"))).to.match(/hasn't started/);
+    expect(connectGiftsProblem(2026, at("2027-01-31T22:30:00Z"))).to.equal(null);
+    // 00:30 on 1 February in Oslo
+    expect(connectGiftsProblem(2026, at("2027-01-31T23:30:00Z"))).to.match(/filed/);
+    // 00:30 on 1 January in Oslo is already the new year
+    expect(connectGiftsProblem(2027, at("2026-12-31T23:30:00Z"))).to.equal(null);
   });
 });
 

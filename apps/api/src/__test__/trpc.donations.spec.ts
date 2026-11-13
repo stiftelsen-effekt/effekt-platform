@@ -242,6 +242,31 @@ describe("tRPC donations router", () => {
       expect(updateDonor.calledOnceWithExactly(42, 8)).to.be.true;
     });
 
+    it("sets a new tax unit on a fundraiser donation's own KID", async () => {
+      stubLookups();
+      sinon.stub(DAO.tax, "getById").resolves({ id: 9, donorId: 7, archived: null } as any);
+      sinon.stub(DAO.donations, "getByID").resolves(existingDonation as any);
+      sinon.stub(DAO.donations, "update").resolves();
+      const getSplit = sinon
+        .stub(DAO.distributions, "getSplitByKID")
+        .resolves({ fundraiserTransactionId: 5, taxUnitId: null } as any);
+      const causeAreas = sinon.stub(DAO.distributions, "updateCauseAreas").resolves();
+      const setTaxUnit = sinon.stub(DAO.distributions, "setDistributionTaxUnit").resolves();
+      const updateKID = sinon.stub(DAO.donations, "updateKIDById").resolves(true);
+
+      await admin().donations.update({ id: 42, distribution: { ...distribution, taxUnitId: 9 } });
+
+      expect(causeAreas.calledOnce).to.be.true;
+      expect(setTaxUnit.calledOnceWithExactly("12345678", 9)).to.be.true;
+      expect(updateKID.called).to.be.false;
+
+      // Unchanged (0 and null both mean none): the KID's tax unit is left alone
+      setTaxUnit.resetHistory();
+      getSplit.resolves({ fundraiserTransactionId: 5, taxUnitId: 0 } as any);
+      await admin().donations.update({ id: 42, distribution });
+      expect(setTaxUnit.called).to.be.false;
+    });
+
     it("validates references and amounts before updating", async () => {
       const lookups = stubLookups();
       sinon.stub(DAO.donations, "getByID").resolves(existingDonation as any);

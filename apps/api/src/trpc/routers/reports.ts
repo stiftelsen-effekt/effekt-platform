@@ -6,9 +6,13 @@ import type {
   ImportLogUploadDetails,
 } from "../../custom_modules/DAO_modules/logging";
 import { buildKu65Report } from "../../custom_modules/ku65";
-import { sendMissingTaxUnitNotices } from "../../custom_modules/missingTaxUnitNotices";
+import {
+  previewMissingTaxUnitNotice,
+  sendMissingTaxUnitNotices,
+} from "../../custom_modules/missingTaxUnitNotices";
 import {
   compareDonors,
+  connectGiftsToTaxUnit,
   createXMLReportToTaxAuthorities,
   getTaxReportOverview,
 } from "../../custom_modules/tax";
@@ -29,6 +33,11 @@ import {
   missingTaxUnitNoticeInput,
   taxNoticeStatusInput,
   taxCompareDonorsInput,
+  taxConnectGiftsInput,
+  taxExcludeUnitInput,
+  taxMarkSubmittedInput,
+  taxIncludeUnitsInput,
+  taxNoticePreviewInput,
   skatteetatenXmlInput,
   taxOverviewInput,
   logsListInput,
@@ -344,7 +353,7 @@ const taxRouter = router({
    * The XML file for Skatteetaten from our tax units plus EA Giverportal's CSV. Problems that
    * would make the report wrong come back as `errors` instead of a file.
    */
-  skatteetaten: adminProcedure.input(skatteetatenXmlInput).mutation(async ({ input }) => {
+  skatteetaten: adminProcedure.input(skatteetatenXmlInput).mutation(async ({ input, ctx }) => {
     const result = await createXMLReportToTaxAuthorities(
       input.year,
       input.minSum,
@@ -357,6 +366,18 @@ const taxRouter = router({
       },
     );
     if (!result.ok) return { file: null, errors: result.errors };
+    // Every file made is recorded, so the one sent can be marked and later changes listed
+    const reportId = await DAO.taxreports.record(
+      {
+        year: input.year,
+        units: result.units,
+        sum: result.sum,
+        giverportalSum: result.giverportalSum,
+        leftOut: result.leftOut,
+        createdBy: adminIdentity(ctx.auth),
+      },
+      result.ourUnits,
+    );
     const file: FilePayload = {
       filename: `skattefradrag_${input.year}.xml`,
       contentType: "application/xml",
@@ -368,16 +389,27 @@ const taxRouter = router({
       units: result.units,
       sum: result.sum,
       giverportalSum: result.giverportalSum,
+      leftOut: result.leftOut,
+      reportId,
     };
   }),
 
   /**
    * Emails the donors in "Gets the notice" (at least minSum without tax unit, not left out, not
-   * sent before). A real sending records who got it; a test records nothing.
+   * sent before), or with round "reminder" the donors in "Sent" who still have no tax unit. With
+   * donorIds only those. A real sending records who got it; a test records nothing.
    */
   missingTaxUnitNotice: adminProcedure
     .input(missingTaxUnitNoticeInput)
     .mutation(({ input, ctx }) => sendMissingTaxUnitNotices(input, adminIdentity(ctx.auth))),
+
+  /**
+   * What a sending would do, without sending: how many emails, and the template and values for
+   * the first recipient
+   */
+  noticePreview: adminProcedure
+    .input(taxNoticePreviewInput)
+    .query(({ input }) => previewMissingTaxUnitNotice(input)),
 
   /**
    * Leaves donors out of the year's notice, or puts them back. Donors who have been sent it stay
@@ -398,6 +430,55 @@ const taxRouter = router({
   compareDonors: adminProcedure
     .input(taxCompareDonorsInput)
     .query(({ input }) => compareDonors(input.donorIds)),
+
+  /**
+   * Puts the donor's gifts in the year on KIDs without tax unit on one of their tax units, keeping
+   * gifts from earlier years on those KIDs as they were (Gifts not on the donor's tax unit)
+   */
+  connectToTaxUnit: adminProcedure.input(taxConnectGiftsInput).mutation(async ({ input }) => {
+    try {
+      return await connectGiftsToTaxUnit(input.year, input.donorId, input.taxUnitId);
+    } catch (ex) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: (ex as Error).message, cause: ex });
+    }
+  }),
+
+  /**
+   * Leaves a tax unit out of the year's report, with the reason (for example a number Altinn
+   * rejected for a donor we can't reach). Every unit with the same number in the year's report
+   * goes with it, recorded one by one (see exclusionLookup).
+   */
+  excludeUnit: adminProcedure.input(taxExcludeUnitInput).mutation(async ({ input, ctx }) => {
+    const unit = await DAO.tax.getById(input.taxUnitId);
+    if (!unit) throw new TRPCError({ code: "NOT_FOUND", message: "Tax unit not found" });
+    const ssn = (unit.ssn ?? "").replace(/\s/g, "");
+    const sameNumber =
+      ssn === ""
+        ? []
+        : (await DAO.tax.getTaxXMLReportUnits(input.year))
+            .filter((row) => (row.ssn ?? "").replace(/\s/g, "") === ssn)
+            .map((row) => row.taxUnitId);
+    const changed = await DAO.taxreportexclusions.exclude(
+      input.year,
+      [...new Set([unit.id, ...sameNumber])],
+      input.reason,
+      adminIdentity(ctx.auth),
+    );
+    return { changed };
+  }),
+
+  /** Puts left-out tax units back in the year's report */
+  includeUnits: adminProcedure.input(taxIncludeUnitsInput).mutation(async ({ input }) => ({
+    changed: await DAO.taxreportexclusions.include(input.year, input.taxUnitIds),
+  })),
+
+  /** Marks a file as the one sent to Skatteetaten; later changes are listed against it */
+  markSubmitted: adminProcedure.input(taxMarkSubmittedInput).mutation(async ({ input, ctx }) => ({
+    changed: await DAO.taxreports.markSubmitted(input.reportId, adminIdentity(ctx.auth)),
+  })),
+
+  /** Gift years with a file sent to Skatteetaten, for warnings where gifts are registered */
+  submittedYears: adminProcedure.query(() => DAO.taxreports.getSubmittedYears()),
 
   /** Swedish KU65 XML (Skatteverket) from a CSV of donation sums per personnummer */
   ku65: adminProcedure.input(ku65Input).mutation(async ({ input }) => {
