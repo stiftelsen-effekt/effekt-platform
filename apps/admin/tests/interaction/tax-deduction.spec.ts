@@ -100,6 +100,7 @@ const overview = (year: number, difference = "0.00") => ({
     },
   ],
   sentNoLongerWithout: 2,
+  connectGifts: { allowed: true, reason: null },
   unconnected: [
     {
       donorId: 15,
@@ -534,7 +535,7 @@ test("tax deduction: gifts not on the donor's tax unit are connected to the chos
       "reports.tax.overview": (input) => overview((input as { year: number }).year),
       "reports.tax.connectToTaxUnit": (input) => {
         connected.push(input);
-        return { kids: 1, copiedKids: 1, earlierDonationsKept: 3 };
+        return { kids: 1, copiedKids: 1, earlierDonationsKept: 3, skippedKids: 1 };
       },
     },
   });
@@ -557,4 +558,27 @@ test("tax deduction: gifts not on the donor's tax unit are connected to the chos
   await dialog.getByRole("button", { name: "Connect to Testfirma AS" }).click();
   await expect.poll(() => connected).toEqual([{ year: thisYear, donorId: 15, taxUnitId: 8 }]);
   await expect(page.getByText("3 earlier donations kept as before")).toBeVisible();
+  await expect(page.getByText(/1 KID not changed/)).toBeVisible();
+});
+
+test("tax deduction: gifts in a filed year can't be connected", async ({ page }) => {
+  const reason =
+    "2024 is filed with Skatteetaten, and connecting would also change the years after it.";
+  await stubAnalysisApi(page, {
+    overrides: {
+      "reports.tax.overview": (input) => ({
+        ...overview((input as { year: number }).year),
+        connectGifts: { allowed: false, reason },
+      }),
+    },
+  });
+  await page.goto("/login");
+  await page.getByRole("button", { name: /dev token/i }).click();
+  await page.waitForURL("/");
+  await page.goto("/reports?section=tax-deduction");
+
+  const table = page.getByRole("table", { name: "Gifts not on the donor's tax unit" });
+  await expect(table).toContainText("Avtale Testesen");
+  await expect(page.getByText(reason)).toBeVisible();
+  await expect(table.getByRole("button", { name: "Connect gifts" })).toBeDisabled();
 });

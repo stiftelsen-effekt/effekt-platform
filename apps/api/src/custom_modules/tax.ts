@@ -193,6 +193,10 @@ export type TaxReportOverview = {
    * Donors with an active tax unit whose gifts in the year are on their own KIDs without one:
    * not reported, though the donor registered. Connect them with connectGiftsToTaxUnit.
    */
+  /**
+   * Whether the year's gifts can still be connected (canConnectGiftsInYear), and if not, why
+   */
+  connectGifts: { allowed: boolean; reason: string | null };
   unconnected: {
     donorId: number;
     name: string | null;
@@ -239,6 +243,7 @@ export async function getTaxReportOverview(
     DAO.taxunitnotices.getForYear(year),
     DAO.tax.getUnconnectedGiftsInYear(year),
   ]);
+  const connectProblem = connectGiftsProblem(year);
   const stillWithout = new Set(withoutTaxUnit.map((row) => row.donorId));
   const units = groupTaxUnitsBySsn(rows);
   const maximumDeduction =
@@ -332,6 +337,7 @@ export async function getTaxReportOverview(
     sentNoLongerWithout: notices.filter(
       (notice) => notice.status === "sent" && !stillWithout.has(notice.donorId),
     ).length,
+    connectGifts: { allowed: connectProblem === null, reason: connectProblem },
     unconnected: unconnected.map((row) => ({
       ...row,
       taxUnits: row.taxUnits.map(({ ssn, ...unit }) => ({
@@ -344,6 +350,25 @@ export async function getTaxReportOverview(
   };
 }
 
+/**
+ * Why gifts in the year can't be connected to a tax unit now, or null when they can. Only years
+ * not yet filed with Skatteetaten: this year, and last year until the deadline on 31 January.
+ * Connecting puts the tax unit on the KIDs, so it also covers their gifts in the years after the
+ * chosen one; for those two years the only later gifts are this year's, which isn't filed either.
+ * An older year's gifts would need a correction (RF-1310), and connecting them would also change
+ * years that are already filed.
+ */
+export function connectGiftsProblem(year: number, now = new Date()): string | null {
+  const oslo = DateTime.fromJSDate(now).setZone("Europe/Oslo");
+  if (year === oslo.year) return null;
+  if (year === oslo.year - 1 && oslo.month === 1) return null;
+  if (year > oslo.year) return `${year} hasn't started`;
+  return (
+    `${year} is filed with Skatteetaten, and connecting would also change the years after it. ` +
+    "Gifts can be connected for this year, and for last year until 31 January."
+  );
+}
+
 export type ConnectGiftsResult = {
   /** KIDs that got the tax unit */
   kids: number;
@@ -351,6 +376,11 @@ export type ConnectGiftsResult = {
   copiedKids: number;
   /** Donations moved to those copies */
   earlierDonationsKept: number;
+  /**
+   * KIDs left as they were: they also hold another donor's gifts (which would be reported on this
+   * donor's unit), or they are a fundraiser KID with gifts from before the year
+   */
+  skippedKids: number;
 };
 
 /**
@@ -359,19 +389,25 @@ export type ConnectGiftsResult = {
  * gifts on them (an AvtaleGiro going on) are covered too. Gifts from before the year on the same
  * KID were reported (or left out) for their year and must stay as they are: they move to a copy
  * of the KID without tax unit first, as connectDonationsForFirstTaxUnit does. Fundraiser KIDs
- * hold one gift each and get the tax unit directly.
+ * hold one gift each and get the tax unit directly. Only for years not yet filed
+ * (connectGiftsProblem), and KIDs that also hold another donor's gifts are left alone.
  */
 export async function connectGiftsToTaxUnit(
   year: number,
   donorId: number,
   taxUnitId: number,
+  now = new Date(),
 ): Promise<ConnectGiftsResult> {
+  const problem = connectGiftsProblem(year, now);
+  if (problem) throw new Error(problem);
   const unit = await DAO.tax.getById(taxUnitId);
   if (!unit || unit.donorId !== donorId)
     throw new Error(`Tax unit ${taxUnitId} does not belong to donor ${donorId}`);
   if (unit.archived) throw new Error(`Tax unit ${taxUnitId} is archived`);
 
-  const kids = await DAO.tax.getKIDsWithoutTaxUnitInYear(donorId, year);
+  const all = await DAO.tax.getKIDsWithoutTaxUnitInYear(donorId, year);
+  // A fundraiser KID is one gift's own; one with earlier gifts isn't, so it is left for a person
+  const kids = all.filter((kid) => !kid.otherDonors && !(kid.fundraiser && kid.hasEarlier));
   const before = taxYearRange(year).from;
   let copiedKids = 0;
   let earlierDonationsKept = 0;
@@ -391,7 +427,12 @@ export async function connectGiftsToTaxUnit(
     }
     await DAO.distributions.addTaxUnitToDistribution(kid, taxUnitId);
   }
-  return { kids: kids.length, copiedKids, earlierDonationsKept };
+  return {
+    kids: kids.length,
+    copiedKids,
+    earlierDonationsKept,
+    skippedKids: all.length - kids.length,
+  };
 }
 
 export type TaxReportError = {
