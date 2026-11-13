@@ -53,7 +53,7 @@ starts. The fundraiser pages read the API, so the e2e build leaves them out
 first request (`fallback: "blocking"`), when the API is up. The results page's API reads already
 fall back to rendering without the figures.
 
-In CI (`ci.yml`, `web · full-stack e2e`) the backend services run from the plain `node:24.22.1` image with
+In CI (`ci.yml`, `web · full-stack e2e`) the backend services run from the plain `node:24.22.3` image with
 the runner's own install mounted (`E2E_BACKEND_FROM_HOST=1`, `compose.e2e-ci.yml`) instead of from
 the `effekt-backend-dev:local` image, read-only, with `scripts/e2e/pnpm-exec.sh` as their `pnpm`
 (real pnpm would reinstall the workspace into the mount): the runner's `pnpm install` already includes the API

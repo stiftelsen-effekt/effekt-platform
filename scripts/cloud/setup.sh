@@ -16,7 +16,7 @@
 # Per-session work (PATH, dockerd, pnpm install, starting the stack) is scripts/cloud/session-start.sh.
 set -euo pipefail
 
-NODE_VERSION=24.22.1
+NODE_VERSION=24.22.3
 PNPM_VERSION=12.15.0
 REPO=https://github.com/stiftelsen-effekt/effekt-platform
 WARM=/opt/effekt-warm
@@ -44,7 +44,7 @@ t "docker $(docker version --format '{{.Server.Version}}')"
 
 # --- In parallel: images and npm packages -----------------------------------------------------
 pull_images() {
-  for image in mysql:8.4.11 ghcr.io/navikt/mock-oauth2-server:6.0.4 node:24.22.1 nginx:1.29.3-alpine; do
+  for image in mysql:8.4.11 ghcr.io/navikt/mock-oauth2-server:6.0.4 node:24.22.3 nginx:1.29.3-alpine; do
     if docker pull -q "$image" >/dev/null 2>/tmp/pull.err; then
       t "pulled $image"
     else

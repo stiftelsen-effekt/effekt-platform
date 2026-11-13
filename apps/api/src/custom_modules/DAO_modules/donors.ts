@@ -37,6 +37,7 @@ export interface DonorFilters {
   fundraiserTypes?: Array<DonorFundraiserType>;
   referralTypeIDs?: Array<number>; // List of Referral_types.ID
   recipientOrgIDs?: Array<number>; // List of Organizations.ID
+  campaignCode?: string; // Partial match on Donation_referral_codes.Referral_code (LIKE)
 }
 
 export interface DonorRow {
@@ -48,6 +49,8 @@ export interface DonorRow {
   donationsCount: number;
   donationsSum: number;
   newsletter: boolean;
+  /** Distinct campaign/referral codes across the donor's donations, most recent first */
+  campaignCode: string | null;
 }
 
 export interface DonorStatistics {
@@ -234,6 +237,7 @@ async function getAll(
       hasOrganizationFilter ? "INNER" : "LEFT"
     } JOIN DonorAggregates Aggregates ON Donors.ID = Aggregates.donor_id_agg`,
   );
+  joins.push(`LEFT JOIN CampaignCodes CC ON Donors.ID = CC.donor_id`);
 
   if (filter) {
     if (filter.donorId !== null) {
@@ -349,6 +353,16 @@ async function getAll(
       );
     }
 
+    if (filter.campaignCode && filter.campaignCode.length > 0) {
+      whereClauses.push(`EXISTS (
+        SELECT 1
+        FROM Donations D_CC
+        INNER JOIN Donation_referral_codes DRC_F ON DRC_F.KID = D_CC.KID_fordeling
+        WHERE D_CC.Donor_ID = Donors.ID
+          AND DRC_F.Referral_code LIKE ${sqlString.escape(`%${filter.campaignCode}%`)}
+      )`);
+    }
+
     if (filter.fundraiserGiving) {
       if (filter.fundraiserTypes?.length === 0) {
         return {
@@ -402,6 +416,14 @@ async function getAll(
 
   const query = `
     WITH ${donorAggregatesCTE},
+    CampaignCodes AS (
+      SELECT
+        Donations.Donor_ID as donor_id,
+        GROUP_CONCAT(DISTINCT DRC.Referral_code ORDER BY DRC.Timestamp DESC SEPARATOR ', ') as campaign_codes
+      FROM Donations
+      INNER JOIN Donation_referral_codes DRC ON DRC.KID = Donations.KID_fordeling
+      GROUP BY Donations.Donor_ID
+    ),
     FilteredDonors AS (
       SELECT DISTINCT
         Donors.ID,
@@ -411,7 +433,8 @@ async function getAll(
         Donors.newsletter,
         Aggregates.last_donation_date,
         Aggregates.donations_count,
-        Aggregates.donations_sum
+        Aggregates.donations_sum,
+        CC.campaign_codes
       FROM Donors
       ${joinStatement}
       ${whereStatement}
@@ -454,6 +477,7 @@ async function getAll(
     donationsCount: parseInt(row.donations_count, 10) || 0,
     donationsSum: parseFloat(row.donations_sum) || 0.0,
     newsletter: row.newsletter === 1,
+    campaignCode: row.campaign_codes ?? null,
   }));
 
   return {
