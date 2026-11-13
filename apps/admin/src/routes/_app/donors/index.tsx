@@ -13,6 +13,7 @@ import {
   OptionsFilter,
   RangeFilter,
   SavedViews,
+  TextFilter,
   useListState,
   ListEmpty,
 } from "@/components/filters";
@@ -83,6 +84,12 @@ const columns = col.columns([
     enableSorting: false,
     cell: ({ getValue }) =>
       getValue() ? "Subscribed" : <span className="text-muted-foreground">No</span>,
+  }),
+  col.accessor("campaignCode", {
+    header: "Campaign code",
+    meta: { placeholder: cellPlaceholder.word, cellClassName: "max-w-48 truncate" },
+    enableSorting: false,
+    cell: ({ getValue }) => getValue() ?? <span className="text-faint-foreground">–</span>,
   }),
 ]);
 
@@ -185,6 +192,7 @@ function DonorsPage() {
               label: type.name,
             }))}
           />
+          <TextFilter field="campaignCode" label="Campaign code" placeholder="Campaign code" />
         </FilterBar>
       }
     >

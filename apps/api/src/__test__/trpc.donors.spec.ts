@@ -52,6 +52,7 @@ const listResult = {
       donationsCount: 2,
       donationsSum: 300,
       newsletter: true,
+      campaignCode: null,
     },
   ],
   pages: 1,
@@ -211,7 +212,7 @@ describe("tRPC donors router", () => {
       expect(result.filename).to.match(/^donors-.*\.csv$/);
       expect(result.csv.startsWith("\uFEFF")).to.be.true;
       expect(result.csv.slice(1).split("\n")[0]).to.equal(
-        "id,name,email,registered,lastDonation,donationsCount,donationsSum,newsletter",
+        "id,name,email,registered,lastDonation,donationsCount,donationsSum,newsletter,campaignCode",
       );
       expect(result.csv).to.contain("jack@overlookhotel.com");
     });

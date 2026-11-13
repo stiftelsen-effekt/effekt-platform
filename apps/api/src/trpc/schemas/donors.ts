@@ -58,6 +58,8 @@ export const donorFilter = z.strictObject({
   fundraiserTypes: z.array(z.enum(["facebook", "homebrew"])).optional(),
   referralTypeIDs: z.array(id).optional(),
   recipientOrgIDs: z.array(id).optional(),
+  /** Partial match (LIKE) on Donation_referral_codes.Referral_code across the donor's donations */
+  campaignCode: z.string().trim().min(1).max(128).optional(),
 });
 
 export type DonorFilterInput = z.infer<typeof donorFilter>;
