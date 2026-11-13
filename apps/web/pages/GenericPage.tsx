@@ -11,6 +11,7 @@ import { GeneralPageProps, getAppStaticProps } from "./_app.page";
 import { token } from "../token";
 import { stegaClean } from "@sanity/client/stega";
 import { ConsentState } from "../proxy.page";
+import { withImpactCosts } from "../components/main/blocks/OrganizationsList/organizationCosts";
 
 export const getGenericPagePaths = async () => {
   const data = await getClient().fetch<{ pages: Array<{ slug: { current: string } }> }>(
@@ -43,6 +44,9 @@ export const GenericPage = withStaticProps(
     if (result.settings[0].general_banner && result.settings[0].general_banner.link.slug == slug) {
       result.settings[0].general_banner = null;
     }
+
+    // Cost per result in the organizations list comes from the impact data, in the site's currency
+    await withImpactCosts(result.page?.content, result.settings[0].main_locale);
 
     return {
       appStaticProps,
