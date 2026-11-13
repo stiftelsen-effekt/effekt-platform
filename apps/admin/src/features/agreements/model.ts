@@ -40,6 +40,8 @@ export type AgreementRow = {
   donorId?: number;
   /** Organization split of the KID; only from agreements.list. */
   orgSplit?: OrgSplitRow[];
+  /** Campaign/referral code(s) attached to the agreement's KID; only from agreements.list. */
+  campaignCode?: string | null;
 };
 
 const vippsStatus: Record<string, AgreementStatus> = {

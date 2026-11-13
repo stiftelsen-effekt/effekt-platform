@@ -829,7 +829,8 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
       Donor.full_name,
       Donor.email,
       Payment.payment_name,
-      Distributions.Tax_unit_ID
+      Distributions.Tax_unit_ID,
+      CampaignCodes.campaign_codes
 
     FROM Donations as Donation
 
@@ -838,11 +839,20 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
 
     INNER JOIN Payment
         ON Donation.Payment_ID = Payment.ID
-        
+
     INNER JOIN Distributions
       ON KID = KID_fordeling
 
-    WHERE 
+    LEFT JOIN (
+      SELECT
+        KID,
+        GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
+      FROM Donation_referral_codes
+      GROUP BY KID
+    ) as CampaignCodes
+      ON CampaignCodes.KID = Donation.KID_fordeling
+
+    WHERE
         Donation.Donor_ID = ?
         ${from ? "AND DATE(Donation.timestamp_confirmed) >= DATE(?)" : ""}
         `,
@@ -862,6 +872,7 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
     KID: dbDonation.KID_fordeling,
     taxUnitId: dbDonation.Tax_unit_ID,
     metaOwnerId: dbDonation.Meta_owner_ID,
+    campaignCode: dbDonation.campaign_codes ?? null,
   }));
 
   return donations;

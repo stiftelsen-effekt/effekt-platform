@@ -63,6 +63,8 @@ export type AgreementRow = {
   cancelled: Date | null;
   /** Vipps only, YYYY-MM-DD */
   pausedUntil: string | null;
+  /** Distinct campaign/referral codes attached to this agreement's KID, most recent first */
+  campaignCode: string | null;
 };
 
 export type AgreementFilter = {
@@ -81,6 +83,8 @@ export type AgreementFilter = {
   KID?: string;
   /** Exact provider table ids; combine with `providers` to pick one provider's row */
   ids?: string[];
+  /** Partial match on the agreement's campaign/referral code */
+  campaignCode?: string;
 };
 
 export type AgreementStatistics = {
@@ -95,6 +99,20 @@ export type AgreementStatistics = {
 /** One collation for every string column, so the UNION works whatever the tables use */
 const str = (expression: string) =>
   `CAST(${expression} AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_0900_ai_ci`;
+
+/**
+ * Joined by KID. A KID can carry more than one referral code over time (the same KID is
+ * reused for later donations/agreements with the same split, see Donation_referral_codes in
+ * schema.prisma), so this concatenates distinct codes, most recent first.
+ */
+const campaignCodesJoin = `
+    LEFT JOIN (
+      SELECT
+        KID,
+        GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
+      FROM Donation_referral_codes
+      GROUP BY KID
+    ) CampaignCodes`;
 
 const providerQueries: Record<AgreementProvider, string> = {
   vipps: `
@@ -117,9 +135,11 @@ const providerQueries: Record<AgreementProvider, string> = {
       VA.timestamp_created AS createdDb,
       CAST(NULL AS DATETIME) AS lastUpdatedDb,
       CAST(VA.cancellation_date AS DATETIME) AS cancelled,
-      ${str("VA.paused_until_date")} AS pausedUntil
+      ${str("VA.paused_until_date")} AS pausedUntil,
+      ${str("CampaignCodes.campaign_codes")} AS campaignCode
     FROM Vipps_agreements VA
-    INNER JOIN Donors ON Donors.ID = VA.donorID`,
+    INNER JOIN Donors ON Donors.ID = VA.donorID
+    ${campaignCodesJoin} ON CampaignCodes.KID = VA.KID`,
 
   avtalegiro: `
     SELECT
@@ -140,10 +160,12 @@ const providerQueries: Record<AgreementProvider, string> = {
       AG.created AS createdDb,
       AG.last_updated AS lastUpdatedDb,
       CAST(AG.cancelled AS DATETIME) AS cancelled,
-      ${str("NULL")} AS pausedUntil
+      ${str("NULL")} AS pausedUntil,
+      ${str("CampaignCodes.campaign_codes")} AS campaignCode
     FROM Avtalegiro_agreements AG
     INNER JOIN Distributions D ON D.KID = AG.KID
-    INNER JOIN Donors ON Donors.ID = D.Donor_ID`,
+    INNER JOIN Donors ON Donors.ID = D.Donor_ID
+    ${campaignCodesJoin} ON CampaignCodes.KID = AG.KID`,
 };
 
 /** ORDER BY expressions per sort column. Ids are text; shorter ids first so numbers sort numerically */
@@ -188,6 +210,7 @@ function buildQuery(filter: AgreementFilter) {
   }
   if (filter.KID) add("KID LIKE ?", `%${escapeLike(filter.KID)}%`);
   if (filter.ids?.length) add("id IN (?)", filter.ids);
+  if (filter.campaignCode) add("campaignCode LIKE ?", `%${escapeLike(filter.campaignCode)}%`);
 
   return {
     from: `(${union}) AS A`,
@@ -259,6 +282,7 @@ async function getList(options: {
       lastUpdated: row.lastUpdated,
       cancelled: row.cancelled,
       pausedUntil: row.pausedUntil,
+      campaignCode: row.campaignCode,
     })),
     statistics: {
       count,

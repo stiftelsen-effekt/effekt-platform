@@ -341,4 +341,64 @@ describe("DAO donations", () => {
       expect(result).to.deep.equal(report);
     });
   });
+
+  describe("getByDonorId", () => {
+    afterEach(() => sinon.restore());
+
+    it("joins campaign codes by KID and maps them onto each donation", async () => {
+      const queryStub = sinon.stub(DAO, "query").resolves([
+        [
+          {
+            ID: 1,
+            sum_confirmed: 1000,
+            KID_fordeling: "123",
+            transaction_cost: 2,
+            timestamp_confirmed: new Date("2024-01-01"),
+            Meta_owner_ID: 3,
+            donorId: 7,
+            full_name: "Test Donor",
+            email: "test@example.com",
+            payment_name: "VIPPS",
+            Tax_unit_ID: 9,
+            campaign_codes: "AUTUMN, SPRING",
+          },
+        ],
+        [],
+      ]);
+
+      const result = await DAO.donations.getByDonorId(7);
+
+      const sql = queryStub.firstCall.args[0] as string;
+      expect(sql).to.contain("FROM Donation_referral_codes");
+      expect(sql).to.contain("GROUP BY KID");
+      expect(sql).to.contain("ON CampaignCodes.KID = Donation.KID_fordeling");
+      expect(result[0].campaignCode).to.equal("AUTUMN, SPRING");
+    });
+
+    it("is null when the KID has no campaign code", async () => {
+      sinon.stub(DAO, "query").resolves([
+        [
+          {
+            ID: 1,
+            sum_confirmed: 1000,
+            KID_fordeling: "123",
+            transaction_cost: 2,
+            timestamp_confirmed: new Date("2024-01-01"),
+            Meta_owner_ID: 3,
+            donorId: 7,
+            full_name: "Test Donor",
+            email: "test@example.com",
+            payment_name: "VIPPS",
+            Tax_unit_ID: 9,
+            campaign_codes: null,
+          },
+        ],
+        [],
+      ]);
+
+      const result = await DAO.donations.getByDonorId(7);
+
+      expect(result[0].campaignCode).to.be.null;
+    });
+  });
 });

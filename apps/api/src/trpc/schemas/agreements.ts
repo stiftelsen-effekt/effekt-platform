@@ -31,6 +31,8 @@ export const agreementsFilter = z.strictObject({
   donor: z.string().trim().min(1).optional(),
   /** Partial match */
   KID: z.string().trim().min(1).optional(),
+  /** Partial match on the agreement's campaign/referral code */
+  campaignCode: z.string().trim().min(1).max(128).optional(),
   /**
    * Exact provider table ids (Vipps "agr_…", AvtaleGiro numeric ids as strings). Ids
    * are only unique per provider, so add `providers` to fetch one agreement row.
