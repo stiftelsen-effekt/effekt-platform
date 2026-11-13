@@ -386,13 +386,17 @@ export async function getTaxReportOverview(
 }
 
 /**
- * The exclusion that leaves a grouped unit out of the report, if any: any of its tax units left
- * out takes the whole number out, as it is one unit for Skatteetaten
+ * The exclusion that leaves a grouped unit (one number) out of the report, if any. Only when all
+ * its tax units are left out: leaving a number out records each unit that had it then, so a unit
+ * that gets the number later (a corrected number, a merge, another donor) keeps it in the file
+ * instead of being dropped without anyone deciding so.
  */
-function exclusionLookup(exclusions: TaxReportExclusionRow[]) {
+export function exclusionLookup(exclusions: TaxReportExclusionRow[]) {
   const byUnit = new Map(exclusions.map((exclusion) => [exclusion.taxUnitId, exclusion]));
   return (unit: { taxUnitIds: number[] }) =>
-    unit.taxUnitIds.map((id) => byUnit.get(id)).find(Boolean) ?? null;
+    unit.taxUnitIds.every((id) => byUnit.has(id))
+      ? (byUnit.get(unit.taxUnitIds[0]!) ?? null)
+      : null;
 }
 
 export type ConnectGiftsResult = {
