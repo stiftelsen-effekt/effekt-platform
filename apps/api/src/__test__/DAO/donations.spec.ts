@@ -12,7 +12,7 @@ describe("DAO donations", () => {
      * getAll runs two queries side by side: the page (first call, with LIMIT/OFFSET params)
      * and the totals over every matching donation (second call).
      */
-    const donationRow = (overrides: { sum_confirmed: number }) => ({
+    const donationRow = (overrides: { sum_confirmed: number; campaign_codes?: string }) => ({
       ID: 1,
       full_name: "Test Donor",
       payment_name: "VIPPS",
@@ -149,6 +149,40 @@ describe("DAO donations", () => {
       const { pageSql, totalsSql } = calls(queryStub);
       expect(pageSql).to.contain("Donations.Meta_owner_ID IN (1,3)");
       expect(totalsSql).to.contain("Donations.Meta_owner_ID IN (1,3)");
+    });
+
+    it("joins and filters on campaign code", async () => {
+      const queryStub = stubPageAndTotals(
+        { ...donationRow({ sum_confirmed: 1000 }), campaign_codes: "AUTUMN26" },
+        totalsRow({ full_count: 1, full_sum: 1000, full_avg: 1000 }),
+      );
+
+      const result = await DAO.donations.getAll(
+        sort,
+        0,
+        10,
+        { campaignCode: "autumn" },
+        RequestLocale.NO,
+      );
+
+      const { pageSql } = calls(queryStub);
+      expect(pageSql).to.contain("FROM Donation_referral_codes");
+      expect(pageSql).to.contain("GROUP BY KID");
+      expect(pageSql).to.contain("CampaignCodes.campaign_codes");
+      expect(pageSql).to.contain("EXISTS (");
+      expect(pageSql).to.contain("DRC_F.Referral_code LIKE '%autumn%'");
+      expect(result.rows[0].campaignCode).to.equal("AUTUMN26");
+    });
+
+    it("is null when the donation's KID has no campaign code", async () => {
+      stubPageAndTotals(
+        donationRow({ sum_confirmed: 1000 }),
+        totalsRow({ full_count: 1, full_sum: 1000, full_avg: 1000 }),
+      );
+
+      const result = await DAO.donations.getAll(sort, 0, 10, {}, RequestLocale.NO);
+
+      expect(result.rows[0].campaignCode).to.be.null;
     });
 
     it("returns empty statistics without querying when no data owners are selected", async () => {

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -83,6 +83,12 @@ const columns = col.columns([
     header: "Organisations",
     meta: orgSplitColumnMeta,
     cell: ({ getValue }) => <OrgSplitCell split={getValue()} />,
+  }),
+  col.accessor("campaignCode", {
+    header: "Campaign code",
+    meta: { placeholder: cellPlaceholder.word, cellClassName: "max-w-48 truncate" },
+    enableSorting: false,
+    cell: ({ getValue }) => getValue() ?? <span className="text-faint-foreground">–</span>,
   }),
 ]);
 
@@ -195,6 +201,7 @@ function DonationsPage() {
             label="Data owner"
             options={(owners.data ?? []).map((o) => ({ value: o.id, label: o.name }))}
           />
+          <TextFilter field="campaignCode" label="Campaign code" placeholder="Campaign code" />
         </FilterBar>
       }
     >

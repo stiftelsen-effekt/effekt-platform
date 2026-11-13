@@ -82,6 +82,7 @@ type DonationListRow = {
   kid: string;
   timestamp: Date;
   taxUnitType: TaxUnitType | null;
+  campaignCode: string | null;
 };
 
 const getDonationList = async (

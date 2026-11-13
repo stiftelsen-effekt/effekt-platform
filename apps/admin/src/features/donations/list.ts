@@ -28,6 +28,7 @@ export const donationsList = defineList({
     taxUnit: param.list(taxUnitTypes),
     org: param.numberList,
     owner: param.numberList,
+    campaignCode: param.text,
   },
   sortable: [
     "timestamp",
@@ -67,6 +68,7 @@ export function toDonationFilter(
     );
   if (filters.org) filter.organizationIDs = filters.org;
   if (filters.owner) filter.dataOwnerIDs = filters.owner;
+  if (filters.campaignCode) filter.campaignCode = filters.campaignCode;
   return Object.keys(filter).length ? filter : undefined;
 }
 
