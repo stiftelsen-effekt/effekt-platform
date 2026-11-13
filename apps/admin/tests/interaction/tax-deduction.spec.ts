@@ -100,6 +100,21 @@ const overview = (year: number, difference = "0.00") => ({
     },
   ],
   sentNoLongerWithout: 2,
+  connectGifts: { allowed: true, reason: null },
+  unconnected: [
+    {
+      donorId: 15,
+      name: "Avtale Testesen",
+      email: "avtale@example.org",
+      donationsSum: "750.00",
+      donations: 2,
+      kids: 1,
+      taxUnits: [
+        { id: 7, name: "Avtale Testesen", maskedNumber: "0202•••••••" },
+        { id: 8, name: "Testfirma AS", maskedNumber: "9876•••••" },
+      ],
+    },
+  ],
   duplicates: [{ reason: "sameNumber", donorIds: [10, 11], taxUnitIds: [1, 2], sum: "500.10" }],
   invalidNumbers: [
     {
@@ -509,4 +524,61 @@ test("tax deduction: compare possible duplicates and merge into the donor to kee
   await confirm.getByRole("button", { name: "Merge into #10" }).click();
   await expect.poll(() => merged).toEqual([{ originId: 11, destinationId: 10 }]);
   await expect(page.getByText("Donors merged")).toBeVisible();
+});
+
+test("tax deduction: gifts not on the donor's tax unit are connected to the chosen unit", async ({
+  page,
+}) => {
+  const connected: unknown[] = [];
+  await stubAnalysisApi(page, {
+    overrides: {
+      "reports.tax.overview": (input) => overview((input as { year: number }).year),
+      "reports.tax.connectToTaxUnit": (input) => {
+        connected.push(input);
+        return { kids: 1, copiedKids: 1, earlierDonationsKept: 3, skippedKids: 1 };
+      },
+    },
+  });
+  await page.goto("/login");
+  await page.getByRole("button", { name: /dev token/i }).click();
+  await page.waitForURL("/");
+  await page.goto("/reports?section=tax-deduction");
+
+  const table = page.getByRole("table", { name: "Gifts not on the donor's tax unit" });
+  await expect(table).toContainText("Avtale Testesen");
+  await expect(table).toContainText("0202•••••••");
+  await table.getByRole("button", { name: "Connect gifts" }).click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toContainText("2 donations (750,00 kr) on 1 KID get the tax unit");
+  // Two tax units: it says all the gifts go to the one picked, and one must be picked
+  await expect(dialog).toContainText("All the gifts above go to the one you pick");
+  const confirm = dialog.getByRole("button", { name: "Connect", exact: true });
+  await expect(confirm).toBeDisabled();
+  await dialog.getByRole("radio", { name: /Testfirma AS/ }).click();
+  await dialog.getByRole("button", { name: "Connect to Testfirma AS" }).click();
+  await expect.poll(() => connected).toEqual([{ year: thisYear, donorId: 15, taxUnitId: 8 }]);
+  await expect(page.getByText("3 earlier donations kept as before")).toBeVisible();
+  await expect(page.getByText(/1 KID not changed/)).toBeVisible();
+});
+
+test("tax deduction: gifts in a filed year can't be connected", async ({ page }) => {
+  const reason =
+    "2024 is filed with Skatteetaten, and connecting would also change the years after it.";
+  await stubAnalysisApi(page, {
+    overrides: {
+      "reports.tax.overview": (input) => ({
+        ...overview((input as { year: number }).year),
+        connectGifts: { allowed: false, reason },
+      }),
+    },
+  });
+  await page.goto("/login");
+  await page.getByRole("button", { name: /dev token/i }).click();
+  await page.waitForURL("/");
+  await page.goto("/reports?section=tax-deduction");
+
+  const table = page.getByRole("table", { name: "Gifts not on the donor's tax unit" });
+  await expect(table).toContainText("Avtale Testesen");
+  await expect(page.getByText(reason)).toBeVisible();
+  await expect(table.getByRole("button", { name: "Connect gifts" })).toBeDisabled();
 });
