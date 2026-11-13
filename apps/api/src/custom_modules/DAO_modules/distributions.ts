@@ -826,6 +826,14 @@ async function addTaxUnitToDistribution(kid: string, taxUnitId: number) {
   );
 }
 
+/**
+ * Sets or clears a distribution's tax unit. For a KID that belongs to a single donation (a
+ * fundraiser gift), when an admin moves that donation to another tax unit.
+ */
+async function setDistributionTaxUnit(kid: string, taxUnitId: number | null) {
+  await DAO.query(`UPDATE Distributions SET Tax_unit_ID = ? WHERE KID = ?`, [taxUnitId, kid]);
+}
+
 export type DistributionDbResultRow = Distributions &
   Omit<Distribution_cause_areas, "Percentage_share"> &
   Omit<Distribution_cause_area_organizations, "Percentage_share"> & {
@@ -1005,6 +1013,7 @@ export const distributions = {
   add,
   setTaxUnit,
   addTaxUnitToDistribution,
+  setDistributionTaxUnit,
   connectFirstTaxUnit,
   updateCauseAreas,
 };

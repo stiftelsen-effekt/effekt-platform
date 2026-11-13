@@ -26,6 +26,9 @@ import {
   type EditField,
 } from "@/features/donations/edit-model";
 import { DonationFields } from "@/features/donations/donation-fields";
+import { TaxUnitSelect } from "@/features/donations/distribution-fields";
+import { maskSsn } from "@/features/donors/model";
+import { Field } from "@/components/ui/field";
 import { parseMoneyInput, serverErrors } from "@/features/donations/form";
 import { invalidateDonationQueries } from "@/features/donations/invalidate";
 import { notify } from "@/lib/notify";
@@ -123,6 +126,8 @@ function EditDonationForm({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const update = useMutation(trpc.donations.update.mutationOptions());
+  // The donor's tax units, for the before → after names in the confirmation
+  const taxUnits = useQuery(trpc.donors.taxUnits.list.queryOptions({ donorId: donation.donorId }));
   // The form and its changes are against this snapshot: a background refetch must not turn
   // fields the user didn't touch into "changes" that send a colleague's edit back.
   const [base] = useState(donation);
@@ -141,6 +146,10 @@ function EditDonationForm({
         config,
         paymentMethodName: (methodId) => paymentMethods.find((m) => m.id === methodId)?.name,
         ownerName: (ownerId) => owners.find((o) => o.id === ownerId)?.name,
+        taxUnitName: (unitId) => {
+          const unit = taxUnits.data?.find((u) => u.id === unitId);
+          return unit && `${unit.name}${unit.ssn ? ` · ${maskSsn(unit.ssn)}` : ""}`;
+        },
       })
     : { input: { id: donation.id }, changes: [] };
 
@@ -168,7 +177,7 @@ function EditDonationForm({
         metaOwnerId: "ownerId",
         distribution: "distribution",
         donorId: "distribution",
-        taxUnitId: "distribution",
+        taxUnitId: "taxUnitId",
       });
       // Field problems are shown next to the field; anything else stays in the dialog.
       if (Object.keys(mapped.fields).length > 0 && !mapped.general) {
@@ -215,8 +224,20 @@ function EditDonationForm({
         </PageSection>
         <PageSection
           title="Distribution"
-          description="If the new split differs, the donation moves to a KID with that split (an existing one or a new one). Other donations on its current KID are not changed."
+          description="If the tax unit or split differs, the donation moves to a KID with that tax unit and split (an existing one or a new one). Other donations on its current KID are not changed."
         >
+          <Field
+            label="Tax unit"
+            hint="The donation is reported for the tax deduction on this tax unit."
+            error={shown("taxUnitId")}
+            className="max-w-sm"
+          >
+            <TaxUnitSelect
+              donorId={base.donorId}
+              value={draft.taxUnitId}
+              onValueChange={(taxUnitId) => set("taxUnitId", taxUnitId)}
+            />
+          </Field>
           <DistributionEditor
             config={config}
             value={draft.distribution}
