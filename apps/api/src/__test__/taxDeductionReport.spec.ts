@@ -364,8 +364,15 @@ describe("Tax report overview", () => {
       ],
     );
     expect(overview.sentNoLongerWithout).to.equal(1);
-    // Names, but no donor email addresses
-    expect(JSON.stringify(overview)).to.not.contain("donor20@example.org");
+    // With the email address, to judge who should get the notice
+    expect(overview.withoutTaxUnit[0].email).to.equal("donor20@example.org");
+  });
+
+  it("says when the year's limits are not in the code", async () => {
+    expect((await getTaxReportOverview(2025, 500)).limitsInCode).to.equal(true);
+    const future = await getTaxReportOverview(2099, 500);
+    expect(future.limitsInCode).to.equal(false);
+    expect(future.maximumDeduction).to.equal(25000);
   });
 
   it("shows a difference when the parts don't add up", async () => {
@@ -387,6 +394,8 @@ describe("Tax report overview", () => {
       {
         donorIds: [13],
         taxUnitIds: [5],
+        name: "Unit 5",
+        maskedNumber: `${PERSON_BAD_CHECK.slice(0, 4)}•••••••`,
         problem: "Invalid check digit (national ID)",
         sum: "1000.00",
         reported: true,
@@ -394,6 +403,8 @@ describe("Tax report overview", () => {
       {
         donorIds: [14],
         taxUnitIds: [6],
+        name: "Unit 6",
+        maskedNumber: "1234••••••",
         problem: "Wrong length (10 characters, expected 11 or 9)",
         sum: "100.00",
         reported: false,

@@ -114,10 +114,23 @@ export function TaxDeductionReport() {
           </Select>
           {year === thisYear && (
             <p className="text-sm text-muted-foreground">
-              The year isn't over: the figures change as gifts come in.
+              The year isn't over: the figures change as gifts come in. The report in January is for
+              the year before ({thisYear - 1}): choose it above.
             </p>
           )}
         </div>
+        {overview.data && !overview.data.limitsInCode && (
+          <Callout
+            tone="warning"
+            title={`The tax deduction limits for ${year} are not in the code`}
+            className="mt-4 max-w-2xl"
+          >
+            The figures use{" "}
+            <Money value={String(overview.data.maximumDeduction)} precision="whole" /> as the
+            maximum deduction, and the missing tax unit notice can't be sent. Check the year's
+            limits with Skatteetaten and ask tech to add them (taxdeductions.ts) before 1 January.
+          </Callout>
+        )}
       </SettingsSection>
 
       {overview.error ? (
@@ -324,6 +337,18 @@ const withoutColumns = withoutCol.columns([
       </span>
     ),
   }),
+  withoutCol.accessor("email", {
+    header: "Email",
+    meta: { cellClassName: "max-w-64 text-muted-foreground" },
+    cell: ({ row }) =>
+      row.original.email ? (
+        <span className="block truncate" title={row.original.email}>
+          {row.original.email}
+        </span>
+      ) : (
+        "–"
+      ),
+  }),
   withoutCol.accessor((row) => Number(row.donationsSum), {
     id: "donationsSum",
     header: "Without tax unit",
@@ -358,12 +383,17 @@ const withoutColumns = withoutCol.columns([
   }),
 ]);
 
-/** Name or donor ID, for finding e.g. a student association's fundraiser in a long list */
+/**
+ * Name, email or donor ID, for finding e.g. a student association's fundraiser, or a company
+ * address, in a long list
+ */
 const matches = (row: WithoutRow, search: string) => {
   const term = search.trim().toLowerCase();
   if (!term) return true;
   return (
-    String(row.donorId) === term.replace(/^#/, "") || (row.name ?? "").toLowerCase().includes(term)
+    String(row.donorId) === term.replace(/^#/, "") ||
+    (row.name ?? "").toLowerCase().includes(term) ||
+    (row.email ?? "").toLowerCase().includes(term)
   );
 };
 
@@ -430,7 +460,7 @@ function WithoutTaxUnit({ overview }: { overview: Overview }) {
           <Input
             type="search"
             aria-label="Search donors"
-            placeholder="Search name or donor ID"
+            placeholder="Search name, email or donor ID"
             className="max-w-xs"
             value={search}
             onChange={(event) => {
@@ -589,8 +619,8 @@ function InvalidNumbers({ overview }: { overview: Overview }) {
       description={
         <p>
           Tax units with gifts in {overview.year} whose national ID or organization number has the
-          wrong length or check digit. Fix them on the donor: the file can't be made while a
-          reported unit has one.
+          wrong length or check digit. The donor link opens their tax units, where the number is
+          fixed. The file can't be made while a reported unit has one.
         </p>
       }
     >
@@ -601,6 +631,7 @@ function InvalidNumbers({ overview }: { overview: Overview }) {
         head={
           <>
             <TableHead>Donor</TableHead>
+            <TableHead>Tax unit</TableHead>
             <TableHead>Problem</TableHead>
             <TableHead className="text-right">Sum</TableHead>
             <TableHead>In the report</TableHead>
@@ -610,7 +641,24 @@ function InvalidNumbers({ overview }: { overview: Overview }) {
         {rows.map((row) => (
           <TableRow key={row.taxUnitIds.join("-")}>
             <TableCell>
-              <DonorLinks ids={row.donorIds} />
+              <span className="inline-flex flex-wrap gap-x-2">
+                {row.donorIds.map((id) => (
+                  <Link
+                    key={id}
+                    to="/donors/$id"
+                    params={{ id: String(id) }}
+                    search={{ tab: "tax" }}
+                    className={linkClass}
+                    aria-label={`Fix the number on donor #${id}`}
+                  >
+                    #{id}
+                  </Link>
+                ))}
+              </span>
+            </TableCell>
+            <TableCell>
+              <span className="block">{row.name || "No name"}</span>
+              <span className="num text-sm text-muted-foreground">{row.maskedNumber || "–"}</span>
             </TableCell>
             <TableCell>{row.problem}</TableCell>
             <TableCell className="text-right">
