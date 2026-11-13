@@ -445,14 +445,22 @@ const taxRouter = router({
 
   /**
    * Leaves a tax unit out of the year's report, with the reason (for example a number Altinn
-   * rejected for a donor we can't reach). Every unit with the same number goes with it.
+   * rejected for a donor we can't reach). Every unit with the same number in the year's report
+   * goes with it, recorded one by one (see exclusionLookup).
    */
   excludeUnit: adminProcedure.input(taxExcludeUnitInput).mutation(async ({ input, ctx }) => {
     const unit = await DAO.tax.getById(input.taxUnitId);
     if (!unit) throw new TRPCError({ code: "NOT_FOUND", message: "Tax unit not found" });
+    const ssn = (unit.ssn ?? "").replace(/\s/g, "");
+    const sameNumber =
+      ssn === ""
+        ? []
+        : (await DAO.tax.getTaxXMLReportUnits(input.year))
+            .filter((row) => (row.ssn ?? "").replace(/\s/g, "") === ssn)
+            .map((row) => row.taxUnitId);
     const changed = await DAO.taxreportexclusions.exclude(
       input.year,
-      input.taxUnitId,
+      [...new Set([unit.id, ...sameNumber])],
       input.reason,
       adminIdentity(ctx.auth),
     );
