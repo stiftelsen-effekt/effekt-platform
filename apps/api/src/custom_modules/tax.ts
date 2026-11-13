@@ -7,6 +7,7 @@ import { EANTaxUnitsRow, parseEanTaxUnits } from "./parsers/eanTaxUnits";
 import type { DonorForComparison, TaxUnitYearSum } from "./DAO_modules/tax";
 import {
   classifyDonorsWithoutTaxUnit,
+  reminderDue,
   noticeExclusionLabels,
   type NoticeExclusion,
   type NoticeStatus,
@@ -181,7 +182,10 @@ export type TaxReportOverview = {
     /** Reminders sent after the notice, and the last one */
     reminders: number;
     lastReminded: Date | null;
-    /** Whether a reminder would go to the donor (sent, and the rules don't leave them out now) */
+    /**
+     * Whether a reminder would go to the donor now: sent, the rules don't leave them out, and no
+     * notice or reminder in the last REMINDER_GAP_DAYS
+     */
     canRemind: boolean;
   }[];
   /**
@@ -313,7 +317,7 @@ export async function getTaxReportOverview(
       statusAt: donor.statusAt,
       reminders: donor.reminders,
       lastReminded: donor.lastReminded,
-      canRemind: donor.status === "sent" && !donor.ruleExclusion,
+      canRemind: donor.status === "sent" && !donor.ruleExclusion && reminderDue(donor),
     })),
     sentNoLongerWithout: notices.filter(
       (notice) => notice.status === "sent" && !stillWithout.has(notice.donorId),

@@ -81,7 +81,7 @@ const ADMIN = "admin@example.org";
 const notice = (
   donorId: number,
   status: TaxUnitNoticeRow["status"],
-  updated = new Date("2026-11-10T09:00:00Z"),
+  updated = new Date("2026-10-01T09:00:00Z"),
 ): TaxUnitNoticeRow => ({
   donorId,
   status,
@@ -763,6 +763,28 @@ describe("Sending to chosen donors, reminders and the preview", () => {
     expect(markSent.callCount).to.equal(0);
   });
 
+  it("doesn't remind donors sent the notice or reminded in the last week", async () => {
+    const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    (DAO.taxunitnotices.getForYear as sinon.SinonStub).resolves([
+      // Reminded two days ago, and sent the notice yesterday: neither gets one now
+      { ...notice(1, "sent", daysAgo(30)), reminders: 1, lastReminded: daysAgo(2) },
+      notice(2, "sent", daysAgo(1)),
+      // Reminded eight days ago: due again
+      { ...notice(3, "sent", daysAgo(30)), reminders: 1, lastReminded: daysAgo(8) },
+    ]);
+    const send = sinon.stub(mail, "sendMissingTaxUnitNotice").resolves(true);
+    const result = await callerWith(["admin"]).reports.tax.missingTaxUnitNotice({
+      year: 2025,
+      minSum: 500,
+      confirmYear: 2025,
+      round: "reminder",
+      donorIds: [1, 2, 3],
+    });
+    expect(send.getCalls().map((call) => call.args[2])).to.deep.equal(["c@example.org"]);
+    expect(result).to.deep.include({ total: 1 });
+    expect(markReminded.firstCall.args).to.deep.equal([2025, [3], ADMIN]);
+  });
+
   it("a reminder needs the year confirmed like the notice", async () => {
     const send = sinon.stub(mail, "sendMissingTaxUnitNotice").resolves(true);
     try {
@@ -814,7 +836,7 @@ describe("Sending to chosen donors, reminders and the preview", () => {
       .stub(DAO.tax, "getDonationTotalsInYear")
       .resolves({ total: "0", withoutTaxUnit: "0", donations: 0 });
     (DAO.taxunitnotices.getForYear as sinon.SinonStub).resolves([
-      { ...notice(3, "sent"), reminders: 2, lastReminded: new Date("2026-12-01T09:00:00Z") },
+      { ...notice(3, "sent"), reminders: 2, lastReminded: new Date("2026-10-20T09:00:00Z") },
       notice(4, "sent"),
     ]);
     const overview = await getTaxReportOverview(2025, 500);
@@ -822,6 +844,13 @@ describe("Sending to chosen donors, reminders and the preview", () => {
     expect(row(3)).to.deep.include({ reminders: 2, canRemind: true });
     expect(row(4)).to.deep.include({ reminders: 0, canRemind: false });
     expect(row(1).canRemind).to.equal(false);
+
+    // Reminded yesterday: not due again for a week
+    (DAO.taxunitnotices.getForYear as sinon.SinonStub).resolves([
+      { ...notice(3, "sent"), reminders: 1, lastReminded: new Date(Date.now() - 86_400_000) },
+    ]);
+    const later = await getTaxReportOverview(2025, 500);
+    expect(later.withoutTaxUnit.find((donor) => donor.donorId === 3)!.canRemind).to.equal(false);
   });
 });
 

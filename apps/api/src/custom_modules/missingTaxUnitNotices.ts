@@ -115,6 +115,22 @@ export function classifyDonorsWithoutTaxUnit(
     });
 }
 
+/**
+ * A reminder goes to a donor at most this often, counted from the notice or the last reminder, so
+ * a second click (or a colleague sending the same day) doesn't email them again
+ */
+export const REMINDER_GAP_DAYS = 7;
+
+/** Whether a donor in "Sent" may get a reminder now: none in the last REMINDER_GAP_DAYS */
+export function reminderDue(
+  donor: Pick<ClassifiedDonor, "statusAt" | "lastReminded">,
+  now = new Date(),
+): boolean {
+  const last = donor.lastReminded ?? donor.statusAt;
+  if (!last) return true;
+  return now.getTime() - new Date(last).getTime() >= REMINDER_GAP_DAYS * 24 * 60 * 60 * 1000;
+}
+
 /** A recipient of the notice, with the donors (one email address can have several) it covers */
 export type NoticeRecipient = EligibleDonor & { donorIds: number[] };
 
@@ -126,7 +142,11 @@ export type NoticeRecipient = EligibleDonor & { donorIds: number[] };
 export function noticeRecipients(
   donors: ClassifiedDonor[],
   excludedEmails: string[] = [],
-  { round = "notice", donorIds }: { round?: NoticeRound; donorIds?: number[] } = {},
+  {
+    round = "notice",
+    donorIds,
+    now = new Date(),
+  }: { round?: NoticeRound; donorIds?: number[]; now?: Date } = {},
 ): NoticeRecipient[] {
   const excluded = new Set(excludedEmails.map((email) => email.trim().toLowerCase()));
   const only = donorIds ? new Set(donorIds) : null;
@@ -134,7 +154,7 @@ export function noticeRecipients(
   const byEmail = new Map<string, NoticeRecipient>();
   for (const donor of donors) {
     if (donor.status !== status) continue;
-    if (round === "reminder" && donor.ruleExclusion) continue;
+    if (round === "reminder" && (donor.ruleExclusion || !reminderDue(donor, now))) continue;
     if (only && !only.has(donor.donorId)) continue;
     const email = donor.email!.trim();
     const key = email.toLowerCase();
