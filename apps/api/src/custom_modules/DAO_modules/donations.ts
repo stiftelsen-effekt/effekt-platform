@@ -8,21 +8,6 @@ import { instantRangeClauses, type InstantRange } from "../osloDays";
 
 /** Escapes LIKE wildcards so free text matches literally */
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
-
-/**
- * Joined by KID. A KID can carry more than one referral code over time (the same KID is
- * reused for later donations with the same split), so this concatenates distinct codes,
- * most recent first.
- */
-const campaignCodesJoin = (kidColumn: string) => `
-    LEFT JOIN (
-      SELECT
-        KID,
-        GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
-      FROM Donation_referral_codes
-      GROUP BY KID
-    ) CampaignCodes
-      ON CampaignCodes.KID = ${kidColumn}`;
 import { DateTime } from "luxon";
 import type { PoolConnection } from "mysql2/promise";
 import { Donations, Prisma } from "@prisma/client";
@@ -310,6 +295,16 @@ async function getAll(
     // Donation id breaks ties (many donations share a timestamp or amount), so pages don't
     // overlap. The secondary indexes end in the id, so this still reads an index in order.
     const tieBreak = sortsOnDonations && sortColumn !== "ID" ? `, Donations.ID ${direction}` : "";
+    const campaignCodesJoin = `
+        LEFT JOIN (
+          SELECT
+            KID,
+            GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
+          FROM Donation_referral_codes
+          GROUP BY KID
+        ) CampaignCodes
+          ON CampaignCodes.KID = Donations.KID_fordeling`;
+
     const pageQuery = `
         ${withClause}
         SELECT ${sortsOnDonations ? "STRAIGHT_JOIN" : ""}
@@ -333,7 +328,7 @@ async function getAll(
           ON Distributions.Tax_unit_ID = Tax_unit.ID
         ${organizationJoin}
         ${fundraiserJoin}
-        ${campaignCodesJoin("Donations.KID_fordeling")}
+        ${campaignCodesJoin}
         WHERE ${whereClause}
         ORDER BY ${sortColumn} ${direction}${tieBreak}
         LIMIT ? OFFSET ?`;
@@ -871,7 +866,14 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
     INNER JOIN Distributions
       ON KID = KID_fordeling
 
-    ${campaignCodesJoin("Donation.KID_fordeling")}
+    LEFT JOIN (
+      SELECT
+        KID,
+        GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
+      FROM Donation_referral_codes
+      GROUP BY KID
+    ) as CampaignCodes
+      ON CampaignCodes.KID = Donation.KID_fordeling
 
     WHERE
         Donation.Donor_ID = ?
