@@ -9,7 +9,7 @@
 # apps/admin) and its image are unchanged.
 
 # ---- Build ----
-FROM node:24.22.1 AS build
+FROM node:24.22.3 AS build
 
 WORKDIR /usr/src/app
 RUN corepack enable
@@ -47,7 +47,7 @@ RUN VITE_AUTH_MODE=preview pnpm --dir apps/admin run build:preview
 # ---- Release ----
 # Slim Debian plus OpenSSL (Prisma's schema engine links against it), as in apps/api/Dockerfile:
 # a much smaller image, so Cloud Run starts the seed job and the service faster.
-FROM node:24.22.1-slim
+FROM node:24.22.3-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \

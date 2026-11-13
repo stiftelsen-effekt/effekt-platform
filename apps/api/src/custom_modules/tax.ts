@@ -4,14 +4,19 @@ import { donationHelpers } from "./donationHelpers";
 import { validateXML } from "xmllint-wasm";
 import { Decimal } from "decimal.js";
 import { EANTaxUnitsRow, parseEanTaxUnits } from "./parsers/eanTaxUnits";
-import type { TaxUnitYearSum } from "./DAO_modules/tax";
+import type { DonorForComparison, TaxUnitYearSum } from "./DAO_modules/tax";
 import {
   classifyDonorsWithoutTaxUnit,
   noticeExclusionLabels,
   type NoticeExclusion,
   type NoticeStatus,
 } from "./missingTaxUnitNotices";
-import { checkNorwegianId, describeNorwegianIdProblem, maskIdNumbers } from "./norwegianId";
+import {
+  checkNorwegianId,
+  describeNorwegianIdProblem,
+  maskIdNumberForList,
+  maskIdNumbers,
+} from "./norwegianId";
 import { norwegianTaxDeductionLimits } from "./taxdeductions";
 
 export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId: number) {
@@ -126,6 +131,11 @@ export type TaxReportOverview = {
   year: number;
   minSum: number;
   maximumDeduction: number;
+  /**
+   * Whether the year is in norwegianTaxDeductionLimits. Without it the maximum is a guess
+   * (DEFAULT_MAXIMUM_DEDUCTION) and the missing tax unit notice can't be sent.
+   */
+  limitsInCode: boolean;
   /** Decimal strings in kroner */
   totals: {
     /** All donations confirmed in the year */
@@ -151,12 +161,13 @@ export type TaxReportOverview = {
   };
   /**
    * Donors with at least minSum in the year on distributions without a tax unit, and whether
-   * they get the missing tax unit notice, are left out (and why) or have been sent it. Names, no
-   * email addresses.
+   * they get the missing tax unit notice, are left out (and why) or have been sent it, with name
+   * and email address (to judge who should get it).
    */
   withoutTaxUnit: {
     donorId: number;
     name: string | null;
+    email: string | null;
     donationsSum: string;
     fundraiserSum: string;
     donations: number;
@@ -184,6 +195,10 @@ export type TaxReportOverview = {
   invalidNumbers: {
     donorIds: number[];
     taxUnitIds: number[];
+    /** The tax unit's name */
+    name: string;
+    /** The first four characters and a dot per other character (maskIdNumberForList) */
+    maskedNumber: string;
     problem: string;
     sum: string;
     /** Whether the unit is in the report (at least minSum) */
@@ -247,6 +262,8 @@ export async function getTaxReportOverview(
           {
             donorIds: unit.donorIds,
             taxUnitIds: unit.taxUnitIds,
+            name: unit.name,
+            maskedNumber: maskIdNumberForList(unit.ssn),
             problem,
             sum: money(unit.sum),
             reported: unit.sum.gte(minSum),
@@ -259,6 +276,7 @@ export async function getTaxReportOverview(
     year,
     minSum,
     maximumDeduction,
+    limitsInCode: year in norwegianTaxDeductionLimits,
     totals: {
       all: money(all),
       reported: money(reportedSum),
@@ -278,6 +296,7 @@ export async function getTaxReportOverview(
     withoutTaxUnit: classifyDonorsWithoutTaxUnit(withoutTaxUnit, minSum, notices).map((donor) => ({
       donorId: donor.donorId,
       name: donor.name,
+      email: donor.email,
       donationsSum: donor.donationsSum,
       fundraiserSum: donor.fundraiserSum,
       donations: donor.donations,
@@ -575,3 +594,23 @@ export const validateXml = async (
     errors: result.errors.map((e) => e.message.replace(/^Schemas validity error : /, "").trim()),
   };
 };
+
+/** One donor in compareDonors, with the tax units' numbers masked */
+export type DonorComparison = Omit<DonorForComparison, "taxUnits"> & {
+  taxUnits: { id: number; name: string; maskedNumber: string; archived: boolean }[];
+};
+
+/**
+ * The donors side by side, to judge whether they are one person before merging (Possible
+ * duplicate donors). Numbers are masked like the other lists on the page.
+ */
+export async function compareDonors(donorIds: number[]): Promise<DonorComparison[]> {
+  const donors = await DAO.tax.getDonorsForComparison(donorIds);
+  return donors.map((donor) => ({
+    ...donor,
+    taxUnits: donor.taxUnits.map(({ ssn, ...unit }) => ({
+      ...unit,
+      maskedNumber: maskIdNumberForList(ssn),
+    })),
+  }));
+}

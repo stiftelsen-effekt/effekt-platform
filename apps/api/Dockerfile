@@ -12,7 +12,7 @@
 
 # ---- Base ----
 # Slim Debian plus OpenSSL, which Prisma's schema engine (the migrate jobs) links against
-FROM node:24.22.1-slim AS base
+FROM node:24.22.3-slim AS base
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
