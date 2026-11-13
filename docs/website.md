@@ -37,6 +37,13 @@ pnpm web:dev            # from the repo root; http://localhost:3000
   flight. The API calls themselves are in `store/widgetApi.ts` (see [web-trpc.md](web-trpc.md)).
   The donor pane's form is controlled React state; its validation and the donor it registers
   are plain functions in `panes/DonorPane/donorForm.ts`.
+- **Content blocks**: a page is a list of sections, each a list of blocks (`studio/schemas/types/contentsection.ts`
+  lists them). A block is a schema type in `studio/schemas/types/`, a case in
+  `components/main/blocks/BlockContentRenderer.tsx` and a component next to it. Citations in paragraph
+  text only resolve in `paragraph` blocks (see `pageContentQuery` in `_queries.ts`). The renderer's
+  default case prints the block's type name, so content that uses a new block type shows that name
+  on a deployment that does not have the block's code yet. Example of a block with its own state:
+  `MoralWeightsCalculator` (sliders, animated bars; the maths is in `moralWeights.ts` with tests).
 - **Min Side data**: the API is called with the user's Auth0 access token. Calls are moving from REST
   (`components/profile/_queries.ts`, `hooks/useApi.ts`) to tRPC; see [web-trpc.md](web-trpc.md). The
   donor id the API uses is the token claim `https://gieffektivt.no/user-id`, not the Auth0 user id.

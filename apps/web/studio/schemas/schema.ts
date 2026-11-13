@@ -74,6 +74,7 @@ import latex from "./types/latex";
 import accordion from "./types/accordion";
 import philantropicteaser from "./types/philantropicteaser";
 import itncoverage from "./types/itncoverage";
+import moralweightscalculator from "./types/moralweightscalculator";
 import { pages } from "./pages/_pages";
 import { dashboardpages } from "./dashboard/_dashboardPages";
 import plausiblerevenuetracker from "./types/plausiblerevenuetracker";
@@ -183,6 +184,7 @@ export const types = [
   accordion,
   philantropicteaser,
   itncoverage,
+  moralweightscalculator,
   plausiblerevenuetracker,
   teasers,
   teasersitem,
