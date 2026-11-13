@@ -24,6 +24,7 @@ export const agreementsList = defineList({
     /** Donor name or email; all digits is a KID */
     q: param.text,
     kid: param.text,
+    campaignCode: param.text,
     provider: param.list(listProviders),
     status: param.list(listStatuses),
     amount: param.range,
@@ -63,6 +64,7 @@ export function toAgreementFilter(filters: AgreementListFilters): AgreementApiFi
     created: filters.created,
     donor: q && !qIsKid ? q : undefined,
     KID: filters.kid?.trim() || (qIsKid ? q : undefined),
+    campaignCode: filters.campaignCode,
   };
   return Object.fromEntries(
     Object.entries(filter).filter(([, value]) => value !== undefined),
@@ -89,6 +91,7 @@ export function fromListRow(row: AgreementListApiRow): AgreementRow {
     cancelled: toIso(row.cancelled),
     href: `/agreements/${row.provider}/${row.id}`,
     orgSplit: row.orgSplit,
+    campaignCode: row.campaignCode,
   };
 }
 

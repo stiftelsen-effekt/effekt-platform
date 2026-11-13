@@ -141,6 +141,11 @@ const donationColumns = donationCol.columns([
     meta: { placeholder: cellPlaceholder.kid },
     cell: ({ getValue }) => <CopyValue value={getValue()} label="KID" />,
   }),
+  donationCol.accessor("campaignCode", {
+    header: "Campaign code",
+    meta: { placeholder: cellPlaceholder.word, cellClassName: "max-w-48 truncate" },
+    cell: ({ getValue }) => getValue() ?? <span className="text-faint-foreground">–</span>,
+  }),
 ]);
 
 const distributionCol = createColumns<Distribution>();

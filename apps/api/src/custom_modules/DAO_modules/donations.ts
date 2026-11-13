@@ -74,6 +74,8 @@ async function getAll(
     fundraiserId?: string;
     organizationIDs?: Array<number>;
     dataOwnerIDs?: Array<number>;
+    /** Partial match on the donation's campaign/referral code */
+    campaignCode?: string;
   } | null = null,
   locale: RequestLocale,
 ): Promise<{
@@ -85,6 +87,7 @@ async function getAll(
     transactionCost: number;
     kid: string;
     timestamp: Date;
+    campaignCode: string | null;
   }>;
   statistics: {
     numDonations: number;
@@ -216,6 +219,14 @@ async function getAll(
         );
       }
 
+      if (filter.campaignCode?.trim()) {
+        where.push(`EXISTS (
+          SELECT 1 FROM Donation_referral_codes DRC_F
+          WHERE DRC_F.KID = Donations.KID_fordeling
+            AND DRC_F.Referral_code LIKE ${sqlString.escape(`%${escapeLike(filter.campaignCode.trim())}%`)}
+        )`);
+      }
+
       if (filter.organizationIDs && filter.organizationIDs.length == 0) {
         return {
           rows: [],
@@ -284,6 +295,16 @@ async function getAll(
     // Donation id breaks ties (many donations share a timestamp or amount), so pages don't
     // overlap. The secondary indexes end in the id, so this still reads an index in order.
     const tieBreak = sortsOnDonations && sortColumn !== "ID" ? `, Donations.ID ${direction}` : "";
+    const campaignCodesJoin = `
+        LEFT JOIN (
+          SELECT
+            KID,
+            GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
+          FROM Donation_referral_codes
+          GROUP BY KID
+        ) CampaignCodes
+          ON CampaignCodes.KID = Donations.KID_fordeling`;
+
     const pageQuery = `
         ${withClause}
         SELECT ${sortsOnDonations ? "STRAIGHT_JOIN" : ""}
@@ -294,7 +315,8 @@ async function getAll(
           Donations.transaction_cost,
           Donations.KID_fordeling,
           Donations.timestamp_confirmed,
-          ${taxUnitTypeFildDefinition} as tax_unit_type
+          ${taxUnitTypeFildDefinition} as tax_unit_type,
+          CampaignCodes.campaign_codes
         FROM Donations
         INNER JOIN Donors
           ON Donations.Donor_ID = Donors.ID
@@ -306,6 +328,7 @@ async function getAll(
           ON Distributions.Tax_unit_ID = Tax_unit.ID
         ${organizationJoin}
         ${fundraiserJoin}
+        ${campaignCodesJoin}
         WHERE ${whereClause}
         ORDER BY ${sortColumn} ${direction}${tieBreak}
         LIMIT ? OFFSET ?`;
@@ -829,7 +852,8 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
       Donor.full_name,
       Donor.email,
       Payment.payment_name,
-      Distributions.Tax_unit_ID
+      Distributions.Tax_unit_ID,
+      CampaignCodes.campaign_codes
 
     FROM Donations as Donation
 
@@ -838,11 +862,20 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
 
     INNER JOIN Payment
         ON Donation.Payment_ID = Payment.ID
-        
+
     INNER JOIN Distributions
       ON KID = KID_fordeling
 
-    WHERE 
+    LEFT JOIN (
+      SELECT
+        KID,
+        GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
+      FROM Donation_referral_codes
+      GROUP BY KID
+    ) as CampaignCodes
+      ON CampaignCodes.KID = Donation.KID_fordeling
+
+    WHERE
         Donation.Donor_ID = ?
         ${from ? "AND DATE(Donation.timestamp_confirmed) >= DATE(?)" : ""}
         `,
@@ -862,6 +895,7 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
     KID: dbDonation.KID_fordeling,
     taxUnitId: dbDonation.Tax_unit_ID,
     metaOwnerId: dbDonation.Meta_owner_ID,
+    campaignCode: dbDonation.campaign_codes ?? null,
   }));
 
   return donations;
@@ -1412,13 +1446,14 @@ const jsDBmapping = [
   ["kid", "KID_fordeling"],
   ["timestamp", "timestamp_confirmed"],
   ["taxUnitType", "tax_unit_type"],
+  ["campaignCode", "campaign_codes"],
 ];
 
 const mapToJS = (obj) =>
   obj.map((donation) => {
     var returnObj = {};
     jsDBmapping.forEach((map) => {
-      returnObj[map[0]] = donation[map[1]];
+      returnObj[map[0]] = donation[map[1]] ?? null;
     });
     return returnObj;
   });

@@ -27,6 +27,8 @@ export const donationFilterSchema = z.strictObject({
   fundraiserId: z.string().optional(),
   organizationIDs: z.array(idSchema).optional(),
   dataOwnerIDs: z.array(idSchema).optional(),
+  /** Partial match on the donation's campaign/referral code */
+  campaignCode: z.string().trim().min(1).max(128).optional(),
 });
 
 export const donationSortSchema = sortSchema([
