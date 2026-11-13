@@ -527,6 +527,18 @@ async function getUnconnectedGiftsInYear(year: number): Promise<UnconnectedGifts
       WHERE ${confirmedInTaxYear(year)}
         AND TU.ID IS NULL
         AND D.Donor_ID <> 1464 -- ANONYMOUS_DONOR_ID
+        -- As connectGiftsToTaxUnit: not KIDs that also hold another donor's gifts, nor fundraiser
+        -- KIDs with gifts from before the year
+        AND NOT EXISTS (
+          SELECT 1 FROM Donations AS O
+          WHERE O.KID_fordeling = DI.KID AND O.Donor_ID <> DI.Donor_ID
+        )
+        AND NOT (
+          DI.Fundraiser_transaction_ID IS NOT NULL AND EXISTS (
+            SELECT 1 FROM Donations AS E
+            WHERE E.KID_fordeling = DI.KID AND E.timestamp_confirmed < ${sqlInstant(taxYearRange(year).from)}
+          )
+        )
         AND EXISTS (
           SELECT 1 FROM Tax_unit WHERE Tax_unit.Donor_ID = D.Donor_ID AND Tax_unit.archived IS NULL
         )
@@ -566,7 +578,7 @@ async function getUnconnectedGiftsInYear(year: number): Promise<UnconnectedGifts
 async function getKIDsWithoutTaxUnitInYear(
   donorId: number,
   year: number,
-): Promise<{ kid: string; fundraiser: boolean; hasEarlier: boolean }[]> {
+): Promise<{ kid: string; fundraiser: boolean; hasEarlier: boolean; otherDonors: boolean }[]> {
   const from = taxYearRange(year).from;
   const [rows] = await DAO.query<RowDataPacket[]>(
     `
@@ -576,7 +588,12 @@ async function getKIDsWithoutTaxUnitInYear(
       EXISTS (
         SELECT 1 FROM Donations AS E
         WHERE E.KID_fordeling = DI.KID AND E.timestamp_confirmed < ${sqlInstant(from)}
-      ) as hasEarlier
+      ) as hasEarlier,
+      -- Gifts from another donor on the KID would be reported on this donor's unit
+      EXISTS (
+        SELECT 1 FROM Donations AS O
+        WHERE O.KID_fordeling = DI.KID AND O.Donor_ID <> DI.Donor_ID
+      ) as otherDonors
 
       FROM Distributions as DI
 
@@ -596,6 +613,7 @@ async function getKIDsWithoutTaxUnitInYear(
     kid: String(row.kid),
     fundraiser: row.fundraiserTransactionId !== null && row.fundraiserTransactionId !== undefined,
     hasEarlier: Boolean(Number(row.hasEarlier)),
+    otherDonors: Boolean(Number(row.otherDonors)),
   }));
 }
 

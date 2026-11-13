@@ -4,8 +4,10 @@ import { dbClockColumn } from "../osloDays";
 
 /**
  * Tax_report_exclusions: tax units an admin has left out of the year's report to Skatteetaten,
- * with the reason (for example a number Altinn rejected for a donor we can't reach). A unit left
- * out takes every tax unit with the same number with it, as they are one unit in the report.
+ * with the reason (for example a number Altinn rejected for a donor we can't reach). Leaving a
+ * number out records every tax unit that has it; the number stays out of the file only while all
+ * its units are left out (exclusionLookup in tax.ts), so a unit that gets the number later (a
+ * corrected number, a merge, another donor) is reported rather than dropped unseen.
  */
 
 export type TaxReportExclusionRow = {
@@ -32,17 +34,17 @@ async function getForYear(year: number): Promise<TaxReportExclusionRow[]> {
   }));
 }
 
-/** Leaves the tax unit out of the year's report; a unit already left out keeps its reason */
+/** Leaves the tax units out of the year's report; a unit already left out keeps its reason */
 async function exclude(
   year: number,
-  taxUnitId: number,
+  taxUnitIds: number[],
   reason: string,
   actor: string,
 ): Promise<boolean> {
+  if (taxUnitIds.length === 0) return false;
   const [result] = await DAO.query<ResultSetHeader>(
-    `INSERT IGNORE INTO Tax_report_exclusions (Tax_unit_ID, Year, Reason, Created_by)
-     VALUES (?, ?, ?, ?)`,
-    [taxUnitId, year, reason, actor],
+    `INSERT IGNORE INTO Tax_report_exclusions (Tax_unit_ID, Year, Reason, Created_by) VALUES ?`,
+    [taxUnitIds.map((taxUnitId) => [taxUnitId, year, reason, actor])],
   );
   return result.affectedRows > 0;
 }

@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import type { Request, Response } from "express";
 import sinon from "sinon";
+import { DateTime } from "luxon";
 import { DAO } from "../custom_modules/DAO";
 import type { DonorWithoutTaxUnitRow, TaxUnitYearSum } from "../custom_modules/DAO_modules/tax";
 import type { TaxUnitNoticeRow } from "../custom_modules/DAO_modules/taxunitnotices";
@@ -21,6 +22,7 @@ import { LAST_UTC_TAX_YEAR, taxYearRange } from "../custom_modules/DAO_modules/t
 import {
   createXMLReportToTaxAuthorities,
   compareDonors,
+  connectGiftsProblem,
   getTaxReportOverview,
   groupTaxUnitsBySsn,
 } from "../custom_modules/tax";
@@ -437,7 +439,8 @@ describe("Tax report overview", () => {
 
   it("counts units left out by an admin apart, still adding up, and lists them with the reason", async () => {
     (DAO.taxreportexclusions.getForYear as sinon.SinonStub).resolves([
-      // One of the two units with PERSON_A takes the whole number out
+      // Leaving PERSON_A out recorded both its units (excludeUnit)
+      { taxUnitId: 1, reason: "Altinn: unknown number", createdBy: ADMIN, created: new Date() },
       { taxUnitId: 2, reason: "Altinn: unknown number", createdBy: ADMIN, created: new Date() },
       { taxUnitId: 5, reason: "Can't reach the donor", createdBy: ADMIN, created: new Date() },
     ]);
@@ -613,6 +616,26 @@ describe("Skatteetaten XML report", () => {
     expect(result.xml).to.not.contain(PERSON_A);
     expect(result.xml).to.not.contain(PERSON_BAD_CHECK);
     expect(result).to.deep.include({ units: 1, sum: "700.00", giverportalSum: "0.00", leftOut: 2 });
+  });
+
+  it("keeps a number in the file when a unit with it isn't left out", async () => {
+    // Unit 1 was left out; unit 4 got the same number later (a corrected number, another donor)
+    sinon
+      .stub(DAO.tax, "getTaxXMLReportUnits")
+      .resolves([unit(1, 10, PERSON_A, "600"), unit(4, 14, PERSON_A, "400")]);
+    (DAO.taxreportexclusions.getForYear as sinon.SinonStub).resolves([
+      { taxUnitId: 1, reason: "Altinn", createdBy: ADMIN, created: new Date() },
+    ]);
+    const result = await createXMLReportToTaxAuthorities(
+      2025,
+      500,
+      csv([["EA person", PERSON_A, "100", "TRUE"]]),
+      contact,
+      fetchXsd,
+    );
+    if (!result.ok) expect.fail(JSON.stringify(result.errors));
+    expect(result.xml).to.contain(PERSON_A);
+    expect(result).to.deep.include({ units: 1, leftOut: 0, giverportalSum: "100.00" });
   });
 
   it("returns invalid numbers as errors instead of skipping them, without the number", async () => {
@@ -994,13 +1017,21 @@ describe("Leaving tax units out of the report", () => {
     sinon
       .stub(DAO.tax, "getById")
       .resolves({ id: 5, donorId: 13, name: "Unit 5", ssn: PERSON_A, archived: null as any });
+    // Unit 6 has the same number (another donor): it is recorded too; unit 7 isn't
+    sinon
+      .stub(DAO.tax, "getTaxXMLReportUnits")
+      .resolves([
+        unit(5, 13, PERSON_A, "600"),
+        unit(6, 14, PERSON_A.replace(/^(\d{6})/, "$1 "), "100"),
+        unit(7, 15, ORGANIZATION, "700"),
+      ]);
     const exclude = sinon.stub(DAO.taxreportexclusions, "exclude").resolves(true);
     const include = sinon.stub(DAO.taxreportexclusions, "include").resolves(1);
     const caller = callerWith(["admin"]).reports.tax;
     expect(
       await caller.excludeUnit({ year: 2025, taxUnitId: 5, reason: "  Altinn: unknown  " }),
     ).to.deep.equal({ changed: true });
-    expect(exclude.firstCall.args).to.deep.equal([2025, 5, "Altinn: unknown", ADMIN]);
+    expect(exclude.firstCall.args).to.deep.equal([2025, [5, 6], "Altinn: unknown", ADMIN]);
     expect(await caller.includeUnits({ year: 2025, taxUnitIds: [5] })).to.deep.equal({
       changed: 1,
     });
@@ -1019,6 +1050,9 @@ describe("Leaving tax units out of the report", () => {
 
 describe("Connecting gifts to the donor's tax unit", () => {
   afterEach(() => sinon.restore());
+  // The year being given now: the only years open for connecting are this one and, in January,
+  // the last one
+  const thisYear = DateTime.now().setZone("Europe/Oslo").year;
 
   const setUp = () => {
     sinon
@@ -1031,10 +1065,14 @@ describe("Connecting gifts to the donor's tax unit", () => {
             : { id, donorId: 99, name: "Other", ssn: PERSON_A, archived: null as any },
       );
     sinon.stub(DAO.tax, "getKIDsWithoutTaxUnitInYear").resolves([
-      { kid: "111", fundraiser: false, hasEarlier: false },
-      // An AvtaleGiro KID with gifts from 2024 too: those stay as reported
-      { kid: "222", fundraiser: false, hasEarlier: true },
-      { kid: "333", fundraiser: true, hasEarlier: false },
+      { kid: "111", fundraiser: false, hasEarlier: false, otherDonors: false },
+      // An AvtaleGiro KID with gifts from earlier years too: those stay as reported
+      { kid: "222", fundraiser: false, hasEarlier: true, otherDonors: false },
+      { kid: "333", fundraiser: true, hasEarlier: false, otherDonors: false },
+      // Also holds another donor's gifts, which would be reported on this unit: left alone
+      { kid: "444", fundraiser: false, hasEarlier: false, otherDonors: true },
+      // A fundraiser KID with an earlier gift isn't one gift's own: left alone
+      { kid: "555", fundraiser: true, hasEarlier: true, otherDonors: false },
     ]);
     sinon.stub(DAO.distributions, "getAllByDonor").resolves({
       donorID: 15,
@@ -1051,16 +1089,21 @@ describe("Connecting gifts to the donor's tax unit", () => {
   it("puts the year's KIDs on the tax unit and keeps earlier gifts on a copy without it", async () => {
     const { add, move, connect } = setUp();
     const result = await callerWith(["admin"]).reports.tax.connectToTaxUnit({
-      year: 2026,
+      year: thisYear,
       donorId: 15,
       taxUnitId: 7,
     });
-    expect(result).to.deep.equal({ kids: 3, copiedKids: 1, earlierDonationsKept: 4 });
+    expect(result).to.deep.equal({
+      kids: 3,
+      copiedKids: 1,
+      earlierDonationsKept: 4,
+      skippedKids: 2,
+    });
     expect(add.firstCall.args[0]).to.deep.include({ kid: "999999999999999", taxUnitId: null });
     expect(move.firstCall.args.slice(0, 2)).to.deep.equal(["222", "999999999999999"]);
     // From the start of the gift year
     expect((move.firstCall.args[2] as Date).toISOString()).to.equal(
-      taxYearRange(2026).from.toISOString(),
+      taxYearRange(thisYear).from.toISOString(),
     );
     expect(connect.getCalls().map((call) => call.args)).to.deep.equal([
       ["111", 7],
@@ -1074,7 +1117,7 @@ describe("Connecting gifts to the donor's tax unit", () => {
     for (const taxUnitId of [9, 8]) {
       try {
         await callerWith(["admin"]).reports.tax.connectToTaxUnit({
-          year: 2026,
+          year: thisYear,
           donorId: 15,
           taxUnitId,
         });
@@ -1084,6 +1127,34 @@ describe("Connecting gifts to the donor's tax unit", () => {
       }
     }
     expect(connect.callCount).to.equal(0);
+  });
+
+  it("refuses a year that is filed, since the years after it would change too", async () => {
+    const { connect } = setUp();
+    try {
+      await callerWith(["admin"]).reports.tax.connectToTaxUnit({
+        year: thisYear - 2,
+        donorId: 15,
+        taxUnitId: 7,
+      });
+      expect.fail("expected BAD_REQUEST");
+    } catch (err: any) {
+      expect(err.code).to.equal("BAD_REQUEST");
+      expect(err.message).to.match(/filed with Skatteetaten/);
+    }
+    expect(connect.callCount).to.equal(0);
+  });
+
+  it("opens this year, and last year until 31 January (Oslo time)", () => {
+    const at = (iso: string) => new Date(iso);
+    expect(connectGiftsProblem(2026, at("2026-11-13T12:00:00Z"))).to.equal(null);
+    expect(connectGiftsProblem(2025, at("2026-11-13T12:00:00Z"))).to.match(/filed/);
+    expect(connectGiftsProblem(2027, at("2026-11-13T12:00:00Z"))).to.match(/hasn't started/);
+    expect(connectGiftsProblem(2026, at("2027-01-31T22:30:00Z"))).to.equal(null);
+    // 00:30 on 1 February in Oslo
+    expect(connectGiftsProblem(2026, at("2027-01-31T23:30:00Z"))).to.match(/filed/);
+    // 00:30 on 1 January in Oslo is already the new year
+    expect(connectGiftsProblem(2027, at("2026-12-31T23:30:00Z"))).to.equal(null);
   });
 });
 
