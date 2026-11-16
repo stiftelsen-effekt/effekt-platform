@@ -78,13 +78,17 @@ const Footer = withStaticProps(async ({ draftMode = false }: { draftMode: boolea
     <footer className={`${styles.grid} ${gridClass}`} id={"footer"}>
       <div className={`${styles.category} ${styles.logo__bottom}`}>
         <figure>
-          <Image
-            src="/images/footer-symbol.webp"
-            alt=""
-            width={300}
-            height={300}
-            aria-hidden="true"
-          />
+          {main_locale === "sv" ? (
+            <p>G</p>
+          ) : (
+            <Image
+              src="/images/footer-symbol.webp"
+              alt=""
+              width={300}
+              height={300}
+              aria-hidden="true"
+            />
+          )}
         </figure>
       </div>
       {footer_columns &&

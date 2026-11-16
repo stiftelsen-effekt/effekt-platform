@@ -55,6 +55,14 @@
   display: block;
 }
 
+.logo__bottom figure p {
+  line-height: 240px;
+  font-size: 300px;
+  margin: 0;
+  color: var(--primary);
+  font-family: "ESKlarheitKurrent";
+}
+
 /* SASS loop over grid_n */
 /* Make newsletter take up one more than half the grid (excluding the leftmost symbol) if odd, or half if even */
 .grid_0 {
@@ -121,6 +129,12 @@
   .logo__bottom figure img {
     width: 140px;
     margin: 0 auto;
+  }
+
+  .logo__bottom figure p {
+    font-size: 180px;
+    line-height: 140px;
+    text-align: center;
   }
 
   .newsletter {
