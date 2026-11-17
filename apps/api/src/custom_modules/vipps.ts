@@ -1286,6 +1286,34 @@ module.exports = {
         // Update database and stop polling only if capture was successful
         if (isCaptured) {
           await DAO.vipps.updateChargeStatus("CHARGED", agreementId, initialChargeID);
+
+          // Record the donation and send the receipt now, the same way a one-off Vipps donation
+          // does on capture. Otherwise the initial charge on a new monthly agreement only shows up
+          // and gets a receipt once the next daily synchronizeVippsAgreementDatabase run picks up
+          // the CHARGED charge, up to a day later.
+          const externalPaymentId = `${agreementId}.${initialChargeID}`;
+          const donationExists = await DAO.donations.externalPaymentIDExists(
+            externalPaymentId,
+            paymentMethods.vipps_recurring,
+          );
+          if (!donationExists) {
+            const donationId = await DAO.donations.add(
+              initialCharge.KID,
+              paymentMethods.vipps_recurring,
+              initialCharge.amountNOK,
+              initialCharge.dueDate,
+              externalPaymentId,
+              3, // metaOwnerId, same as synchronizeVippsAgreementDatabase
+            );
+            if (donationId) {
+              await sendDonationReceipt(donationId);
+            } else {
+              console.error(
+                `Failed to add donation for initial charge ${externalPaymentId}, no receipt sent`,
+              );
+            }
+          }
+
           return true;
         }
       }
