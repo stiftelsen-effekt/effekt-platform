@@ -658,7 +658,9 @@ describe("tRPC reports router", () => {
 
     it("get combines the fundraiser with its totals and transactions", async () => {
       sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
-      const transactions = [{ id: 3, name: null, message: "Go!", amount: 100, date: new Date() }];
+      const transactions = [
+        { id: 3, name: null, message: "Go!", amount: 100, date: new Date(), recurring: false },
+      ];
       sinon
         .stub(DAO.fundraisers, "getFundraiserByID")
         .resolves({ totalSum: 100, donationCount: 1, transactions });

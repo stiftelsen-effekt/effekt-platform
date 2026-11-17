@@ -371,8 +371,16 @@ describe("tRPC site router", () => {
           message: "Lykke til!",
           amount: 1000,
           date: new Date("2025-12-01T10:00:00.000Z"),
+          recurring: true,
         },
-        { id: 1, name: null, message: null, amount: 500, date: new Date("2025-11-30T09:00:00Z") },
+        {
+          id: 1,
+          name: null,
+          message: null,
+          amount: 500,
+          date: new Date("2025-11-30T09:00:00Z"),
+          recurring: false,
+        },
       ],
     });
 
