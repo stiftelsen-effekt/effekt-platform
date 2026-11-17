@@ -48,7 +48,7 @@
     "html-react-parser": "^6.1.9",
     "katex": "catalog:",
     "luxon": "catalog:",
-    "next": "^16.4.3",
+    "next": "^16.4.5",
     "next-plausible": "^4.0.0",
     "next-sanity": "^13.4.0",
     "next-seo": "^7.3.0",
