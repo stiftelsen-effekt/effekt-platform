@@ -23,6 +23,15 @@ export function formatCurrency(currencyString) {
 }
 
 /**
+ * Returns the receipt line noting that a donation was part of a fundraiser,
+ * or an empty string if it wasn't. Used as a MailerSend personalization
+ * variable, since the receipt templates themselves live in MailerSend.
+ */
+export function getFundraiserReceiptText(fundraiserId: number | null) {
+  return fundraiserId ? "Denne donasjonen var en del av en innsamlingsaksjon." : "";
+}
+
+/**
  * Sends a donation reciept
  * @param {number} donationID
  * @param {string} reciever Reciever email
@@ -92,6 +101,7 @@ export async function sendDonationReceipt(donationID, reciever: string | null = 
       donationKID: donation.KID,
       donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+      fundraiserDonationText: getFundraiserReceiptText(donation.fundraiserId),
       donationTotalSum: formatCurrency(donation.sum) + " kr",
       alltimeDonationsSum: formatCurrency(totalDonations) + " kr",
       firstDonationYear: minYear.toString(),
@@ -192,6 +202,7 @@ async function sendFirstDonationReceipt(donation, reciever: string | null = null
       donationKID: donation.KID,
       donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+      fundraiserDonationText: getFundraiserReceiptText(donation.fundraiserId),
       donationTotalSum: formatCurrency(donation.sum) + " kr",
       hasGiveWellTopCharitiesFund,
       numberOfDonors: numberOfDonors,

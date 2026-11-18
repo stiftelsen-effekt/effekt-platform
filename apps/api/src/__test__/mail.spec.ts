@@ -1,7 +1,7 @@
 import { describe, it } from "vitest";
 import { expect } from "chai";
 
-const { formatCurrency } = require("../custom_modules/mail");
+const { formatCurrency, getFundraiserReceiptText } = require("../custom_modules/mail");
 
 describe("formatCurrency", function () {
   it("should use space character (U+00a0) as thousands separator", () => {
@@ -20,5 +20,17 @@ describe("formatCurrency", function () {
 
   it("should handle number as input", () => {
     expect(formatCurrency(1234)).to.equal("1 234");
+  });
+});
+
+describe("getFundraiserReceiptText", function () {
+  it("should return a receipt line when the donation has a fundraiser ID", () => {
+    expect(getFundraiserReceiptText(1)).to.equal(
+      "Denne donasjonen var en del av en innsamlingsaksjon.",
+    );
+  });
+
+  it("should return an empty string when the donation has no fundraiser ID", () => {
+    expect(getFundraiserReceiptText(null)).to.equal("");
   });
 });
