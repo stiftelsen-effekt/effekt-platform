@@ -1,7 +1,7 @@
 import { describe, it } from "vitest";
 import { expect } from "chai";
 
-const { formatCurrency } = require("../custom_modules/mail");
+const { formatCurrency, isSingleDonation } = require("../custom_modules/mail");
 
 describe("formatCurrency", function () {
   it("should use space character (U+00a0) as thousands separator", () => {
@@ -20,5 +20,22 @@ describe("formatCurrency", function () {
 
   it("should handle number as input", () => {
     expect(formatCurrency(1234)).to.equal("1 234");
+  });
+});
+
+describe("isSingleDonation", function () {
+  it("should return true for a one-off bank or card payment", () => {
+    expect(isSingleDonation(2)).to.equal(true); // bank
+    expect(isSingleDonation(3)).to.equal(true); // paypal
+  });
+
+  it("should return false for an AvtaleGiro or Vipps recurring payment", () => {
+    expect(isSingleDonation(7)).to.equal(false); // avtalegiro
+    expect(isSingleDonation(8)).to.equal(false); // vipps_recurring
+  });
+
+  it("should return false when the payment method is missing", () => {
+    expect(isSingleDonation(null)).to.equal(false);
+    expect(isSingleDonation(undefined)).to.equal(false);
   });
 });
