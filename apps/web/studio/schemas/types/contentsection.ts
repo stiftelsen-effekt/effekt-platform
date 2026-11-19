@@ -70,6 +70,7 @@ export default defineType({
         { type: "blocktables" },
         { type: "reference", to: [{ type: "contactinfo" }] },
         { type: "newslettersignup" },
+        { type: "pledgesignup" },
         { type: "wealthcalculator" },
         { type: "contributorlist" },
         { type: "inngress" },

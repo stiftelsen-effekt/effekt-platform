@@ -34,6 +34,7 @@ import donationwidget from "./types/donationwidget";
 import quote from "./types/quote";
 import citation from "./types/citation";
 import newslettersignup from "./types/newslettersignup";
+import pledgesignup from "./types/pledgesignup";
 import wealthcalculator from "./types/wealthcalculator";
 import wealthcalculatorteaser from "./types/wealthcalculatorteaser";
 import contributorlist from "./types/contributorlist";
@@ -143,6 +144,7 @@ export const types = [
   testimonials,
   fullvideo,
   newslettersignup,
+  pledgesignup,
   htmlembed,
   donationwidget,
   quote,

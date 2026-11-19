@@ -19,6 +19,7 @@ import { SplitView } from "./SplitView/SplitView";
 import { Testimonial } from "./Testemonial/Testemonial";
 import { VideoEmbed } from "./VideoEmbed/VideoEmbed";
 import { NewsletterSignup } from "./NewsletterSignup/NewsletterSignup";
+import { PledgeSignUp } from "./PledgeSignUp/PledgeSignUp";
 import { InterventionWidget } from "./InterventionWidget/InterventionWidget";
 import { IntroSection } from "./IntroSection/IntroSection";
 import { Contributors } from "./Contributors/Contributors";
@@ -98,6 +99,8 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
     <>
       {blocks.filter(Boolean).map((block: any) => {
         switch (block._type) {
+          case "pledgesignup":
+            return <PledgeSignUp key={block._key} />;
           case "paragraph":
             return (
               <Paragraph
