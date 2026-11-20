@@ -435,6 +435,13 @@ export default defineType({
                             defineField({ name: "label", title: "Label", type: "string" }),
                             defineField({ name: "value", title: "Value", type: "number" }),
                             defineField({
+                              name: "extra",
+                              title: "Extra on top (optional)",
+                              type: "number",
+                              description:
+                                "Stacked on the bar, hatched, e.g. the extra deaths had there been no malaria control",
+                            }),
+                            defineField({
                               name: "highlight",
                               title: "Highlight",
                               type: "boolean",
@@ -448,6 +455,38 @@ export default defineType({
                       name: "highlight_label",
                       title: "Legend for highlighted bars",
                       type: "string",
+                    }),
+                    defineField({
+                      name: "extra_label",
+                      title: "Legend for the extra on top",
+                      type: "string",
+                    }),
+                    defineField({
+                      name: "axis",
+                      title: "Show a y-axis",
+                      type: "boolean",
+                      description: 'A few round values left of the chart, e.g. "1 mill"',
+                    }),
+                    defineField({
+                      name: "axis",
+                      title: "Show a y-axis",
+                      type: "boolean",
+                      description: 'A few round values left of the chart, e.g. "1 mill"',
+                    }),
+                    defineField({
+                      name: "callouts",
+                      title: "Big numbers beside the chart",
+                      type: "array",
+                      of: [
+                        defineArrayMember({
+                          type: "object",
+                          name: "callout",
+                          fields: [
+                            defineField({ name: "value", title: "Value", type: "string" }),
+                            defineField({ name: "label", title: "Label", type: "string" }),
+                          ],
+                        }),
+                      ],
                     }),
                     defineField({ name: "caption", title: "Caption / source", type: "string" }),
                   ],

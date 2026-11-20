@@ -88,11 +88,16 @@ $wide: 1100px; // two columns from here
   left: 0;
   z-index: 10;
   padding: clamp(1rem, 3vh, 2rem) $gutter;
+}
+
+.headerLogo {
+  display: block;
+  width: clamp(120px, 12vw, 170px);
 
   img {
     display: block;
-    height: clamp(20px, 3vh, 28px);
-    width: auto;
+    width: 100%;
+    height: auto;
   }
 }
 
@@ -171,6 +176,14 @@ $wide: 1100px; // two columns from here
   transition:
     opacity 450ms $ease-out,
     transform 450ms $ease-out;
+}
+
+// A slide's picture doesn't fade in (that showed the white page behind it for a moment); it
+// is there when the slide arrives and only settles from a slight zoom
+.slide.reveal > .chapterImage {
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 
 .reveal[data-visible="true"] > *,
@@ -534,6 +547,45 @@ $wide: 1100px; // two columns from here
   }
 }
 
+// A panorama goes across the top on wide screens too, with the text below
+.withPanorama {
+  @media (min-width: $wide) {
+    flex-direction: column;
+
+    .chapterImage {
+      flex: 0 0 46svh;
+    }
+
+    .chapterText {
+      flex: 1 1 auto;
+      align-self: stretch;
+      width: 100%;
+      max-width: $max;
+      margin: 0 auto;
+      padding: clamp(2rem, 5vh, 3.5rem) $gutter clamp(2rem, 6vh, 4rem);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: clamp(3rem, 6vw, 7rem);
+      align-content: start;
+
+      // Heading and big number on the left, the text on the right
+      > .chapterTitle {
+        grid-column: 1;
+      }
+
+      > .stat {
+        grid-column: 1;
+      }
+
+      > .chapterBody {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: end;
+      }
+    }
+  }
+}
+
 // With the picture hidden on narrow screens, the chart slide is centred like the others
 .withChart.withImage {
   @media (max-width: ($wide - 1px)) {
@@ -614,7 +666,116 @@ $wide: 1100px; // two columns from here
 .barTrack {
   flex: 1;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+// What would have been: outlined and hatched, on top of the bar, growing in after it
+.barExtra {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  border-bottom: none;
+  background: repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 7px);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 700ms $ease-out;
+
+  .barChart[data-visible="true"] & {
+    transform: scaleY(1);
+  }
+}
+
+// Many bars (a series of years): thinner gaps, labels only where given
+.barChart:has(.barColumn:nth-child(13)) .bars {
+  gap: 2px;
+}
+
+// The chart, and its big numbers beside it on wide screens (below on narrow)
+.chartBody {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.withCallouts {
+  max-width: 64rem;
+
+  .chartBody {
+    @media (min-width: $wide) {
+      grid-template-columns: minmax(0, 1fr) minmax(10rem, 16rem);
+      align-items: start;
+    }
+  }
+}
+
+.callouts {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (max-width: ($wide - 1px)) {
+    flex-direction: row;
+    gap: 1.5rem;
+
+    > * {
+      flex: 1;
+    }
+  }
+
+  .statValue {
+    font-size: clamp(36px, min(4.2vw, 7vh), 72px);
+  }
+
+  .stat {
+    margin: 0;
+  }
+}
+
+.legendSwatchHatched {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  background: repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 4px);
+  margin-right: 0.25rem;
+}
+
+// A y-axis: thin lines across the bars, the values outside the chart's left edge
+.withAxis {
+  position: relative;
+}
+
+.tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid currentColor;
+  pointer-events: none;
+  // The line faint, the value not
+  border-top-color: color-mix(in srgb, currentColor 25%, transparent);
+
+  span {
+    position: absolute;
+    right: calc(100% + 0.6rem);
+    top: 0;
+    transform: translateY(-50%);
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
+// On narrow screens there is no margin to hang the values in: inside, above each line
+@media (max-width: ($wide - 1px)) {
+  .tick span {
+    right: auto;
+    left: 0;
+    transform: translateY(-120%);
+  }
 }
 
 .bar {
@@ -741,7 +902,8 @@ $wide: 1100px; // two columns from here
   .reveal .split > *,
   .square,
   .statRule,
-  .bar {
+  .bar,
+  .barExtra {
     opacity: 1;
     transform: none;
   }
@@ -895,8 +1057,20 @@ $wide: 1100px; // two columns from here
   scroll-snap-align: start;
   max-width: $max;
   margin: 0 auto;
-  padding: clamp(3rem, 8vh, 6rem) $gutter;
+  padding: clamp(5rem, 14vh, 9rem) $gutter clamp(4rem, 10vh, 7rem);
   box-sizing: border-box;
+}
+
+.menuLogo {
+  display: block;
+  width: clamp(170px, 18vw, 260px);
+  margin: 0 auto clamp(3rem, 8vh, 5rem);
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

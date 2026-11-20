@@ -29,9 +29,16 @@ type ChartData = {
     _key: string;
     label?: string | null;
     value?: number | null;
+    /** Stacked on top, outlined and hatched: e.g. "if there had been no malaria control" */
+    extra?: number | null;
     highlight?: boolean | null;
   }> | null;
   highlight_label?: string | null;
+  extra_label?: string | null;
+  /** A y-axis with a few round values (short format, e.g. "1,5 mill"), left of the chart */
+  axis?: boolean | null;
+  /** Big numbers beside the chart, counted up after the bars, e.g. "+99 %" */
+  callouts?: Array<{ _key: string; value?: string | null; label?: string | null }> | null;
   caption?: string | null;
 };
 
@@ -118,7 +125,8 @@ export const GiftPage: React.FC<{
   gift: GiftcardGift | null;
   product: GiftPageProduct | null;
   navigationItems?: NavigationItems | null;
-}> = ({ gift, product, navigationItems }) => (
+  siteLogo?: SanityImageObject | null;
+}> = ({ gift, product, navigationItems, siteLogo }) => (
   <main className={styles.page}>
     <SEO
       title="En gave til deg"
@@ -127,9 +135,8 @@ export const GiftPage: React.FC<{
       noIndex
     />
     <header className={styles.header}>
-      <Link href="/" aria-label="Gi Effektivt">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo.src} alt="Gi Effektivt." />
+      <Link href="/" aria-label="Gi Effektivt" className={styles.headerLogo}>
+        <SiteLogo image={siteLogo} />
       </Link>
     </header>
     {gift ? (
@@ -142,11 +149,23 @@ export const GiftPage: React.FC<{
     )}
     {navigationItems && navigationItems.length > 0 && (
       <nav className={styles.menu} aria-label="Meny">
+        <Link href="/" className={styles.menuLogo} aria-label="Gi Effektivt">
+          <SiteLogo image={siteLogo} />
+        </Link>
         <SiteMenuTable navigationItems={navigationItems} />
       </nav>
     )}
   </main>
 );
+
+/** The site's logo from the site settings; the bundled wordmark if there is none */
+const SiteLogo: React.FC<{ image?: SanityImageObject | null }> = ({ image }) =>
+  image?.asset ? (
+    <ResponsiveImage priority image={image} alt="Gi Effektivt." layout="responsive" sizes="260px" />
+  ) : (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={logo.src} alt="Gi Effektivt." />
+  );
 
 const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = ({
   gift,
@@ -256,6 +275,7 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
                   {(recipient.organization_logo ?? recipient.organization.logo)?.asset ? (
                     <div className={styles.logo}>
                       <ResponsiveImage
+                        priority
                         image={(recipient.organization_logo ?? recipient.organization.logo)!}
                         alt={recipient.organization.name}
                         layout="responsive"
@@ -359,6 +379,11 @@ const StoryChapter: React.FC<{
   dark: boolean;
 }> = ({ chapter, dark }) => {
   const hasImage = !!chapter.image?.asset;
+  // A panorama (wider than 1.8:1) loses too much in a half-screen frame: it goes across the top
+  const dims = (
+    chapter.image?.asset as { metadata?: { dimensions?: { width: number; height: number } } }
+  )?.metadata?.dimensions;
+  const panorama = !!dims && dims.width / dims.height > 1.8;
   const hasChart = !!chapter.chart?.bars?.length;
   // Without a picture, a square chart or map sits beside the text, or else a big number does:
   // two columns on wide screens, stacked on narrow ones
@@ -370,6 +395,7 @@ const StoryChapter: React.FC<{
       className={[
         styles.chapter,
         hasImage ? styles.withImage : "",
+        panorama ? styles.withPanorama : "",
         hasChart ? styles.withChart : "",
       ].join(" ")}
       dark={dark}
@@ -423,7 +449,10 @@ const StoryChapter: React.FC<{
           <>
             {hasImage && (
               <div className={styles.chapterImage}>
+                {/* Loaded at once (they render when the envelope opens), so each picture is
+                    ready when its slide snaps into view instead of flashing in */}
                 <ResponsiveImage
+                  priority
                   image={chapter.image!}
                   alt={chapter.image!.alt ?? ""}
                   layout="cover"
@@ -476,35 +505,80 @@ const Stat: React.FC<{
   );
 };
 
-/** Bars that grow from the axis one after another; highlighted bars are filled */
+/**
+ * Bars that grow from the axis one after another; highlighted bars are filled. A bar's `extra`
+ * stacks on top, outlined and hatched, and grows in after all the bars have: what would have
+ * been. Callouts (big numbers) count up beside the chart once the bars are done.
+ */
 const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start }) => {
   const bars = (chart.bars ?? []).filter((b) => typeof b.value === "number");
-  const max = Math.max(...bars.map((b) => b.value ?? 0), 1);
+  const max = Math.max(...bars.map((b) => (b.value ?? 0) + (b.extra ?? 0)), 1);
+  const stacked = bars.some((b) => (b.extra ?? 0) > 0);
+  const step = Math.min(70, 1200 / Math.max(bars.length, 1));
+  const extrasAt = 300 + bars.length * step;
+  const callouts = (chart.callouts ?? []).filter((c) => c.value);
+  const ticks = chart.axis ? axisTicks(max) : [];
+  const calloutsStart = useDelayed(start, extrasAt + 900);
   return (
-    <figure className={styles.barChart} data-visible={start}>
+    <figure
+      className={`${styles.barChart} ${callouts.length ? styles.withCallouts : ""}`}
+      data-visible={start}
+    >
       {chart.title && <figcaption className="caption">{chart.title}</figcaption>}
-      <div className={styles.bars} role="img" aria-label={chart.title ?? undefined}>
-        {bars.map((bar, i) => (
-          <div key={bar._key} className={styles.barColumn}>
-            <div className={styles.barTrack}>
-              <span
-                className={styles.bar}
-                data-highlight={bar.highlight ?? false}
-                style={{
-                  height: `${((bar.value ?? 0) / max) * 100}%`,
-                  transitionDelay: `${150 + i * 70}ms`,
-                }}
-              />
+      <div className={styles.chartBody}>
+        <div
+          className={`${styles.bars} ${ticks.length ? styles.withAxis : ""}`}
+          role="img"
+          aria-label={chart.title ?? undefined}
+        >
+          {ticks.map((t) => (
+            <span key={t} className={styles.tick} style={{ bottom: `${(t / max) * 100}%` }}>
+              <span>{formatShort(t)}</span>
+            </span>
+          ))}
+          {bars.map((bar, i) => (
+            <div key={bar._key} className={styles.barColumn}>
+              <div className={styles.barTrack}>
+                {(bar.extra ?? 0) > 0 && (
+                  <span
+                    className={styles.barExtra}
+                    style={{
+                      height: `${((bar.extra ?? 0) / max) * 100}%`,
+                      transitionDelay: `${extrasAt + i * step}ms`,
+                    }}
+                  />
+                )}
+                <span
+                  className={styles.bar}
+                  data-highlight={bar.highlight ?? stacked}
+                  style={{
+                    height: `${((bar.value ?? 0) / max) * 100}%`,
+                    transitionDelay: `${150 + i * step}ms`,
+                  }}
+                />
+              </div>
+              <span className={styles.barLabel}>{bar.label}</span>
             </div>
-            <span className={styles.barLabel}>{bar.label}</span>
+          ))}
+        </div>
+        {callouts.length > 0 && (
+          <div className={styles.callouts}>
+            {callouts.map((c) => (
+              <Stat key={c._key} value={c.value!} label={c.label} start={calloutsStart} />
+            ))}
           </div>
-        ))}
+        )}
       </div>
-      {(chart.highlight_label || chart.caption) && (
+      {(chart.highlight_label || chart.extra_label || chart.caption) && (
         <div className={styles.legend}>
           {chart.highlight_label && (
             <span className="caption">
               <span className={styles.legendSwatch} aria-hidden /> {chart.highlight_label}
+            </span>
+          )}
+          {chart.extra_label && (
+            <span className="caption">
+              <span className={styles.legendSwatchHatched} aria-hidden /> {chart.extra_label}
             </span>
           )}
           {chart.caption && <span className="caption">{chart.caption}</span>}
@@ -513,6 +587,34 @@ const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start
     </figure>
   );
 };
+
+/** Round values for a y-axis up to `max`: steps of 1, 2, 2.5 or 5 times a power of ten */
+export const axisTicks = (max: number, count = 4): number[] => {
+  const raw = max / count;
+  const power = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? raw;
+  const ticks: number[] = [];
+  for (let t = step; t <= max; t += step) ticks.push(t);
+  return ticks;
+};
+
+/** Short numbers for an axis, as on the results page: "1,5 mill", "500 000" */
+export const formatShort = (n: number): string =>
+  n >= 1_000_000
+    ? `${(n / 1_000_000).toLocaleString("nb-NO", { maximumFractionDigits: 1 })} mill`
+    : formatNumber(n);
+
+/** `start`, but only after `delayMs` (immediately with reduced motion) */
+function useDelayed(start: boolean, delayMs: number) {
+  const noMotion = useNoMotion();
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!start || noMotion) return;
+    const t = window.setTimeout(() => setDone(true), delayMs);
+    return () => window.clearTimeout(t);
+  }, [start, noMotion, delayMs]);
+  return start && (done || noMotion);
+}
 
 /** Next steps: a monthly donation to Smart fordeling (the donation widget), or read about the organization */
 const Closing: React.FC<{ product: GiftPageProduct | null }> = ({ product }) => {

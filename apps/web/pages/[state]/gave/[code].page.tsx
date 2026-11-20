@@ -85,13 +85,18 @@ export const getServerSideProps = async (
   ]);
   if (gift === null) return { notFound: true as const };
   const navigationItems = navbar.data.result.settings.main_navigation ?? [];
+  // The site's logo from the site settings, as in the top menu elsewhere
+  const siteLogo = navbar.data.result.settings.logo ?? null;
   if (gift === "unavailable") {
     ctx.res.statusCode = 503;
-    return { props: { appStaticProps, gift: null, product: null, navigationItems } };
+    return { props: { appStaticProps, gift: null, product: null, navigationItems, siteLogo } };
   }
 
-  const product = await getClient().fetch<GiftPageProduct | null>(fetchProduct, {
-    slug: gift.product,
-  });
-  return { props: { appStaticProps, gift, product, navigationItems } };
+  // From the API, not the CDN: rendered per request anyway, and Studio edits show at once
+  const product = await getClient()
+    .withConfig({ useCdn: false })
+    .fetch<GiftPageProduct | null>(fetchProduct, {
+      slug: gift.product,
+    });
+  return { props: { appStaticProps, gift, product, navigationItems, siteLogo } };
 };
