@@ -5,14 +5,19 @@ import { passMultipartBodyToTrpc, TRPC_MAX_BODY_SIZE } from "./reportsMultipart"
 import { appRouter } from "./router";
 
 /**
- * The public widget mutations (widget.registerDonation, widget.draftVippsAgreement etc.) create
+ * The public widget and gift card mutations (widget.registerDonation, giftcard.register etc.) create
  * donors, agreements and payments without a login, so the per-IP rate limit has to count each one.
  * A batch request (`/trpc/a,b?batch=1`) would run many procedures in one counted request, so a
  * batch that includes one of them is refused. The website's widget client never batches.
  */
 export const publicMutations = new Set(
   Object.entries(appRouter._def.procedures as unknown as Record<string, { _def: { type: string } }>)
-    .filter(([path, procedure]) => path.startsWith("widget.") && procedure._def.type === "mutation")
+    .filter(
+      ([path, procedure]) =>
+        // giftcard.register creates a donor and a donation like widget.registerDonation
+        (path.startsWith("widget.") || path.startsWith("giftcard.")) &&
+        procedure._def.type === "mutation",
+    )
     .map(([path]) => path),
 );
 

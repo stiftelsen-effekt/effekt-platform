@@ -524,6 +524,16 @@ router.get("/redirect/:orderId", async (req, res, next) => {
       if (order && order.donationID != null) {
         const donation = await DAO.donations.getByID(order.donationID);
 
+        if (await DAO.giftcards.getByKID(order.KID)) {
+          // Gift card buyers come back to one fixed page for every product: /gavekort-mottatt, an
+          // ordinary Sanity page with the "Gift card purchase details" (giftcardreceipt) block,
+          // which reads the purchase by its KID. Create that page in Sanity for each site that
+          // sells gift cards; there is deliberately no per-product setting.
+          const base = config.frontend_url || "https://gieffektivt.no";
+          res.redirect(`${base}/gavekort-mottatt?kid=${encodeURIComponent(order.KID)}`);
+          return true;
+        }
+
         if (donation.fundraiserId) {
           // Temp hardcoded to preview frontend, should be changed to production frontend (${config.frontend_url}/)
           const plausible = encodePlausibleData({

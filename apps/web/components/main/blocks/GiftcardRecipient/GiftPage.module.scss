@@ -1,0 +1,1172 @@
+// The recipient's page (GiftPage.tsx), in the site's own language: black and white, the site's
+// typeface, 1px lines, square corners, numbers drawn as charts. The story is full-screen slides
+// that snap into place while <html> has .gift-snap. Every animation (and the snapping) is off
+// with prefers-reduced-motion.
+//
+// Type is sized for slides rather than pages: each size scales with the smaller of the screen's
+// width and height (min(vw, vh)), so a slide fills one screen on a 14" MacBook (about
+// 1512 × 860), a phone, a tall tablet or a 27" monitor alike, between a floor and a ceiling.
+// Headings balance their lines (text-wrap: balance) so no word is left alone on the last line.
+
+$ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+$gutter: clamp(1.25rem, 5vw, 5rem);
+$max: 1360px;
+$wide: 1100px; // two columns from here
+
+.page {
+  // Display: the hero, the closing question
+  --type-display: clamp(44px, min(7.2vw, 11.5vh), 128px);
+  // Chapter headings
+  --type-title: clamp(34px, min(4.2vw, 7.4vh), 80px);
+  // The gift's number
+  --type-number: clamp(120px, min(21vw, 34vh), 340px);
+  // Big numbers in chapters
+  --type-stat: clamp(52px, min(6.4vw, 11vh), 120px);
+  // Greeting, impact sentence, closing text
+  --type-lead: clamp(21px, min(2vw, 3.4vh), 34px);
+  // Body text in chapters
+  --type-body: clamp(17px, min(1.25vw, 2.3vh), 21px);
+
+  // Portrait screens (phones, tablets) are limited by their width, so let the type use more
+  // of it; the ceilings and the low-screen floors below still apply
+  @media (orientation: portrait) {
+    --type-display: clamp(44px, min(10.5vw, 11.5vh), 128px);
+    --type-title: clamp(34px, min(6.4vw, 7.4vh), 80px);
+    --type-number: clamp(120px, min(30vw, 34vh), 340px);
+    --type-stat: clamp(52px, min(9.5vw, 11vh), 120px);
+    --type-lead: clamp(21px, min(3.2vw, 3.4vh), 34px);
+    --type-body: clamp(17px, min(2.2vw, 2.3vh), 21px);
+  }
+
+  // Low screens (small phones, landscape): smaller floors so each slide still fits
+  @media (max-height: 700px) {
+    --type-title: clamp(28px, min(4.2vw, 7.4vh), 80px);
+    --type-number: clamp(88px, min(21vw, 34vh), 340px);
+    --type-stat: clamp(40px, min(6.4vw, 11vh), 120px);
+    --type-lead: clamp(18px, min(2vw, 3.4vh), 34px);
+    --type-body: 15px;
+  }
+
+  width: 100%;
+  overflow-x: clip;
+  color: var(--primary);
+  background: var(--secondary);
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    hyphens: manual;
+    overflow-wrap: break-word;
+    font-weight: 300;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+:global(html.gift-snap) {
+  scroll-snap-type: y mandatory;
+}
+
+// globals.css and Layout (an inline style) give body overflow hidden, which makes body its own
+// scroll container and keeps the slides from snapping to the page (the page itself scrolls on
+// <html>). .page clips sideways overflow instead. !important to win over the inline style.
+:global(html.gift-snap body) {
+  overflow: visible !important;
+}
+
+// The site footer after the last slide stays reachable
+:global(html.gift-snap #footer) {
+  scroll-snap-align: end;
+}
+
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  padding: clamp(1rem, 3vh, 2rem) $gutter;
+}
+
+.headerLogo {
+  display: block;
+  width: clamp(120px, 12vw, 170px);
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+.unavailable {
+  min-height: 80vh;
+  padding: 8rem $gutter 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+// ----- Type ----------------------------------------------------------------------------------
+
+.display {
+  font-size: var(--type-display);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.chapterTitle {
+  font-size: var(--type-title);
+  line-height: 1.08;
+  margin: 0.75rem 0 clamp(1rem, 3vh, 2rem);
+  max-width: 18ch;
+}
+
+.lead {
+  font-size: var(--type-lead);
+  line-height: 1.35;
+  margin: 0;
+  max-width: 30ch;
+}
+
+// ----- Slides ------------------------------------------------------------------------------
+
+.slide {
+  // The slide's own background, for things that must cover what is behind them
+  --slide-bg: var(--secondary);
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  // Native snapping, stopping at every slide (a flick never skips one)
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(3.5rem, 9vh, 6rem) $gutter clamp(2rem, 6vh, 4rem);
+
+  // The greeting takes focus from script after opening (tabindex -1); no ring around the slide
+  &:focus {
+    outline: none;
+  }
+  box-sizing: border-box;
+
+  &[data-dark="true"] {
+    --slide-bg: var(--primary);
+
+    background: var(--primary);
+    color: var(--secondary);
+  }
+}
+
+// Two columns on wide screens, centred on a shared max width; stacked below
+.split {
+  width: 100%;
+  max-width: $max;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 5vh, 3.5rem);
+  align-items: center;
+
+  @media (min-width: $wide) {
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(3rem, 6vw, 7rem);
+  }
+}
+
+.reveal > *,
+.reveal .split > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 450ms $ease-out,
+    transform 450ms $ease-out;
+}
+
+// A slide's picture doesn't fade in (that showed the white page behind it for a moment); it
+// is there when the slide arrives and only settles from a slight zoom
+.slide.reveal > .chapterImage {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.reveal[data-visible="true"] > *,
+.reveal[data-visible="true"] .split > * {
+  opacity: 1;
+  transform: none;
+
+  @for $i from 1 through 6 {
+    &:nth-child(#{$i}) {
+      transition-delay: #{($i - 1) * 70}ms;
+    }
+  }
+}
+
+// ----- Hero and envelope -------------------------------------------------------------------
+
+.hero {
+  align-items: center;
+  text-align: center;
+  padding-bottom: clamp(2rem, 6vh, 4rem);
+
+  :global(.detailheader) {
+    animation: rise 700ms $ease-out both;
+  }
+}
+
+.heroTitle {
+  max-width: 11ch;
+  margin: clamp(0.5rem, 2vh, 1rem) 0 0;
+  animation: rise 900ms 80ms $ease-out both;
+}
+
+// The giver's name under the heading: long names ("Teamet på jobben") never unbalance it
+.heroFrom {
+  max-width: 24ch;
+  margin: clamp(0.5rem, 1.5vh, 1rem) 0 0;
+  animation: rise 900ms 160ms $ease-out both;
+}
+
+// The envelope scales with the screen's height, and leaves room above it for the flap to open
+.envelope {
+  position: relative;
+  width: clamp(220px, min(62vw, 34vh * 1.5), 380px);
+  aspect-ratio: 3 / 2;
+  margin-top: clamp(5.5rem, 17vh, 10rem);
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  perspective: 900px;
+  animation:
+    rise 1000ms 150ms $ease-out both,
+    float 4s 1.2s ease-in-out infinite;
+
+  &:disabled {
+    cursor: default;
+    animation: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 8px;
+  }
+}
+
+// White with 1px black lines and the two lower folds; square corners
+.pocket {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--primary);
+  background:
+    linear-gradient(
+        to top right,
+        transparent calc(50% - 0.5px),
+        var(--primary) 50%,
+        transparent calc(50% + 0.5px)
+      )
+      left bottom / 50% 100% no-repeat,
+    linear-gradient(
+        to top left,
+        transparent calc(50% - 0.5px),
+        var(--primary) 50%,
+        transparent calc(50% + 0.5px)
+      )
+      right bottom / 50% 100% no-repeat,
+    var(--secondary);
+  z-index: 3;
+}
+
+.flap {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 58%;
+  background: var(--primary);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top center;
+  transition: transform 700ms $ease-out;
+  z-index: 4;
+}
+
+.seal {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  background: var(--secondary);
+  border: 1px solid var(--primary);
+  transform: rotate(45deg);
+  z-index: 5;
+  transition: opacity 250ms ease;
+}
+
+.letter {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 6%;
+  bottom: 6%;
+  background: var(--secondary);
+  border: 1px solid var(--primary);
+  padding: 12% 10%;
+  display: flex;
+  flex-direction: column;
+  gap: 12%;
+  z-index: 2;
+  transition: transform 900ms 350ms $ease-out;
+
+  span {
+    display: block;
+    height: 1px;
+    background: var(--primary);
+
+    &:last-child {
+      width: 50%;
+    }
+  }
+}
+
+.hero[data-opened="true"] {
+  .flap {
+    transform: rotateX(180deg);
+    z-index: 1;
+  }
+
+  .seal {
+    opacity: 0;
+  }
+
+  .letter {
+    transform: translateY(-60%);
+  }
+}
+
+.openButton {
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+  animation: rise 900ms 400ms $ease-out both;
+
+  // Keeps its space after opening, so the envelope doesn't jump
+  &[data-hidden="true"] {
+    visibility: hidden;
+  }
+}
+
+// ----- Confetti ----------------------------------------------------------------------------
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.piece {
+  position: absolute;
+  top: 65%;
+  background: var(--primary);
+  animation: burst 2.2s cubic-bezier(0.2, 0.7, 0.4, 1) both;
+
+  &:nth-child(3n) {
+    background: var(--secondary);
+    outline: 1px solid var(--primary);
+  }
+}
+
+@keyframes burst {
+  0% {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(calc(var(--drift) * 0.6), -40vh) rotate(calc(var(--rotate) * 0.5));
+  }
+  100% {
+    transform: translate(var(--drift), 20vh) rotate(var(--rotate));
+    opacity: 0;
+  }
+}
+
+// ----- Greeting card -----------------------------------------------------------------------
+
+.greeting {
+  align-items: center;
+}
+
+.card {
+  width: min(100%, 52rem);
+  box-sizing: border-box;
+  border: 1px solid var(--primary);
+  padding: clamp(1.75rem, min(5vw, 7vh), 4.5rem);
+}
+
+.cardTo {
+  font-size: var(--type-title);
+  line-height: 1.1;
+  margin: clamp(1rem, 3vh, 2rem) 0 clamp(1rem, 2.5vh, 1.75rem);
+}
+
+.cardMessage,
+.cardFrom {
+  font-size: var(--type-lead);
+  line-height: 1.4;
+}
+
+.cardMessage {
+  margin: 0 0 clamp(1rem, 2.5vh, 1.75rem);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.cardFrom {
+  margin: 0;
+}
+
+.scrollHint {
+  margin-top: clamp(1.5rem, 4vh, 3rem);
+  animation: nudge 2.4s 2.4s ease-in-out infinite;
+}
+
+// ----- Impact: the number, a unit chart and what it means ----------------------------------
+
+.counter {
+  display: flex;
+  align-items: baseline;
+  // The number and its unit on one line ("5 myggnett")
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  gap: 0 0.2em;
+  margin: 0.5rem 0 0;
+  font-size: var(--type-number);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+}
+
+.counterNumber {
+  font-variant-numeric: tabular-nums;
+}
+
+.counterUnit {
+  font-size: 0.3em;
+  letter-spacing: 0;
+}
+
+.chart {
+  border-top: 1px solid currentColor;
+  padding-top: 1.25rem;
+  margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
+
+  .statLabel {
+    margin-top: 0.75rem;
+    opacity: 0.8;
+  }
+}
+
+.squares {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+  max-width: 34rem;
+}
+
+.square {
+  aspect-ratio: 1;
+  background: currentColor;
+  transform: scale(0);
+
+  .impact[data-visible="true"] & {
+    animation: pop 450ms $ease-out both;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+// ----- Story chapters ----------------------------------------------------------------------
+
+.chapter:not(.withImage) .chapterText {
+  width: 100%;
+  max-width: $max;
+  margin: 0 auto;
+}
+
+// Picture on top on phones and tall tablets; half the screen side by side when wide
+.withImage {
+  padding: 0;
+  justify-content: flex-start;
+
+  @media (min-width: $wide) {
+    flex-direction: row;
+  }
+}
+
+.chapterImage {
+  position: relative;
+  flex: 0 0 34svh;
+  overflow: hidden;
+
+  @media (max-height: 700px) {
+    flex-basis: 24svh;
+  }
+
+  // Tall portrait screens (tablets) have room for more of the picture
+  @media (orientation: portrait) and (min-height: 1000px) {
+    flex-basis: 44svh;
+  }
+
+  @media (min-width: $wide) {
+    flex: 0 0 50%;
+  }
+
+  // A chart needs the room on narrow screens; the picture shows when there is space beside it
+  .withChart & {
+    @media (max-width: ($wide - 1px)) {
+      display: none;
+    }
+  }
+
+  img {
+    position: absolute;
+    inset: 0;
+    transition: transform 2000ms $ease-out;
+    transform: scale(1.12);
+  }
+
+  .chapter[data-visible="true"] & img {
+    transform: scale(1);
+  }
+}
+
+.chapterText {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.withImage .chapterText {
+  padding: clamp(1.25rem, 3.5vh, 2.5rem) $gutter clamp(2rem, 6vh, 4rem);
+
+  @media (min-width: $wide) {
+    flex: 0 0 50%;
+    align-self: center;
+    padding: clamp(3.5rem, 9vh, 6rem) clamp(2rem, 4.5vw, 5rem) clamp(2rem, 6vh, 4rem);
+  }
+}
+
+// With the picture hidden on narrow screens, the chart slide is centred like the others
+.withChart.withImage {
+  @media (max-width: ($wide - 1px)) {
+    padding-top: clamp(3.5rem, 9vh, 6rem);
+    justify-content: center;
+  }
+}
+
+.chapterBody {
+  margin: 0;
+  max-width: 38rem;
+  font-size: var(--type-body);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.stat {
+  margin: 0 0 clamp(1.25rem, 3.5vh, 2rem);
+  max-width: 34rem;
+
+  .statLabel {
+    margin-top: 0.75rem;
+  }
+}
+
+// Small text that must still read easily: what a big number counts, a chart's title. Never the
+// global caption size, which is 12px on some laptop widths; shorten the text instead of shrinking it.
+.statLabel,
+.chartTitle {
+  display: block;
+  font-size: var(--type-body);
+  line-height: 1.35;
+}
+
+.chartTitle {
+  margin-bottom: 1rem;
+}
+
+// Sources: a little smaller than body text, but never tiny
+.source {
+  display: block;
+  font-size: clamp(14px, min(1.05vw, 1.9vh), 16px);
+  line-height: 1.4;
+  opacity: 0.75;
+}
+
+.statValue {
+  display: block;
+  font-size: var(--type-stat);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  margin-bottom: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+// Draws from left to right, like an axis
+.statRule {
+  display: block;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1200ms 300ms $ease-out;
+
+  .stat[data-visible="true"] & {
+    transform: scaleX(1);
+  }
+}
+
+// ----- Bar chart ---------------------------------------------------------------------------
+
+.barChart {
+  margin: 0 0 clamp(1.25rem, 3.5vh, 2rem);
+  max-width: 40rem;
+
+  figcaption {
+    display: block;
+    margin-bottom: 1rem;
+  }
+}
+
+.bars {
+  display: grid;
+  grid-auto-flow: column;
+  // A few bars stay bar-shaped instead of filling the width
+  grid-auto-columns: minmax(0, 7rem);
+  gap: 4px;
+  height: clamp(110px, 24vh, 280px);
+  border-bottom: 1px solid currentColor;
+}
+
+// Bars in front of the axis lines
+.barColumn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.barTrack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+// What would have been: outlined and hatched, on top of the bar, growing in after it
+.barExtra {
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  border-bottom: none;
+  // Solid underneath, so the axis lines don't show through the stripes
+  background:
+    repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 7px), var(--slide-bg);
+}
+
+// Many bars (a series of years): thinner gaps, labels only where given
+.barChart:has(.barColumn:nth-child(13)) .bars {
+  gap: 2px;
+}
+
+// The chart, and its big numbers beside it on wide screens (below on narrow)
+.chartBody {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.withCallouts {
+  max-width: 64rem;
+
+  .chartBody {
+    @media (min-width: $wide) {
+      grid-template-columns: minmax(0, 1fr) minmax(10rem, 16rem);
+      align-items: start;
+    }
+  }
+}
+
+.callouts {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (max-width: ($wide - 1px)) {
+    flex-direction: row;
+    gap: 1.5rem;
+
+    > * {
+      flex: 1;
+    }
+  }
+
+  .statValue {
+    font-size: clamp(36px, min(4.2vw, 7vh), 72px);
+  }
+
+  .stat {
+    margin: 0;
+  }
+}
+
+.legendTop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  margin: 0 0 clamp(1rem, 3vh, 1.75rem);
+  font-size: clamp(16px, min(1.5vw, 2.6vh), 22px);
+  line-height: 1.3;
+
+  // Larger swatches, matching the larger text
+  .legendSwatch,
+  .legendSwatchHatched,
+  .legendSwatchEmpty {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.15em;
+    margin-right: 0.4em;
+  }
+
+  .legendSwatchHatched {
+    background: repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 5px);
+  }
+}
+
+.legendSwatchHatched {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  background: repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 4px);
+  margin-right: 0.25rem;
+}
+
+// A y-axis: thin lines across the bars, the values outside the chart's left edge
+.withAxis {
+  position: relative;
+}
+
+.tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid currentColor;
+  pointer-events: none;
+  // The line faint, the value not
+  border-top-color: color-mix(in srgb, currentColor 25%, transparent);
+
+  span {
+    position: absolute;
+    right: calc(100% + 0.6rem);
+    top: 0;
+    transform: translateY(-50%);
+    font-size: 13px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
+// On narrow screens there is no margin to hang the values in: inside, above each line
+@media (max-width: ($wide - 1px)) {
+  .tick span {
+    right: auto;
+    left: 0;
+    transform: translateY(-120%);
+  }
+}
+
+.barStack {
+  display: flex;
+  flex-direction: column;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 900ms $ease-out;
+
+  .barChart[data-visible="true"] & {
+    transform: scaleY(1);
+  }
+}
+
+.bar {
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+
+  &[data-highlight="true"] {
+    background: currentColor;
+  }
+}
+
+.barLabel {
+  position: relative;
+  top: 0.5rem;
+  height: 0;
+  font-size: clamp(12px, 1vw, 14px);
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin-top: clamp(1rem, 3vh, 2rem);
+  opacity: 0.8;
+}
+
+.legendSwatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  margin-right: 0.25rem;
+}
+
+// ----- Horizontal bars ---------------------------------------------------------------------
+
+.hbars {
+  display: grid;
+  gap: clamp(0.75rem, 2vh, 1.25rem);
+  max-width: 36rem;
+}
+
+.hbarRow {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hbarLabel {
+  font-size: var(--type-body);
+  line-height: 1.3;
+}
+
+.hbarTrack {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: clamp(2rem, 5vh, 3rem);
+}
+
+.hbar {
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 900ms $ease-out;
+
+  &[data-highlight="true"] {
+    background: currentColor;
+  }
+
+  .barChart[data-visible="true"] & {
+    transform: scaleX(1);
+  }
+}
+
+.hbarValue {
+  font-size: clamp(20px, 2.4vw, 32px);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+// ----- Organization and closing ------------------------------------------------------------
+
+.logo {
+  width: clamp(12rem, 34vh, 24rem);
+  margin-top: clamp(1rem, 3vh, 2rem);
+
+  // Upright and square logos are limited by height, wide ones by width
+  img {
+    max-height: clamp(7rem, 24vh, 13rem);
+    width: auto !important;
+    max-width: 100%;
+  }
+}
+
+// The question gets the wider column, and a size that keeps it to two lines there
+.closing .split {
+  @media (min-width: $wide) {
+    grid-template-columns: 1.25fr 1fr;
+  }
+}
+
+.closing .display {
+  font-size: min(var(--type-display), clamp(44px, 5.4vw, 112px));
+}
+
+.closing .lead {
+  margin-bottom: clamp(1.5rem, 4vh, 3rem);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 2.5rem;
+}
+
+.textLink {
+  color: inherit;
+  border-bottom: 1px solid currentColor;
+  text-decoration: none;
+}
+
+// ----- Shared keyframes --------------------------------------------------------------------
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .page *::before,
+  .page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .reveal > *,
+  .reveal .split > *,
+  .square,
+  .statRule,
+  .barStack,
+  .hbar {
+    opacity: 1;
+    transform: none;
+  }
+
+  .confetti {
+    display: none;
+  }
+}
+
+// ----- Chapters with a square chart, map or big number beside the text --------------------
+
+.chapterVisual {
+  min-width: 0;
+}
+
+.statLarge {
+  max-width: none;
+
+  .statValue {
+    font-size: clamp(64px, min(8vw, 15vh), 168px);
+    line-height: 0.95;
+    white-space: normal;
+  }
+}
+
+.statNumber {
+  white-space: nowrap;
+}
+
+// 100 squares, a share of which empty out
+.waffle {
+  margin: 0;
+}
+
+.waffleGrid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: clamp(3px, 0.5vw, 6px);
+  // Square, and never taller than the room a slide has
+  width: min(100%, 38vh, 34rem);
+}
+
+.waffleSquare {
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  background: currentColor;
+  transition: background 350ms ease;
+
+  .waffle[data-visible="true"] &[data-empty="true"] {
+    background: transparent;
+  }
+}
+
+.legendSwatchEmpty {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  margin-right: 0.25rem;
+}
+
+// The Africa map and the countries as they light up
+.storyMap {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  align-items: flex-end;
+}
+
+// A fixed size from the screen, not a share of the column (which has no width of its own)
+.storyMapSvg {
+  flex: 0 0 auto;
+  width: min(48vh, 62vw, 32rem);
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+.countryList {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  font-size: var(--type-body);
+  line-height: 1.6;
+
+  li {
+    opacity: 0;
+    transform: translateX(-8px);
+    transition:
+      opacity 300ms ease,
+      transform 300ms $ease-out;
+
+    &[data-shown="true"] {
+      opacity: 1;
+      transform: none;
+    }
+
+    // The country that just landed
+    &[data-current="true"] {
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+  }
+}
+
+// The map's countries draw in from north to south (--delay is set per country by StoryMap)
+.mapCountry {
+  opacity: 0;
+  transition: opacity 500ms ease var(--delay, 0ms);
+
+  .storyMap[data-visible="true"] & {
+    opacity: 1;
+  }
+}
+
+// A lit country lands into place from above, on top of its neighbours
+.mapOverlay {
+  pointer-events: none;
+}
+
+.mapLanding {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: land 700ms $ease-out both;
+}
+
+@keyframes land {
+  0% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// ----- The site menu after the story, before the footer (as on the 404 page) ---------------
+
+.menu {
+  scroll-snap-align: start;
+  max-width: $max;
+  margin: 0 auto;
+  padding: clamp(5rem, 14vh, 9rem) $gutter clamp(4rem, 10vh, 7rem);
+  box-sizing: border-box;
+}
+
+.menuLogo {
+  display: block;
+  width: clamp(170px, 18vw, 260px);
+  margin: 0 auto clamp(3rem, 8vh, 5rem);
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapCountry {
+    opacity: 1;
+  }
+
+  .countryList li {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,454 @@
+// The gift card widget and thank-you text. Inputs and buttons follow the fundraiser widget
+// (FundraiserWidget.module.scss): 1px primary borders, 8px radius, pill buttons.
+
+.widget,
+.receipt {
+  width: 100%;
+  max-width: 34rem;
+}
+
+// Above the footer (position: relative, later in the page): the step animation's fill keeps a
+// stacking context on each step, which would otherwise let the footer's line paint over the
+// open time dropdown
+.widget {
+  position: relative;
+  z-index: 1;
+}
+
+.receipt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: 2rem;
+  line-height: 1.25;
+  font-weight: 400;
+  margin: 0;
+}
+
+.pricelabel {
+  margin: 0.25rem 0 0 0;
+}
+
+.description {
+  margin: 1.5rem 0 2rem;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.nav {
+  display: grid;
+  grid-template-columns: 2rem 1fr 2rem;
+  align-items: center;
+  margin: 1.5rem 0 1.25rem;
+}
+
+.back {
+  transition: opacity 0.3s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--primary);
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    border: 1px solid var(--primary);
+    background: var(--secondary);
+    position: relative;
+    transition:
+      background-color 0.3s ease,
+      transform 0.3s ease;
+
+    &[aria-current="step"] {
+      transform: scale(1.25);
+    }
+
+    & + li {
+      margin-left: 2rem;
+
+      &::before {
+        content: "";
+        position: absolute;
+        right: calc(100% + 1px);
+        top: 50%;
+        width: 2rem;
+        height: 1px;
+        background: var(--primary);
+      }
+    }
+  }
+}
+
+.dot {
+  opacity: 1;
+}
+
+.dotactive {
+  background: var(--primary) !important;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.heading {
+  margin: 0 0 0.25rem;
+  font-weight: 500;
+}
+
+.label {
+  margin: 0.5rem 0 -0.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+
+  span {
+    font-size: 1rem;
+  }
+}
+
+// No spin buttons on number fields
+.field input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+.input,
+.field input,
+.textarea textarea {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  font-family: "ESKlarheitGrotesk", sans-serif;
+  font-size: 1rem;
+  background: var(--secondary);
+  color: var(--primary);
+  min-height: 2.75rem;
+}
+
+.textarea {
+  position: relative;
+
+  textarea {
+    min-height: 7rem;
+    resize: vertical;
+    display: block;
+    // Room for the character counter in the bottom right corner
+    padding-bottom: 2.25rem;
+  }
+}
+
+// The fundraiser's character counter, inside the greeting box
+.counter,
+.counterwarn {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.6rem;
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.counterwarn {
+  font-weight: 500;
+}
+
+.help {
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: -0.5rem 0 0;
+}
+
+.error {
+  color: var(--primary);
+  font-size: 0.9rem;
+  margin: -0.5rem 0 0;
+
+  &::before {
+    content: "⚠ ";
+  }
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.preset,
+.presetactive {
+  padding: 0.6rem 0.5rem;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--secondary);
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+
+  &:hover {
+    background: var(--primary);
+    color: var(--secondary);
+  }
+}
+
+.presetactive {
+  background: var(--primary);
+  color: var(--secondary);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--primary);
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.summary {
+  margin: 0;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.2rem 0;
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+
+  dd {
+    text-align: right;
+  }
+}
+
+.summarytext {
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--primary);
+  margin: 0.5rem 0;
+  width: 100%;
+}
+
+.checkbox {
+  font-size: 0.9rem;
+}
+
+.privacy {
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+
+  a {
+    border-bottom: 1px solid var(--primary);
+  }
+}
+
+.methods {
+  margin: 0.5rem 0;
+}
+
+.account {
+  margin: 0.5rem 0;
+
+  p {
+    margin: 0.4rem 0;
+  }
+}
+
+.link {
+  border-bottom: 1px solid var(--primary);
+}
+
+.button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 3.5rem;
+  background-color: var(--primary);
+  color: var(--secondary);
+  border: none;
+  border-radius: 999px;
+  padding: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  text-decoration: none;
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.8;
+  }
+}
+
+.spinner {
+  filter: invert(1);
+  width: 1rem;
+  height: 1rem;
+}
+
+@media only screen and (max-width: 1180px) {
+  .widget {
+    max-width: none;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  // Presets stack on narrow phones, as in the mobile wireframe
+  .presets {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .preset,
+  .presetactive {
+    text-align: left;
+    padding: 0.75rem;
+  }
+}
+
+// Step animation (AnimatedSteps.tsx): a quick crossfade, nothing clipped
+.steps {
+  position: relative;
+}
+
+// After the first interaction the panel eases to its new height (never on page load)
+// One duration and curve for the height, the step indicator and the incoming step, so they move
+// together
+$step-duration: 0.28s;
+$step-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+
+.stepsinteractive {
+  transition: height $step-duration $step-ease;
+}
+
+// The step indicator fades in where it ends up when the flow starts (nothing is pushed down)
+.headerenter {
+  animation: giftcard-fade-in $step-duration $step-ease both;
+}
+
+// Contains the children's margins, so measured heights are the heights they take up
+.flowroot {
+  display: flow-root;
+}
+
+// The step being left, on top of where it was, fading out
+.stepexit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  animation: giftcard-step-out 0.14s ease-out both;
+}
+
+.exitforward {
+  --giftcard-step-to: -8px;
+}
+
+.exitbackward {
+  --giftcard-step-to: 8px;
+}
+
+.enterforward,
+.enterbackward {
+  animation: giftcard-step-in $step-duration $step-ease both;
+}
+
+.enterforward {
+  --giftcard-step-from: 12px;
+}
+
+.enterbackward {
+  --giftcard-step-from: -12px;
+}
+
+@keyframes giftcard-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--giftcard-step-from));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes giftcard-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes giftcard-step-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(var(--giftcard-step-to));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepsinteractive,
+  .back,
+  .dots li {
+    transition: none;
+  }
+
+  .stepexit {
+    display: none;
+  }
+
+  .enterforward,
+  .enterbackward,
+  .headerenter {
+    animation: none;
+  }
+}

@@ -432,6 +432,8 @@ describe("tRPC widget payment procedures", () => {
 
     it("counts every widget mutation as one that may not be batched", () => {
       expect([...publicMutations].sort()).toStrictEqual([
+        "giftcard.register",
+        "giftcard.registerBankPending",
         "widget.draftAvtaleGiro",
         "widget.draftVippsAgreement",
         "widget.registerBankPending",

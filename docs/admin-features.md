@@ -30,6 +30,11 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   method, date, new donors only); a callout on the donor page for unpaid intents (a warning when
   it's the donor's first payment) and an Intents tab; intents on the KID page; a Home item for new
   donors waiting on a first bank/AvtaleGiro payment.
+- **Gift cards (gavekort)**: list under Money in with counts (waiting to send, sent, failed),
+  filters (status, delivery, product, search by recipient/buyer/sender/KID; phones masked); a
+  record panel with the greeting, the SMS text, the recipient page link, the buyer and the
+  donations on its KID; retry a failed SMS, reschedule or cancel one not sent yet
+  (`giftcards.*`, conditional on status so they never race the SMS sender).
 - **Registering money** (the most important ops flow):
   - Import a payment report per source: Vipps, bank OCR, bank (custom). Choose data
     owner. Result: inserted / ignored / sent to

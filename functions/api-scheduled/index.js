@@ -110,6 +110,14 @@ exports.default = async (req, res) => {
           throw new Error("Failed to process exchange rates");
         res.send("OK");
         break;
+      case "giftcardsms":
+        let giftcardsmsresponse = await fetch(
+          "https://data.gieffektivt.no/scheduled/giftcard-sms",
+          { method: "POST", headers: { authorization: "Bearer " + token } },
+        );
+        if (giftcardsmsresponse.status !== 200) throw new Error("Failed to send gift card SMS");
+        res.send("OK");
+        break;
       case "impactdiff":
         let impactdiffresponse = await fetch(
           "https://data.gieffektivt.no/scheduled/impact-compat-diff",

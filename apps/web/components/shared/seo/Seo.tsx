@@ -28,11 +28,6 @@ export const SEO: React.FC<SEOMeta> = ({
       name: "keywords",
       content: keywords,
     });
-  if (noIndex)
-    additionalMetaTags.push({
-      name: "robots",
-      content: "noindex, nofollow",
-    });
 
   return (
     <Head>
@@ -53,6 +48,9 @@ export const SEO: React.FC<SEOMeta> = ({
           cardType: "summary_large_image",
         },
         additionalMetaTags,
+        // next-seo writes the one robots tag (an extra robots meta tag would contradict it)
+        noindex: noIndex,
+        nofollow: noIndex,
       })}
     </Head>
   );

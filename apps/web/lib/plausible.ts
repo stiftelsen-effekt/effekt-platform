@@ -41,3 +41,16 @@ export const PLAUSIBLE_PROXY_PATHS = {
   scriptPath: "/js/script.js",
   apiPath: "/proxy/api/event",
 };
+
+/**
+ * A gift card recipient's page has the gift's secret code in its path (/gave/<code>). Plausible
+ * gets every such page as /gave/[code], so visits are counted together and codes never reach
+ * Plausible. Passed to plausible.init() as `transformRequest`, which next-plausible writes into an
+ * inline script: the function must be self-contained (no outside references).
+ */
+export function plausibleTransformRequest(payload: { u: string; r?: string | null }) {
+  const anonymise = (url: string) => url.replace(/\/gave\/[a-z]+(?=[/?#]|$)/g, "/gave/[code]");
+  payload.u = anonymise(payload.u);
+  if (payload.r) payload.r = anonymise(payload.r);
+  return payload;
+}
