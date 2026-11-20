@@ -1317,9 +1317,10 @@ async function add(
     [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID],
   );
 
-  // Every way a payment is registered ends here: a payment on a gift card's KID makes it paid
-  // (whether or not a receipt is sent), so its SMS can go out
-  await DAO.giftcards.markPaid(KID, new Date());
+  // Every way a payment is registered ends here: payments on a gift card's KID that add up to its
+  // amount make it paid (whether or not a receipt is sent), so its SMS can go out. On the
+  // transaction's connection, so a rolled back donation never pays a gift card
+  await DAO.giftcards.markPaid(KID, new Date(), transaction);
 
   publishEvent("donation:confirmed", {
     donationId: addDonationQuery.insertId,

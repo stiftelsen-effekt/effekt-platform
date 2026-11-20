@@ -404,7 +404,7 @@ router.post("/exchange-rates", authMiddleware.isAdmin, async (req, res, next) =>
 router.post("/giftcard-sms", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     const summary = await sendDueGiftcardSms();
-    if (summary.due > 0) await DAO.logging.add("GiftcardSms", summary);
+    if (summary.due > 0 || summary.stale > 0) await DAO.logging.add("GiftcardSms", summary);
     res.json(summary);
   } catch (ex) {
     next({ ex });

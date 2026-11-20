@@ -538,7 +538,8 @@ async function seedGiftcards(conn: mysql.Connection) {
       `INSERT INTO Giftcards
          (KID, Code, Product_ID, Units, Amount, Delivery, Recipient_name, Sender_name, Message,
           Recipient_phone, Send_at, Status, Paid_at, Sent_at, Send_attempts, Last_error, Created)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+         CONVERT_TZ(?, '+00:00', @@session.time_zone))`, // Created is DB clock (osloDays.ts)
       [
         KID,
         `dvgftcrdb${"bcdfghjkmn"[i]}`,

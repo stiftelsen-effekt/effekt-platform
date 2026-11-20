@@ -334,8 +334,10 @@ const getPageStaticProps = async (
       // The receipt links here; the PDF itself is a file in Sanity
       const url = await getGiftcardCertificateUrl(parseGiftcardCertificatePath(path)!);
       if (!url) {
+        // Checked again later: the PDF may be uploaded after someone first asked for it
         return {
           notFound: true,
+          revalidate,
         };
       }
       return {

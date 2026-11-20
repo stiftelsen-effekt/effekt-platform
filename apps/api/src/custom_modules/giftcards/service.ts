@@ -13,7 +13,7 @@ import {
   normalizeNorwegianMobile,
   renderGiftcardSms,
 } from "./text";
-import { getSmsProvider, type SmsProvider } from "./sms";
+import { getSmsProvider, SmsProviderError, type SmsProvider } from "./sms";
 
 const config = require("../../config.js");
 
@@ -23,6 +23,18 @@ export const SEND_AT_MAX_AHEAD_MS = 366 * 24 * 60 * 60 * 1000;
 
 /** Attempts before a gift card's SMS is given up (status failed, alerting is by admin list) */
 export const MAX_SEND_ATTEMPTS = 3;
+
+/**
+ * A gift card still "sending" this long after it was claimed was interrupted (the run crashed);
+ * far longer than one send can take (the provider times out after 15 s)
+ */
+export const STALE_SENDING_MINUTES = 30;
+
+const CODE_ATTEMPTS = 3;
+const isDuplicateCode = (ex: unknown) => {
+  const err = ex as { code?: string; message?: string } | null;
+  return err?.code === "ER_DUP_ENTRY" && /Giftcards_Code_key|\bCode\b/.test(err.message ?? "");
+};
 
 export type GiftcardRegistration =
   | {
@@ -93,19 +105,27 @@ export async function registerGiftcard(
 
   const result = await registerPendingDonation(body, {
     onNewKID: async (KID) => {
-      await DAO.giftcards.add({
-        KID,
-        code: generateGiftcardCode(),
-        productId: product.id,
-        units: input.units,
-        amount,
-        delivery: input.delivery,
-        recipientName: input.recipientName,
-        senderName: input.senderName,
-        message: input.message?.trim() || null,
-        recipientPhone,
-        sendAt,
-      });
+      for (let attempt = 1; ; attempt++) {
+        try {
+          await DAO.giftcards.add({
+            KID,
+            code: generateGiftcardCode(),
+            productId: product.id,
+            units: input.units,
+            amount,
+            delivery: input.delivery,
+            recipientName: input.recipientName,
+            senderName: input.senderName,
+            message: input.message?.trim() || null,
+            recipientPhone,
+            sendAt,
+          });
+          return;
+        } catch (ex) {
+          // A new random code on the (very unlikely) collision with an existing one
+          if (attempt >= CODE_ATTEMPTS || !isDuplicateCode(ex)) throw ex;
+        }
+      }
     },
   });
   if (!result.ok) return result;
@@ -149,7 +169,8 @@ export async function handleGiftcardDonation(
   now: Date = new Date(),
 ): Promise<boolean | number | null> {
   const giftcard = await DAO.giftcards.getByKID(donation.KID);
-  if (!giftcard) return null;
+  // A cancelled gift card sends no SMS, so its donation gets the standard receipt
+  if (!giftcard || giftcard.status === "cancelled") return null;
 
   // Normally already paid when the donation was added (DAO.donations.add); this is a no-op then
   await DAO.giftcards.markPaid(giftcard.KID, now);
@@ -201,33 +222,46 @@ export type SmsDispatchSummary = {
   sent: number;
   retrying: number;
   failed: number;
+  /** Failed with an unknown outcome (may have been sent): not retried automatically */
+  unknown: number;
   skipped: number;
+  /** Found interrupted mid-send by an earlier run and marked failed */
+  stale: number;
 };
 
 /**
  * Sends the SMS of every paid gift card whose send time has come (run every few minutes by Cloud
  * Scheduler through POST /scheduled/giftcard-sms). Each gift card is claimed first, so runs that
  * overlap never send the same one twice. After sending, the buyer gets an email that it went out.
+ *
+ * An SMS is only sent again after an error that means it certainly didn't go out (the provider
+ * refused it or wasn't reached). After a timeout or a lost connection it may have gone out, so
+ * the gift card is marked failed for an admin to check GatewayAPI and retry, rather than risk
+ * sending it twice. Gift cards a crashed run left "sending" are marked failed the same way.
  */
 export async function sendDueGiftcardSms(
   now: Date = new Date(),
   provider?: SmsProvider,
   limit = 200,
 ): Promise<SmsDispatchSummary> {
+  const stale = await DAO.giftcards.failStaleSending(STALE_SENDING_MINUTES);
+  if (stale > 0) console.error(`Gift cards: ${stale} interrupted while sending, marked failed`);
   const ids = await DAO.giftcards.getDueSmsIDs(now, limit);
   const summary: SmsDispatchSummary = {
     due: ids.length,
     sent: 0,
     retrying: 0,
     failed: 0,
+    unknown: 0,
     skipped: 0,
+    stale,
   };
   if (ids.length === 0) return summary;
   // Only now: without a provider (production before one is chosen) nothing is claimed
   provider ??= getSmsProvider();
 
   for (const id of ids) {
-    if (!(await DAO.giftcards.claimForSending(id))) {
+    if (!(await DAO.giftcards.claimForSending(id, now))) {
       summary.skipped++;
       continue;
     }
@@ -254,10 +288,20 @@ export async function sendDueGiftcardSms(
       await DAO.giftcards.markSent(id, providerId, new Date());
       summary.sent++;
     } catch (ex) {
-      const giveUp = giftcard.sendAttempts >= MAX_SEND_ATTEMPTS;
-      console.error(`Gift card ${id}: SMS failed (attempt ${giftcard.sendAttempts})`, ex);
-      await DAO.giftcards.markSendFailed(id, String((ex as Error)?.message ?? ex), giveUp);
-      if (giveUp) summary.failed++;
+      const message = String((ex as Error)?.message ?? ex);
+      const unknown = ex instanceof SmsProviderError && ex.outcome === "unknown";
+      const giveUp = unknown || giftcard.sendAttempts >= MAX_SEND_ATTEMPTS;
+      // The message only: provider errors carry no token and a masked number
+      console.error(
+        `Gift card ${id}: SMS failed (attempt ${giftcard.sendAttempts}${unknown ? ", may have been sent" : ""}): ${message}`,
+      );
+      await DAO.giftcards.markSendFailed(
+        id,
+        unknown ? `Outcome unknown, check GatewayAPI before retrying: ${message}` : message,
+        giveUp,
+      );
+      if (unknown) summary.unknown++;
+      else if (giveUp) summary.failed++;
       else summary.retrying++;
       continue;
     }

@@ -56,8 +56,19 @@ const DEMO_GIFTS: Record<string, GiftcardGift> = {
 export const DEMO_GIFT_CODES = Object.keys(DEMO_GIFTS);
 
 /**
- * The demo gift card with this code, outside production (Vercel previews and local development),
- * else null. `vercelEnv` is VERCEL_ENV: "production", "preview", or unset locally.
+ * The demo gift card with this code on Vercel previews and in local development, else null.
+ * `vercelEnv` is VERCEL_ENV ("production", "preview", "development", or unset off Vercel) and
+ * `nodeEnv` NODE_ENV. Allow-listed rather than "not production", so a production build run outside
+ * Vercel (VERCEL_ENV unset) never serves them either.
  */
-export const getDemoGift = (code: string, vercelEnv: string | undefined): GiftcardGift | null =>
-  vercelEnv === "production" ? null : (DEMO_GIFTS[code] ?? null);
+export const getDemoGift = (
+  code: string,
+  vercelEnv: string | undefined,
+  nodeEnv: string | undefined,
+): GiftcardGift | null => {
+  const demosAllowed =
+    vercelEnv === "preview" ||
+    vercelEnv === "development" ||
+    (vercelEnv === undefined && nodeEnv !== "production");
+  return demosAllowed && Object.hasOwn(DEMO_GIFTS, code) ? DEMO_GIFTS[code] : null;
+};

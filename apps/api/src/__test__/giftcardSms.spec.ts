@@ -72,6 +72,75 @@ describe("GatewayAPI SMS provider", () => {
     expect(err.message).not.toContain("secret-token");
   });
 
+  it("masks the recipient's number in an error body that echoes it", async () => {
+    const { impl } = fakeFetch(422, '{"message":"invalid recipient 4791234567"}');
+    const provider = createGatewayApiProvider({
+      token: "t",
+      sender: "GiEffektivt",
+      fetchImpl: impl,
+    });
+    const err = await provider.send("+4791234567", "Hei!").catch((e) => e);
+    expect(err.message).not.toContain("4791234567");
+    expect(err.message).toContain("4791****67");
+    expect(err.outcome).toBe("not_sent");
+  });
+
+  it("treats an accepted request with an unreadable body as sent", async () => {
+    const { impl } = fakeFetch(202, "<html>ok</html>");
+    const provider = createGatewayApiProvider({
+      token: "t",
+      sender: "GiEffektivt",
+      fetchImpl: impl,
+    });
+    await expect(provider.send("+4791234567", "Hei!")).resolves.toEqual({ id: null });
+  });
+
+  it("calls a timeout or lost connection an unknown outcome, and a refused connection not sent", async () => {
+    const failing = (err: unknown) =>
+      createGatewayApiProvider({
+        token: "t",
+        sender: "GiEffektivt",
+        fetchImpl: (async () => {
+          throw err;
+        }) as unknown as typeof fetch,
+      });
+    const timeout = new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    const reset = Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNRESET" } });
+    const refused = Object.assign(new TypeError("fetch failed"), {
+      cause: { code: "ECONNREFUSED" },
+    });
+    for (const [err, outcome] of [
+      [timeout, "unknown"],
+      [reset, "unknown"],
+      [refused, "not_sent"],
+    ] as const) {
+      const e = await failing(err)
+        .send("+4791234567", "Hei!")
+        .catch((x) => x);
+      expect(e).toBeInstanceOf(SmsProviderError);
+      expect(e.outcome, String(err)).toBe(outcome);
+    }
+  });
+
+  it("calls a gateway error an unknown outcome and a refusal not sent", async () => {
+    for (const [status, outcome] of [
+      [400, "not_sent"],
+      [429, "not_sent"],
+      [503, "not_sent"],
+      [500, "unknown"],
+      [504, "unknown"],
+    ] as const) {
+      const { impl } = fakeFetch(status, "{}");
+      const provider = createGatewayApiProvider({
+        token: "t",
+        sender: "GiEffektivt",
+        fetchImpl: impl,
+      });
+      const err = await provider.send("+4791234567", "Hei!").catch((e) => e);
+      expect(err.outcome, String(status)).toBe(outcome);
+    }
+  });
+
   it("refuses numbers that aren't E.164 without calling the API", async () => {
     const { impl, calls } = fakeFetch(200, "{}");
     const provider = createGatewayApiProvider({

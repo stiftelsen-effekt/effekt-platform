@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { SanityImageObject } from "@sanity/image-url";
 import type { GiftcardGift } from "@effekt/api/giftcard";
@@ -67,7 +67,6 @@ export type GiftPageProduct = {
   slug: string;
   description?: string | null;
   images?: Image[] | null;
-  productPage?: string | null;
   recipient?: {
     impact?: string | null;
     cta_heading?: string | null;
@@ -142,7 +141,7 @@ export const GiftPage: React.FC<{
     />
     <header className={styles.header}>
       <Link href="/" aria-label="Gi Effektivt" className={styles.headerLogo}>
-        <SiteLogo image={siteLogo} />
+        <SiteLogo image={siteLogo} priority />
       </Link>
     </header>
     {gift ? (
@@ -165,9 +164,18 @@ export const GiftPage: React.FC<{
 );
 
 /** The site's logo from the site settings; the bundled wordmark if there is none */
-const SiteLogo: React.FC<{ image?: SanityImageObject | null }> = ({ image }) =>
+const SiteLogo: React.FC<{ image?: SanityImageObject | null; priority?: boolean }> = ({
+  image,
+  priority,
+}) =>
   image?.asset ? (
-    <ResponsiveImage priority image={image} alt="Gi Effektivt." layout="responsive" sizes="260px" />
+    <ResponsiveImage
+      priority={priority}
+      image={image}
+      alt="Gi Effektivt."
+      layout="responsive"
+      sizes="260px"
+    />
   ) : (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={logo.src} alt="Gi Effektivt." />
@@ -206,11 +214,20 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
   }, [opened, noMotion]);
 
   const greetingRef = useRef<HTMLElement | null>(null);
+  const openTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(openTimer.current), []);
   const open = () => {
+    if (opened) return;
     setOpened(true);
-    // Let the envelope open before moving on to the greeting
-    window.setTimeout(
-      () => greetingRef.current?.scrollIntoView({ behavior: noMotion ? "auto" : "smooth" }),
+    // Let the envelope open before moving on to the greeting. Focus moves there too: the
+    // envelope button that had it is disabled now
+    openTimer.current = window.setTimeout(
+      () => {
+        const greeting = greetingRef.current;
+        if (!greeting) return;
+        greeting.scrollIntoView({ behavior: noMotion ? "auto" : "smooth" });
+        greeting.focus({ preventScroll: true });
+      },
       noMotion ? 0 : 1100,
     );
   };
@@ -248,7 +265,7 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
 
       {opened && (
         <>
-          <Slide className={styles.greeting} innerRef={greetingRef}>
+          <Slide className={styles.greeting} innerRef={greetingRef} focusable>
             <div className={styles.card}>
               <span className="detailheader">{formatGivenAt(gift.givenAt)}</span>
               <p className={styles.cardTo}>Kjære {gift.recipientName},</p>
@@ -268,7 +285,7 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
               key={chapter._key}
               chapter={chapter}
               // Alternate black and white; the map (black countries) always sits on white
-              dark={i % 2 === 1 && !chapter.map?.countries?.length}
+              dark={i % 2 === 1 && mapCountries(chapter.map?.countries).length === 0}
             />
           ))}
 
@@ -306,13 +323,30 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
   );
 };
 
+/** A map's country codes: trimmed, lower case as the map's ids, without blanks and duplicates (Sanity data) */
+const mapCountries = (countries?: string[] | null): string[] =>
+  Array.from(
+    new Set(
+      (countries ?? [])
+        .filter((c): c is string => typeof c === "string")
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+
+/** A bar's value from Sanity: a finite number, never below 0 */
+export const barValue = (n?: number | null): number =>
+  typeof n === "number" && Number.isFinite(n) ? Math.max(0, n) : 0;
+
 /** One full-screen slide that fades in when it is reached */
 const Slide: React.FC<{
   className?: string;
   dark?: boolean;
   innerRef?: React.MutableRefObject<HTMLElement | null>;
+  /** Can take focus from script (not by tabbing), e.g. the greeting after opening */
+  focusable?: boolean;
   children: React.ReactNode | ((visible: boolean) => React.ReactNode);
-}> = ({ className, dark, innerRef, children }) => {
+}> = ({ className, dark, innerRef, focusable, children }) => {
   const [revealRef, visible] = useReveal<HTMLElement>(0.15);
   const setRef = (el: HTMLElement | null) => {
     revealRef.current = el;
@@ -324,6 +358,7 @@ const Slide: React.FC<{
       className={`${styles.slide} ${styles.reveal} ${className ?? ""}`}
       data-visible={visible}
       data-dark={dark ?? false}
+      tabIndex={focusable ? -1 : undefined}
     >
       {typeof children === "function" ? children(visible) : children}
     </section>
@@ -387,7 +422,11 @@ const StoryChapter: React.FC<{
   const hasChart = !!chapter.chart?.bars?.length;
   // Without a picture, a square chart or map sits beside the text, or else a big number does:
   // two columns on wide screens, stacked on narrow ones
-  const visual = !hasImage && (chapter.waffle?.share != null || !!chapter.map?.countries?.length);
+  const hasWaffle = Number.isFinite(chapter.waffle?.share);
+  // Stable between renders: StoryMap restarts its timers when the list changes
+  const mapCodes = chapter.map?.countries;
+  const countries = useMemo(() => mapCountries(mapCodes), [mapCodes]);
+  const visual = !hasImage && (hasWaffle || countries.length > 0);
   const statBeside = !hasImage && !visual && !hasChart && !!chapter.stat?.value;
   // A small chart (no big numbers of its own) sits beside the text the same way
   const chartBeside = !hasImage && hasChart && !chapter.chart?.callouts?.length;
@@ -435,11 +474,11 @@ const StoryChapter: React.FC<{
             <div className={styles.split}>
               {visual ? (
                 <div className={styles.chapterVisual}>
-                  {chapter.waffle && <Waffle data={chapter.waffle} start={visible} />}
-                  {chapter.map?.countries && (
+                  {hasWaffle && <Waffle data={chapter.waffle!} start={visible} />}
+                  {countries.length > 0 && (
                     <StoryMap
-                      countries={chapter.map.countries}
-                      caption={chapter.map.caption}
+                      countries={countries}
+                      caption={chapter.map?.caption}
                       start={visible}
                     />
                   )}
@@ -537,8 +576,8 @@ const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start
 
 /** A few bars lying down, each growing from the left with its value counting up at its end */
 const HorizontalBars: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start }) => {
-  const bars = (chart.bars ?? []).filter((b) => typeof b.value === "number");
-  const max = Math.max(...bars.map((b) => b.value ?? 0), 1);
+  const bars = (chart.bars ?? []).filter((b) => Number.isFinite(b.value));
+  const max = Math.max(...bars.map((b) => barValue(b.value)), 1);
   return (
     <figure className={styles.barChart} data-visible={start}>
       {chart.title && <figcaption className="caption">{chart.title}</figcaption>}
@@ -551,11 +590,11 @@ const HorizontalBars: React.FC<{ chart: ChartData; start: boolean }> = ({ chart,
                 className={styles.hbar}
                 data-highlight={bar.highlight ?? false}
                 style={{
-                  width: `${((bar.value ?? 0) / max) * 100}%`,
+                  width: `${(barValue(bar.value) / max) * 100}%`,
                   transitionDelay: `${200 + i * 250}ms`,
                 }}
               />
-              <HBarValue value={bar.value ?? 0} start={start} />
+              <HBarValue value={barValue(bar.value)} start={start} />
             </div>
           </div>
         ))}
@@ -575,9 +614,9 @@ const HBarValue: React.FC<{ value: number; start: boolean }> = ({ value, start }
 };
 
 const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start }) => {
-  const bars = (chart.bars ?? []).filter((b) => typeof b.value === "number");
-  const max = Math.max(...bars.map((b) => (b.value ?? 0) + (b.extra ?? 0)), 1);
-  const stacked = bars.some((b) => (b.extra ?? 0) > 0);
+  const bars = (chart.bars ?? []).filter((b) => Number.isFinite(b.value));
+  const max = Math.max(...bars.map((b) => barValue(b.value) + barValue(b.extra)), 1);
+  const stacked = bars.some((b) => barValue(b.extra) > 0);
   const step = Math.min(70, 1200 / Math.max(bars.length, 1));
   const barsDone = 150 + bars.length * step + 900;
   const callouts = (chart.callouts ?? []).filter((c) => c.value);
@@ -589,6 +628,21 @@ const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, st
       data-visible={start}
     >
       {chart.title && <figcaption className="caption">{chart.title}</figcaption>}
+      {/* With bars stacked, what the hatched part means comes first, larger, before they grow */}
+      {stacked && (chart.highlight_label || chart.extra_label) && (
+        <div className={styles.legendTop}>
+          {chart.highlight_label && (
+            <span>
+              <span className={styles.legendSwatch} aria-hidden /> {chart.highlight_label}
+            </span>
+          )}
+          {chart.extra_label && (
+            <span>
+              <span className={styles.legendSwatchHatched} aria-hidden /> {chart.extra_label}
+            </span>
+          )}
+        </div>
+      )}
       <div className={styles.chartBody}>
         <div
           className={`${styles.bars} ${ticks.length ? styles.withAxis : ""}`}
@@ -608,17 +662,17 @@ const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, st
                 <div
                   className={styles.barStack}
                   style={{
-                    height: `${(((bar.value ?? 0) + (bar.extra ?? 0)) / max) * 100}%`,
+                    height: `${((barValue(bar.value) + barValue(bar.extra)) / max) * 100}%`,
                     transitionDelay: `${150 + i * step}ms`,
                   }}
                 >
-                  {(bar.extra ?? 0) > 0 && (
-                    <span className={styles.barExtra} style={{ flexGrow: bar.extra ?? 0 }} />
+                  {barValue(bar.extra) > 0 && (
+                    <span className={styles.barExtra} style={{ flexGrow: barValue(bar.extra) }} />
                   )}
                   <span
                     className={styles.bar}
                     data-highlight={bar.highlight ?? stacked}
-                    style={{ flexGrow: bar.value ?? 0 }}
+                    style={{ flexGrow: barValue(bar.value) }}
                   />
                 </div>
               </div>
@@ -634,14 +688,14 @@ const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, st
           </div>
         )}
       </div>
-      {(chart.highlight_label || chart.extra_label || chart.caption) && (
+      {((!stacked && (chart.highlight_label || chart.extra_label)) || chart.caption) && (
         <div className={styles.legend}>
-          {chart.highlight_label && (
+          {!stacked && chart.highlight_label && (
             <span className="caption">
               <span className={styles.legendSwatch} aria-hidden /> {chart.highlight_label}
             </span>
           )}
-          {chart.extra_label && (
+          {!stacked && chart.extra_label && (
             <span className="caption">
               <span className={styles.legendSwatchHatched} aria-hidden /> {chart.extra_label}
             </span>
@@ -655,11 +709,13 @@ const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, st
 
 /** Round values for a y-axis up to `max`: steps of 1, 2, 2.5 or 5 times a power of ten */
 export const axisTicks = (max: number, count = 4): number[] => {
+  if (!Number.isFinite(max) || max <= 0) return [];
   const raw = max / count;
   const power = Math.pow(10, Math.floor(Math.log10(raw)));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? raw;
   const ticks: number[] = [];
-  for (let t = step; t <= max; t += step) ticks.push(t);
+  // Multiplied, not added up, so 0.1 steps don't drift (0.30000000000000004)
+  for (let i = 1; i * step <= max * (1 + 1e-9); i++) ticks.push(Number((i * step).toPrecision(12)));
   return ticks;
 };
 

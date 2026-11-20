@@ -1,7 +1,7 @@
 /**
  * Gift card paths outside Sanity's pages. The gift card pages are generic pages with the
- * `giftcardwidget` block (and /gavekort/takk, where the API sends buyers back from Vipps, one with
- * the `giftcardthankyou` block). /gavekort/<slug>/gavebevis redirects to the product's self-fill
+ * `giftcardwidget` block (and /gavekort-mottatt, where the API sends buyers back from Vipps, one
+ * with the `giftcardreceipt` block). /gavekort/<slug>/gavebevis redirects to the product's self-fill
  * certificate PDF; the receipt e-mails link there.
  */
 export const GIFTCARD_PATH = "gavekort";

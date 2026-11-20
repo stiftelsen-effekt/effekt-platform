@@ -3,7 +3,7 @@ import { defineArrayMember, defineField, defineType } from "sanity";
 
 /**
  * A gift card product (gavekort): the texts, pictures and self-fill PDF of one product, shared
- * by the purchase block (giftcardwidget), the thank-you block (giftcardthankyou), the overview
+ * by the purchase block (giftcardwidget), the purchase details block (giftcardreceipt), the overview
  * cards (giftcarditem) and /gavekort/<slug>/gavebevis. The price per unit, the organization and
  * the SMS text are in the API's Giftcard_products, linked by the slug: the slug must be the
  * product's Slug there. Labels for e-mail, tax deduction, newsletter, privacy policy, payment
@@ -162,7 +162,14 @@ export default defineType({
           name: "preset_units",
           title: "Preset numbers of units",
           type: "array",
-          of: [{ type: "number" }],
+          description:
+            "Whole numbers within the product's minimum and maximum in the database (Giftcard_products)",
+          of: [
+            defineArrayMember({
+              type: "number",
+              validation: (Rule) => Rule.required().integer().positive(),
+            }),
+          ],
           initialValue: [5, 15, 30],
         }),
         defineField({
@@ -433,11 +440,17 @@ export default defineType({
                           name: "bar",
                           fields: [
                             defineField({ name: "label", title: "Label", type: "string" }),
-                            defineField({ name: "value", title: "Value", type: "number" }),
+                            defineField({
+                              name: "value",
+                              title: "Value",
+                              type: "number",
+                              validation: (Rule) => Rule.min(0),
+                            }),
                             defineField({
                               name: "extra",
                               title: "Extra on top (optional)",
                               type: "number",
+                              validation: (Rule) => Rule.min(0),
                               description:
                                 "Stacked on the bar, hatched, e.g. the extra deaths had there been no malaria control",
                             }),
@@ -520,7 +533,14 @@ export default defineType({
                       name: "countries",
                       title: "Countries",
                       type: "array",
-                      of: [{ type: "string" }],
+                      of: [
+                        {
+                          type: "string",
+                          validation: (Rule) =>
+                            Rule.regex(/^[a-z]{2}$/, { name: "two-letter country code" }),
+                        },
+                      ],
+                      validation: (Rule) => Rule.unique(),
                       description: "Two-letter country codes, e.g. ng, bf, td, tg, mz",
                     }),
                     defineField({ name: "caption", title: "Caption / source", type: "string" }),

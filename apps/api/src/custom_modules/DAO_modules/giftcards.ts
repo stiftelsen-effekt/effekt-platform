@@ -1,4 +1,5 @@
 import type { Giftcard_products, Giftcards } from "@prisma/client";
+import type { PoolConnection } from "mysql2/promise";
 import { DAO, type SqlResult } from "../DAO";
 import { dbClockColumn } from "../osloDays";
 
@@ -290,12 +291,20 @@ export const giftcards = {
     return rows.length > 0 ? mapGiftcard(rows[0]) : null;
   },
 
-  /** pending → paid. False when it was already paid (or cancelled): payment hooks run again */
-  markPaid: async function (KID: string, at: Date): Promise<boolean> {
-    const [res] = await DAO.query(
-      `UPDATE Giftcards SET Status = 'paid', Paid_at = ? WHERE KID = ? AND Status = 'pending'`,
-      [at, KID],
-    );
+  /**
+   * pending → paid once the donations on the KID add up to the gift card's amount, so a partial
+   * payment never sends the SMS. False when it isn't (yet) paid in full, or was already paid or
+   * cancelled: payment hooks run again. Pass the transaction a donation is being added in, so the
+   * gift card is only paid if that donation is committed.
+   */
+  markPaid: async function (KID: string, at: Date, transaction?: PoolConnection): Promise<boolean> {
+    const sql = `UPDATE Giftcards AS G SET G.Status = 'paid', G.Paid_at = ?
+       WHERE G.KID = ? AND G.Status = 'pending'
+         AND (SELECT COALESCE(SUM(Dn.sum_confirmed), 0) FROM Donations AS Dn
+              WHERE Dn.KID_fordeling = G.KID) >= G.Amount`;
+    const [res] = transaction
+      ? await transaction.query<any>(sql, [at, KID])
+      : await DAO.query(sql, [at, KID]);
     return res.affectedRows > 0;
   },
 
@@ -312,16 +321,34 @@ export const giftcards = {
   },
 
   /**
-   * paid → sending, counting the attempt. False when another run took it first: only the run
-   * that claims a gift card sends its SMS.
+   * paid → sending, counting the attempt, if it is still an SMS gift card due by `now` (an admin
+   * may have rescheduled it since it was listed). False when another run took it first: only the
+   * run that claims a gift card sends its SMS.
    */
-  claimForSending: async function (id: number): Promise<boolean> {
+  claimForSending: async function (id: number, now: Date): Promise<boolean> {
     const [res] = await DAO.query(
       `UPDATE Giftcards SET Status = 'sending', Send_attempts = Send_attempts + 1
-       WHERE ID = ? AND Status = 'paid'`,
-      [id],
+       WHERE ID = ? AND Status = 'paid' AND Delivery = 'sms' AND Send_at <= ?`,
+      [id, now],
     );
     return res.affectedRows > 0;
+  },
+
+  /**
+   * sending → failed for gift cards claimed more than `minutes` ago and never finished (the run
+   * crashed or was stopped mid-send). Whether the SMS went out is unknown, so they are not sent
+   * again automatically: an admin checks GatewayAPI and retries. Last_updated is DB clock, like
+   * NOW(). Returns how many.
+   */
+  failStaleSending: async function (minutes: number): Promise<number> {
+    const [res] = await DAO.query(
+      `UPDATE Giftcards
+       SET Status = 'failed',
+           Last_error = 'Interrupted while sending: check GatewayAPI before retrying'
+       WHERE Status = 'sending' AND Last_updated < NOW() - INTERVAL ? MINUTE`,
+      [minutes],
+    );
+    return res?.affectedRows ?? 0;
   },
 
   markSent: async function (id: number, providerId: string | null, at: Date): Promise<void> {

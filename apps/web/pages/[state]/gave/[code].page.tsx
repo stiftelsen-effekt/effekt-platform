@@ -22,13 +22,13 @@ import {
  */
 export default GiftPage;
 
+// Only what the page shows: of the product's pictures only the first (used without a story)
 const fetchProduct = groq`
 *[_type == "giftcardproduct" && slug.current == $slug && !(_id in path('drafts.**'))][0] {
   title,
   "slug": slug.current,
   description,
-  images[] { ..., asset-> { _id, url, metadata { lqip, dimensions { width, height } } } },
-  "productPage": page->slug.current,
+  images[0...1] { ..., asset-> { _id, url, metadata { lqip, dimensions { width, height } } } },
   recipient {
     impact,
     cta_heading,
@@ -77,10 +77,12 @@ export const getServerSideProps = async (
 
   // Personal data: never in a shared cache, and not kept by the browser for other visitors
   ctx.res.setHeader("Cache-Control", "private, no-store");
+  // Never indexed, also when the meta tags are missed (next-seo adds its own robots tag too)
+  ctx.res.setHeader("X-Robots-Tag", "noindex, nofollow");
 
   const [gift, appStaticProps, navbar] = await Promise.all([
     // On previews and locally, the demo codes show made-up gift cards (util/giftDemos.ts)
-    getDemoGift(code, process.env.VERCEL_ENV) ?? fetchGift(code),
+    getDemoGift(code, process.env.VERCEL_ENV, process.env.NODE_ENV) ?? fetchGift(code),
     getAppStaticProps({ draftMode: false, consentState, showGiveButton: false }),
     // The main menu, shown after the story instead of on top
     Navbar.getStaticProps({ dashboard: false, draftMode: false }),
@@ -94,11 +96,14 @@ export const getServerSideProps = async (
     return { props: { appStaticProps, gift: null, product: null, navigationItems, siteLogo } };
   }
 
-  // From the API, not the CDN: rendered per request anyway, and Studio edits show at once
+  // From the API, not the CDN: rendered per request anyway, and Studio edits show at once. If
+  // Sanity doesn't answer, the gift is still shown (with the default texts)
   const product = await getClient()
     .withConfig({ useCdn: false })
-    .fetch<GiftPageProduct | null>(fetchProduct, {
-      slug: gift.product,
+    .fetch<GiftPageProduct | null>(fetchProduct, { slug: gift.product })
+    .catch((err: unknown) => {
+      console.error("Gift card page: Sanity did not answer", err);
+      return null;
     });
   return { props: { appStaticProps, gift, product, navigationItems, siteLogo } };
 };

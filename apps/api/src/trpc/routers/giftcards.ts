@@ -105,9 +105,13 @@ export const giftcardsRouter = router({
       ...toApiRow(row),
       unit: product ? (row.units === 1 ? product.unitSingular : product.unitPlural) : null,
       smsText,
-      /** The recipient's page (shown once paid, never when cancelled) */
+      /** The recipient's page; null until paid and when cancelled, as the page shows nothing then */
       recipientUrl:
-        row.code && link ? (/^https?:\/\//.test(link) ? link : `https://${link}`) : null,
+        row.code && link && row.status !== "pending" && row.status !== "cancelled"
+          ? /^https?:\/\//.test(link)
+            ? link
+            : `https://${link}`
+          : null,
       donations: donations.map((d) => ({
         id: d.id,
         sum: String(d.sum),

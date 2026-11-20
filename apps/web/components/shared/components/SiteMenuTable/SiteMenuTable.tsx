@@ -18,7 +18,7 @@ export const SiteMenuTable: React.FC<{ navigationItems: NavigationItems }> = ({
     item._type === "navgroup"
       ? [
           { title: item.title },
-          ...item.items.map((subItem) => ({
+          ...(item.items ?? []).map((subItem) => ({
             title: subItem.title,
             slug: subItem.slug || "",
             type: subItem._type,

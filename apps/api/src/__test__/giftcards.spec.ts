@@ -11,11 +11,13 @@ import * as pending from "../custom_modules/pendingDonationRegistration";
 import {
   getGiftForRecipient,
   GIFT_PAGE_DAYS,
+  handleGiftcardDonation,
   MAX_SEND_ATTEMPTS,
   registerGiftcard,
   sendDueGiftcardSms,
 } from "../custom_modules/giftcards/service";
 import type { Giftcard, GiftcardProduct } from "../custom_modules/DAO_modules/giftcards";
+import { SmsProviderError } from "../custom_modules/giftcards/sms";
 import { giftcardRegisterInput, GIFTCARD_MESSAGE_MAX } from "../trpc/shared/giftcard";
 
 const product: GiftcardProduct = {
@@ -207,6 +209,29 @@ describe("registerGiftcard", () => {
     expect(add.mock.calls[0][0].sendAt).toEqual(now);
   });
 
+  it("draws a new code when the random one is taken", async () => {
+    const dup = Object.assign(
+      new Error("Duplicate entry 'x' for key 'Giftcards.Giftcards_Code_key'"),
+      {
+        code: "ER_DUP_ENTRY",
+      },
+    );
+    add.mockRejectedValueOnce(dup).mockResolvedValueOnce(2);
+    expect((await registerGiftcard(input(), now)).ok).toBe(true);
+    expect(add.mock.calls.length).toBe(2);
+    expect(add.mock.calls[0][0].code).not.toBe(add.mock.calls[1][0].code);
+  });
+
+  it("does not retry other insert errors", async () => {
+    add.mockRejectedValue(
+      Object.assign(new Error("Duplicate entry for key 'Giftcards_KID_key'"), {
+        code: "ER_DUP_ENTRY",
+      }),
+    );
+    await expect(registerGiftcard(input(), now)).rejects.toThrow(/KID/);
+    expect(add.mock.calls.length).toBe(1);
+  });
+
   it("stores no phone or send time for a PDF gift card", async () => {
     await registerGiftcard(input({ delivery: "pdf", recipientPhone: null, sendAt: null }), now);
     expect(add.mock.calls[0][0]).toMatchObject({ recipientPhone: null, sendAt: null });
@@ -221,6 +246,7 @@ describe("sendDueGiftcardSms", () => {
   beforeEach(() => {
     send = vi.fn().mockResolvedValue({ id: "msg-1" });
     vi.spyOn(DAO.giftcards, "getProductByID").mockResolvedValue(product);
+    vi.spyOn(DAO.giftcards, "failStaleSending").mockResolvedValue(0);
     vi.spyOn(DAO, "query").mockResolvedValue([[]] as any); // buyer lookup for the "sent" email
   });
   afterEach(() => vi.restoreAllMocks());
@@ -232,7 +258,16 @@ describe("sendDueGiftcardSms", () => {
     const markSent = vi.spyOn(DAO.giftcards, "markSent").mockResolvedValue();
 
     const summary = await sendDueGiftcardSms(now, provider());
-    expect(summary).toEqual({ due: 2, sent: 1, retrying: 0, failed: 0, skipped: 1 });
+    expect(summary).toEqual({
+      due: 2,
+      sent: 1,
+      retrying: 0,
+      failed: 0,
+      unknown: 0,
+      skipped: 1,
+      stale: 0,
+    });
+    expect((DAO.giftcards.claimForSending as Mock).mock.calls[0]).toEqual([10, now]);
     expect(send.mock.calls.length).toBe(1);
     expect(send.mock.calls[0][0]).toBe("+4791234567");
     expect(send.mock.calls[0][1]).toContain("Kjære Mia!");
@@ -257,9 +292,48 @@ describe("sendDueGiftcardSms", () => {
     expect(markFailed.mock.lastCall![2]).toBe(true);
   });
 
+  it("never retries an SMS that may have gone out", async () => {
+    vi.spyOn(DAO.giftcards, "getDueSmsIDs").mockResolvedValue([10]);
+    vi.spyOn(DAO.giftcards, "claimForSending").mockResolvedValue(true);
+    vi.spyOn(DAO.giftcards, "getByID").mockResolvedValue(giftcard({ sendAttempts: 1 }));
+    const markFailed = vi.spyOn(DAO.giftcards, "markSendFailed").mockResolvedValue();
+    send.mockRejectedValue(new SmsProviderError("GatewayAPI request failed", null, "unknown"));
+
+    const summary = await sendDueGiftcardSms(now, provider());
+    expect(summary).toMatchObject({ unknown: 1, retrying: 0, failed: 0 });
+    expect(markFailed.mock.lastCall![1]).toMatch(/^Outcome unknown/);
+    expect(markFailed.mock.lastCall![2]).toBe(true);
+  });
+
+  it("marks gift cards a crashed run left sending as failed, even when nothing is due", async () => {
+    (DAO.giftcards.failStaleSending as Mock).mockResolvedValue(2);
+    vi.spyOn(DAO.giftcards, "getDueSmsIDs").mockResolvedValue([]);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await sendDueGiftcardSms(now, provider())).toMatchObject({ due: 0, stale: 2 });
+  });
+
   it("does not need an SMS provider when nothing is due", async () => {
     vi.spyOn(DAO.giftcards, "getDueSmsIDs").mockResolvedValue([]);
     expect((await sendDueGiftcardSms(now)).due).toBe(0);
+  });
+});
+
+describe("handleGiftcardDonation", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("leaves a cancelled gift card's donation to the standard receipt", async () => {
+    vi.spyOn(DAO.giftcards, "getByKID").mockResolvedValue(giftcard({ status: "cancelled" }));
+    const markPaid = vi.spyOn(DAO.giftcards, "markPaid").mockResolvedValue(false);
+    const donation = {
+      id: 1,
+      KID: "12345678",
+      email: "buyer@example.com",
+      donor: "Ola",
+      sum: 300,
+      timestamp: new Date(),
+    };
+    expect(await handleGiftcardDonation(donation, null)).toBe(null);
+    expect(markPaid).not.toHaveBeenCalled();
   });
 });
 

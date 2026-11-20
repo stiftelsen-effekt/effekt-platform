@@ -35,16 +35,36 @@ const logProvider: SmsProvider = {
  */
 export const GATEWAYAPI_BASE_URL = "https://messaging.gatewayapi.eu";
 
-/** An error from the SMS provider. Never carries the API token. */
+/**
+ * An error from the SMS provider. Never carries the API token or the full phone number.
+ * `outcome` says whether the SMS may still have gone out:
+ * - "not_sent": the provider refused it or was never reached; sending again is safe
+ * - "unknown": the request may have been accepted (timeout, connection lost, gateway error);
+ *   sending again could send the SMS twice, so it is left for a person to check
+ */
 export class SmsProviderError extends Error {
   constructor(
     message: string,
     readonly statusCode: number | null,
+    readonly outcome: "not_sent" | "unknown" = "not_sent",
   ) {
     super(message);
     this.name = "SmsProviderError";
   }
 }
+
+/** Network errors raised before the request can have reached the provider */
+const NOT_CONNECTED_CODES = new Set([
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "UND_ERR_CONNECT_TIMEOUT",
+]);
+
+/** Responses after which the provider certainly did not take the message */
+const isDefiniteRefusal = (status: number) => status < 500 || status === 501 || status === 503;
 
 /**
  * GatewayAPI (https://gatewayapi.com/docs/message/overview/): POST JSON with
@@ -73,36 +93,54 @@ export function createGatewayApiProvider(opts: {
     name: "gatewayapi",
     async send(to, text, reference) {
       if (!/^\+\d{8,15}$/.test(to)) throw new SmsProviderError("Recipient is not E.164", null);
-      const res = await fetchImpl(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Token ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          sender,
-          message: text,
-          recipient: Number(to.slice(1)),
-          ...(reference ? { reference } : {}),
-        }),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-      const body = await res.text();
-      if (!res.ok) {
-        // The body names the offending field; it never echoes the token
+      // Provider messages may echo the number; logs and Last_error get it masked
+      const redact = (s: string) => s.split(to.slice(1)).join(maskPhone(to).slice(1));
+      let res: Response;
+      try {
+        res = await fetchImpl(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            sender,
+            message: text,
+            recipient: Number(to.slice(1)),
+            ...(reference ? { reference } : {}),
+          }),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+      } catch (ex) {
+        const err = ex as Error & { cause?: { code?: string } };
+        const code = err?.cause?.code ?? (err as { code?: string })?.code;
+        if (code && NOT_CONNECTED_CODES.has(code)) {
+          throw new SmsProviderError(`GatewayAPI not reached (${code})`, null, "not_sent");
+        }
+        // Timed out or lost the connection after sending: GatewayAPI may have accepted it
         throw new SmsProviderError(
-          `GatewayAPI responded ${res.status}: ${body.slice(0, 500)}`,
-          res.status,
+          `GatewayAPI request failed (${err?.name ?? "Error"}${code ? ` ${code}` : ""}), outcome unknown`,
+          null,
+          "unknown",
         );
       }
-      let parsed: { msg_id?: unknown };
-      try {
-        parsed = JSON.parse(body);
-      } catch {
-        throw new SmsProviderError(`GatewayAPI responded ${res.status} with non-JSON`, res.status);
+      if (!res.ok) {
+        // The body names the offending field; it never echoes the token
+        const body = await res.text().catch(() => "");
+        throw new SmsProviderError(
+          `GatewayAPI responded ${res.status}: ${redact(body).slice(0, 500)}`,
+          res.status,
+          isDefiniteRefusal(res.status) ? "not_sent" : "unknown",
+        );
       }
-      return { id: typeof parsed.msg_id === "string" ? parsed.msg_id : null };
+      // 2xx: accepted. An unreadable body must not make it look unsent (it would be sent again)
+      try {
+        const parsed = JSON.parse(await res.text()) as { msg_id?: unknown };
+        return { id: typeof parsed?.msg_id === "string" ? parsed.msg_id : null };
+      } catch {
+        return { id: null };
+      }
     },
   };
 }

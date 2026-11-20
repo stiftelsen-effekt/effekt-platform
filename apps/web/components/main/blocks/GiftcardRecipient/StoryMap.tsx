@@ -108,8 +108,9 @@ export const StoryMap: React.FC<{
     const overlay = svg?.querySelector(`.${styles.mapOverlay}`);
     if (!svg || !overlay) return;
     for (const id of countries.slice(0, lit)) {
-      if (overlay.querySelector(`[data-country="${id}"]`)) continue;
-      const source = svg.querySelector(`:scope > g > [id="${id}"]`);
+      // The codes come from Sanity: escaped, so an odd one can't break the selector
+      if (overlay.querySelector(`[data-country="${CSS.escape(id)}"]`)) continue;
+      const source = svg.querySelector(`:scope > g > [id="${CSS.escape(id)}"]`);
       if (!source) continue;
       const copy = source.cloneNode(true) as SVGElement;
       copy.removeAttribute("id");

@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/router";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
-import { publicTrpcFor, type RouterOutputs } from "../../../../lib/trpc/client";
+import {
+  isProcedureAvailable,
+  publicTrpcFor,
+  type RouterOutputs,
+} from "../../../../lib/trpc/client";
 import { giftcardCertificateHref } from "../../../../util/giftcardPaths";
 import { fillGiftcardText, formatKroner, formatOsloDateTime } from "./giftcardForm";
 import { giftcardSessionKey, type GiftcardReceiptDocument, type GiftcardSession } from "./types";
@@ -70,6 +74,8 @@ export const GiftcardPurchaseDetails: React.FC<{
 };
 
 const noSubscription = () => () => {};
+const STATUS_RETRIES = 5;
+const STATUS_RETRY_MS = 3000;
 const readSession = (kid: string | null): string | null => {
   if (!kid) return null;
   try {
@@ -108,15 +114,26 @@ export const GiftcardReceiptBlock: React.FC<{
 
   useEffect(() => {
     if (!kid || !session?.registrationToken) return;
+    if (!isProcedureAvailable(mainLocale, "giftcard.status")) return;
+    const registrationToken = session.registrationToken;
     let cancelled = false;
-    publicTrpcFor(mainLocale)
-      .giftcard.status.query({ KID: kid, registrationToken: session.registrationToken })
-      .then((s) => {
-        if (!cancelled) setStatus(s);
-      })
-      .catch((err) => console.warn("Could not load the gift card status", err));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Vipps's callback can arrive after the buyer is back: ask again a few times while pending
+    const load = (attempt: number) =>
+      publicTrpcFor(mainLocale)
+        .giftcard.status.query({ KID: kid, registrationToken })
+        .then((s) => {
+          if (cancelled) return;
+          setStatus(s);
+          if (s.status === "pending" && attempt < STATUS_RETRIES) {
+            timer = setTimeout(() => load(attempt + 1), STATUS_RETRY_MS);
+          }
+        })
+        .catch((err) => console.warn("Could not load the gift card status", err));
+    load(0);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [kid, session?.registrationToken, mainLocale]);
 

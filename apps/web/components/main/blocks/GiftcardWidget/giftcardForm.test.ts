@@ -9,7 +9,10 @@ import {
   defaultSendDate,
   fillGiftcardText,
   formatOsloDateTime,
+  giftcardErrorMessage,
   giftcardTotal,
+  GIFTCARD_ERROR_TEXT,
+  isGiftcardEmail,
   isNorwegianMobile,
   osloDateTimeToIso,
   presetLabel,
@@ -159,5 +162,51 @@ describe("calendar helpers", () => {
     expect(SEND_TIMES[0]).toBe("08:00");
     expect(SEND_TIMES).toContain("16:00");
     expect(SEND_TIMES.at(-1)).toBe("22:00");
+  });
+});
+
+describe("isGiftcardEmail", () => {
+  it("accepts what the API accepts", () => {
+    expect(isGiftcardEmail(" ola@example.no ")).toBe(true);
+  });
+  it("rejects what the API would refuse", () => {
+    expect(isGiftcardEmail("ola@example")).toBe(false);
+    expect(isGiftcardEmail("ola@example.n")).toBe(false);
+    expect(isGiftcardEmail("ola@@example.no")).toBe(false);
+  });
+});
+
+describe("giftcardErrorMessage", () => {
+  it("tells the buyer to wait when rate limited", () => {
+    expect(giftcardErrorMessage({ httpStatus: 429, message: "Too many requests" }).text).toMatch(
+      /Vent/,
+    );
+  });
+  it("maps the API's messages to a field", () => {
+    expect(giftcardErrorMessage({ httpStatus: 400, message: "Invalid phone number" })).toEqual({
+      text: "Skriv inn et norsk mobilnummer (8 siffer)",
+      field: "recipientPhone",
+    });
+    expect(giftcardErrorMessage({ httpStatus: 400, message: "Invalid send time" }).field).toBe(
+      "sendAt",
+    );
+    expect(giftcardErrorMessage({ httpStatus: 400, message: "Invalid ssn" }).field).toBe("ssn");
+  });
+  it("maps invalid input by its field errors, not the prettified message", () => {
+    const res = giftcardErrorMessage({
+      httpStatus: 400,
+      message: "✖ Invalid email address\n  → at donor.email",
+      fieldErrors: { donor: ["Invalid email address"] },
+    });
+    expect(res.field).toBe("email");
+    expect(res.text).not.toMatch(/✖/);
+  });
+  it("never shows the API's own wording for other errors", () => {
+    expect(giftcardErrorMessage({ httpStatus: 400, message: "Something internal" }).text).toBe(
+      GIFTCARD_ERROR_TEXT,
+    );
+    expect(giftcardErrorMessage({ httpStatus: 500, message: "Internal server error" }).text).toBe(
+      GIFTCARD_ERROR_TEXT,
+    );
   });
 });

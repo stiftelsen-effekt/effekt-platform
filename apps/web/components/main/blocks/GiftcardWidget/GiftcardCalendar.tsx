@@ -35,6 +35,11 @@ export const GiftcardCalendar: React.FC<{
 
   const allowed = (date: string) => date >= min && (!max || date <= max);
   const days = calendarDays(month);
+  // One day in the grid takes Tab: the selected one, or the first allowed one in a month the
+  // buyer has paged to (otherwise the grid can't be reached from the keyboard)
+  const tabStop = days.includes(value)
+    ? value
+    : days.find((d): d is string => d !== null && allowed(d));
   const shiftMonth = (by: number) => {
     const [y, m] = month.split("-").map(Number);
     const d = new Date(Date.UTC(y, m - 1 + by, 1));
@@ -56,7 +61,9 @@ export const GiftcardCalendar: React.FC<{
     };
     if (!(e.key in by)) return;
     e.preventDefault();
-    const next = addDays(value, by[e.key]);
+    const from =
+      e.target instanceof HTMLElement && e.target.dataset.date ? e.target.dataset.date : value;
+    const next = addDays(from, by[e.key]);
     if (!allowed(next)) return;
     focusAfterMove.current = true;
     onChange(next);
@@ -109,7 +116,8 @@ export const GiftcardCalendar: React.FC<{
                 year: "numeric",
                 timeZone: "UTC",
               })}
-              tabIndex={date === value ? 0 : -1}
+              tabIndex={date === tabStop ? 0 : -1}
+              data-date={date}
               disabled={!allowed(date)}
               onClick={() => onChange(date)}
               data-cy={`giftcard-day-${date}`}

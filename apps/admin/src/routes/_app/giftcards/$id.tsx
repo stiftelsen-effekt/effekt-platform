@@ -97,7 +97,17 @@ function GiftcardRecord({ giftcardId }: { giftcardId: number }) {
 
   const giftcard: Giftcard = query.data;
   const run = async (action: Promise<unknown>, message: string) => {
-    await action;
+    try {
+      await action;
+    } catch (error) {
+      // Its status changed meanwhile (e.g. the sender claimed it): show the new status. The
+      // refetch may take the action (and its dialog) away, so say why in a toast too.
+      if (errorCode(error) === "CONFLICT" || errorCode(error) === "NOT_FOUND") {
+        notify.error(error, error instanceof Error ? error.message : undefined);
+        await queryClient.invalidateQueries({ queryKey: trpc.giftcards.pathKey() });
+      }
+      throw error;
+    }
     await queryClient.invalidateQueries({ queryKey: trpc.giftcards.pathKey() });
     notify.success(message, `Gift card to ${giftcard.recipientName}`);
   };
@@ -203,7 +213,13 @@ function GiftcardRecord({ giftcardId }: { giftcardId: number }) {
       </PageSection>
       {giftcard.smsText && (
         <PageSection
-          title={giftcard.status === "sent" ? "SMS as sent" : "SMS as it will be sent"}
+          title={
+            giftcard.status === "sent"
+              ? "SMS as sent"
+              : giftcard.status === "cancelled"
+                ? "SMS (not sent: cancelled)"
+                : "SMS as it will be sent"
+          }
           description="From the product's current SMS template."
         >
           <pre className="max-w-md rounded-md border border-border bg-surface p-3 font-sans text-sm whitespace-pre-wrap">
@@ -227,7 +243,13 @@ function GiftcardRecord({ giftcardId }: { giftcardId: number }) {
             <span className="sr-only">(opens in a new tab)</span>
           </a>
         ) : (
-          <p className="text-muted-foreground">This gift card has no personal page.</p>
+          <p className="text-muted-foreground">
+            {giftcard.status === "pending"
+              ? "Not paid yet: the page shows the gift once it is."
+              : giftcard.status === "cancelled"
+                ? "Cancelled: the page doesn't show the gift."
+                : "This gift card has no personal page."}
+          </p>
         )}
       </PageSection>
       <PageSection title="Donations on this KID">

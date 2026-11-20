@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { z } from "zod";
 import { GIFTCARD_MESSAGE_MAX, giftcardMessageLength } from "@effekt/api/giftcard";
 
 /**
@@ -29,6 +30,10 @@ export const clampMessage = (message: string, max = GIFTCARD_MESSAGE_MAX): strin
 /** The same rule as the API: 8 digits starting with 4 or 9, optionally +47 or 0047 first */
 export const isNorwegianMobile = (phone: string): boolean =>
   /^(?:\+47|0047)?[49]\d{7}$/.test(phone.replace(/[\s\-().]/g, ""));
+
+/** The API's rule for the buyer's e-mail (z.email in giftcardRegisterInput) */
+export const isGiftcardEmail = (email: string): boolean =>
+  z.email().max(320).safeParse(email.trim()).success;
 
 /** "2026-12-24" and "16:00" in Oslo time as an ISO instant with offset, or null if invalid */
 export const osloDateTimeToIso = (date: string, time: string): string | null => {
@@ -155,4 +160,50 @@ export const validateStep = (
     if (!isSendTimeAhead(iso, now)) errors.sendAt = "Velg et tidspunkt fram i tid";
   }
   return errors;
+};
+
+export const GIFTCARD_ERROR_TEXT =
+  "Noe gikk galt. Prøv igjen, eller kontakt oss om det skjer igjen.";
+
+/** What a failed giftcard.register says (TRPCClientError: message and data) */
+export type GiftcardApiError = {
+  message?: string | null;
+  httpStatus?: number | null;
+  fieldErrors?: Record<string, string[] | undefined> | null;
+};
+
+/**
+ * The buyer's text for a failed registration, and the step to send them back to when a field
+ * there is the problem. The API's messages are English (custom_modules/giftcards/service.ts,
+ * pendingDonationRegistration.ts, and z.prettifyError for invalid input), so known ones get a
+ * Norwegian text; unknown ones the general text rather than the API's wording.
+ */
+export const giftcardErrorMessage = (
+  err: GiftcardApiError,
+): {
+  text: string;
+  field?: "units" | "recipientPhone" | "sendAt" | "message" | "email" | "ssn";
+} => {
+  if (err.httpStatus === 429) {
+    return { text: "Du har prøvd mange ganger på kort tid. Vent noen minutter og prøv igjen." };
+  }
+  if (err.httpStatus !== 400) return { text: GIFTCARD_ERROR_TEXT };
+  const message = err.message ?? "";
+  const fields = err.fieldErrors ?? {};
+  if (message === "Unknown gift card" || fields.product) {
+    return { text: "Dette gavekortet er ikke tilgjengelig akkurat nå." };
+  }
+  if (message === "Invalid number of units" || fields.units) {
+    return { text: "Velg et annet antall.", field: "units" };
+  }
+  if (message === "Invalid phone number" || fields.recipientPhone) {
+    return { text: "Skriv inn et norsk mobilnummer (8 siffer)", field: "recipientPhone" };
+  }
+  if (message === "Invalid send time" || fields.sendAt) {
+    return { text: "Velg et tidspunkt fram i tid", field: "sendAt" };
+  }
+  if (fields.message) return { text: "Hilsenen er for lang", field: "message" };
+  if (message === "Invalid ssn") return { text: "Ugyldig fødselsnummer", field: "ssn" };
+  if (fields.donor) return { text: "Skriv inn e-postadressen din", field: "email" };
+  return { text: GIFTCARD_ERROR_TEXT };
 };

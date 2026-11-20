@@ -174,6 +174,20 @@ describe("tRPC giftcards router (admin)", () => {
     ]);
   });
 
+  it("has no recipient page link while not paid or when cancelled", async () => {
+    vi.spyOn(DAO.giftcards, "getProductBySlug").mockResolvedValue(product);
+    vi.spyOn(DAO.donations, "getAllByKID").mockResolvedValue([]);
+    const getByID = vi.spyOn(DAO.giftcards, "getAdminByID");
+    for (const status of ["pending", "cancelled"] as const) {
+      getByID.mockResolvedValueOnce({ ...row, status });
+      expect((await admin().get({ id: 3 })).recipientUrl).toBeNull();
+    }
+    for (const status of ["paid", "sending", "sent"] as const) {
+      getByID.mockResolvedValueOnce({ ...row, status });
+      expect((await admin().get({ id: 3 })).recipientUrl).toMatch(/\/gave\/kxbmtrwpzd$/);
+    }
+  });
+
   it("has no SMS text for a PDF gift card, and NOT_FOUND for an unknown id", async () => {
     vi.spyOn(DAO.giftcards, "getAdminByID")
       .mockResolvedValueOnce({ ...row, delivery: "pdf", recipientPhone: null, sendAt: null })

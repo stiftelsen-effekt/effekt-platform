@@ -62,10 +62,14 @@ export function GiftcardActions({
             giftcard.delivery === "sms"
               ? "The SMS is never sent, and the recipient's page stops showing the gift."
               : "The recipient's page stops showing the gift.",
-            <>
-              The donation of <Money value={giftcard.amount} className="font-semibold" /> is kept;
-              refund it separately if the buyer asks.
-            </>,
+            giftcard.status === "pending" ? (
+              "No payment has come in. If it does, the donation is kept, but the gift card stays cancelled."
+            ) : (
+              <>
+                The donation of <Money value={giftcard.amount} className="font-semibold" /> is kept;
+                refund it separately if the buyer asks.
+              </>
+            ),
             "This can't be undone here.",
           ]}
           confirmLabel="Cancel gift card"

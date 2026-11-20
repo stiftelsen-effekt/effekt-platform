@@ -21,7 +21,8 @@ export const Waffle: React.FC<{
   };
   start: boolean;
 }> = ({ data, start }) => {
-  const share = Math.max(0, Math.min(100, Math.round(data.share ?? 0)));
+  const raw = Math.round(data.share ?? 0);
+  const share = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
   const emptied = new Map(order.slice(0, share).map((square, rank) => [square, rank]));
   return (
     <figure className={styles.waffle} data-visible={start}>

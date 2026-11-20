@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { TRPCClientError } from "@trpc/client";
 import { validateOrg, validateSsn } from "@ssfbank/norwegian-id-validators";
 import { GIFTCARD_MESSAGE_MAX, GIFTCARD_METHODS } from "@effekt/api/giftcard";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
-import { publicTrpcFor, type RouterOutputs } from "../../../../lib/trpc/client";
+import {
+  isProcedureAvailable,
+  publicTrpcFor,
+  type RouterOutputs,
+} from "../../../../lib/trpc/client";
 import { EffektCheckbox } from "../../../shared/components/EffektCheckbox/EffektCheckbox";
 import CharacterCountCircle from "../../../shared/components/CharacterCountCircle/CharacterCountCircle";
 import { RadioButtonGroup } from "../../../shared/components/RadioButton/RadioButtonGroup";
@@ -19,7 +23,11 @@ import {
   fillGiftcardText,
   formatKroner,
   formatOsloDateTime,
+  GIFTCARD_ERROR_TEXT,
+  giftcardErrorMessage,
   giftcardTotal,
+  isGiftcardEmail,
+  isSendTimeAhead,
   lastSendDate,
   osloDateTimeToIso,
   osloToday,
@@ -38,8 +46,6 @@ import { EffektSelect } from "../../../shared/components/EffektSelect/EffektSele
 type Product = RouterOutputs["giftcard"]["products"][number];
 type Step = "product" | "amount" | "message" | "delivery" | "summary" | "bank";
 
-const ERROR_TEXT = "Noe gikk galt. Prøv igjen, eller kontakt oss om det skjer igjen.";
-
 /**
  * Buying a gift card (gavekort): choose SMS or PDF, number of units, greeting, (for SMS) the
  * recipient's phone and when it is sent, then e-mail, tax deduction and payment. The price per
@@ -48,6 +54,7 @@ const ERROR_TEXT = "Noe gikk galt. Prøv igjen, eller kontakt oss om det skjer i
 export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ product: page }) => {
   const mainLocale = useMainLocale();
   const trpc = publicTrpcFor(mainLocale);
+  const uid = useId();
   const slug = page.slug?.current ?? "";
 
   const allowSms = page.delivery?.allow_sms !== false;
@@ -66,6 +73,11 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
   const [startPending, setStartPending] = useState(false);
   useEffect(() => {
+    // The Danish site's backend has no gift cards: show "not available" without asking it
+    if (!isProcedureAvailable(mainLocale, "giftcard.products")) {
+      setProduct(null);
+      return;
+    }
     let cancelled = false;
     trpc.giftcard.products
       .query()
@@ -79,7 +91,7 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
     return () => {
       cancelled = true;
     };
-  }, [trpc, slug]);
+  }, [trpc, slug, mainLocale]);
 
   const [form, setForm] = useState<GiftcardFormState>(() => ({
     delivery: initialDelivery,
@@ -145,7 +157,7 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
     panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
   const index = steps.indexOf(step);
-  const back = () => index > 0 && step !== "bank" && goTo(steps[index - 1]);
+  const back = () => index > 0 && step !== "bank" && !submitting && goTo(steps[index - 1]);
   const next = () => {
     if (step === "amount" || step === "message" || step === "delivery") {
       const problems = validateStep(step, form, {
@@ -177,7 +189,7 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
   const submit = async () => {
     if (inFlight.current || !product) return;
     const problems: Record<string, string> = {};
-    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) problems.email = "Skriv inn e-postadressen din";
+    if (!isGiftcardEmail(form.email)) problems.email = "Skriv inn e-postadressen din";
     if (pay?.privacy_policy?.require_checkbox && !privacyAccepted) {
       problems.privacy =
         pay.privacy_policy.required_error_text || "Du må godta personvernerklæringen";
@@ -192,6 +204,12 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
     }
     if (Object.keys(problems).length > 0) {
       setErrors(problems);
+      return;
+    }
+    // The send time was checked on the delivery step, but the buyer may have lingered since
+    if (form.delivery === "sms" && !isSendTimeAhead(sendAtIso)) {
+      goTo("delivery");
+      setErrors({ sendAt: "Velg et tidspunkt fram i tid" });
       return;
     }
 
@@ -229,7 +247,9 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
         // Private mode: the thank-you page then shows its general text
       }
 
-      if (form.method === "vipps" && result.paymentProviderUrl) {
+      if (form.method === "vipps") {
+        // Without a Vipps link there is no way to pay; never show bank details for it instead
+        if (!result.paymentProviderUrl) throw new Error("No Vipps payment link");
         // nosemgrep: javascript.browser.security.open-redirect-from-function.js-open-redirect-from-function -- the Vipps URL comes from our API
         window.location.href = result.paymentProviderUrl;
         return;
@@ -248,11 +268,32 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
       console.error(err);
       inFlight.current = false;
       setSubmitting(false);
-      setSubmitError(
-        err instanceof TRPCClientError && err.data?.httpStatus === 400
-          ? `Kunne ikke registrere gavekortet: ${err.message}`
-          : ERROR_TEXT,
-      );
+      const { text, field } =
+        err instanceof TRPCClientError
+          ? giftcardErrorMessage({
+              message: err.message,
+              httpStatus: err.data?.httpStatus,
+              fieldErrors: err.data?.fieldErrors,
+            })
+          : { text: GIFTCARD_ERROR_TEXT };
+      // A field on an earlier step: back there with the error next to the field
+      const fieldStep: Partial<Record<string, Step>> = {
+        units: "amount",
+        message: "message",
+        recipientPhone: "delivery",
+        sendAt: "delivery",
+      };
+      const back = field ? fieldStep[field] : undefined;
+      if (field && back && steps.includes(back)) {
+        goTo(back);
+        setErrors({ [field]: text });
+      } else if (field === "email" || field === "ssn") {
+        setErrors({
+          [field]: field === "ssn" ? pay?.tax_deduction?.ssn_invalid_error_text || text : text,
+        });
+      } else {
+        setSubmitError(text);
+      }
     }
   };
 
@@ -378,10 +419,16 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
                   const value = parseInt(e.target.value, 10);
                   update("units", Number.isNaN(value) ? null : value);
                 }}
+                aria-invalid={errors.units ? true : undefined}
+                aria-describedby={errors.units ? `${uid}-units` : undefined}
                 data-cy="giftcard-units-input"
               />
             </label>
-            {errors.units && <p className={styles.error}>{errors.units}</p>}
+            {errors.units && (
+              <p className={styles.error} id={`${uid}-units`} role="alert">
+                {errors.units}
+              </p>
+            )}
             <div className={styles.total} data-cy="giftcard-total">
               <span>{page.amount_step?.total_label || "Totalt"}</span>
               <span>{formatKroner(total)}</span>
@@ -412,9 +459,15 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
               aria-label={page.message_step?.recipient_name_label || "Navn på mottaker"}
               value={form.recipientName}
               onChange={(e) => update("recipientName", e.target.value)}
+              aria-invalid={errors.recipientName ? true : undefined}
+              aria-describedby={errors.recipientName ? `${uid}-recipientName` : undefined}
               data-cy="giftcard-recipient-name"
             />
-            {errors.recipientName && <p className={styles.error}>{errors.recipientName}</p>}
+            {errors.recipientName && (
+              <p className={styles.error} id={`${uid}-recipientName`} role="alert">
+                {errors.recipientName}
+              </p>
+            )}
             <div className={styles.textarea}>
               <textarea
                 rows={5}
@@ -422,6 +475,8 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
                 aria-label={page.message_step?.message_label || "En personlig hilsen (valgfritt)"}
                 value={form.message}
                 onChange={(e) => update("message", clampMessage(e.target.value))}
+                aria-invalid={errors.message ? true : undefined}
+                aria-describedby={errors.message ? `${uid}-message` : undefined}
                 data-cy="giftcard-message"
               />
               <div
@@ -433,7 +488,11 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
                 )}
               </div>
             </div>
-            {errors.message && <p className={styles.error}>{errors.message}</p>}
+            {errors.message && (
+              <p className={styles.error} id={`${uid}-message`} role="alert">
+                {errors.message}
+              </p>
+            )}
             <input
               className={styles.input}
               type="text"
@@ -442,9 +501,15 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
               aria-label={page.message_step?.sender_name_label || "Navn på avsender"}
               value={form.senderName}
               onChange={(e) => update("senderName", e.target.value)}
+              aria-invalid={errors.senderName ? true : undefined}
+              aria-describedby={errors.senderName ? `${uid}-senderName` : undefined}
               data-cy="giftcard-sender-name"
             />
-            {errors.senderName && <p className={styles.error}>{errors.senderName}</p>}
+            {errors.senderName && (
+              <p className={styles.error} id={`${uid}-senderName`} role="alert">
+                {errors.senderName}
+              </p>
+            )}
             <button type="submit" className={styles.button} data-cy="giftcard-next">
               {page.next_button_text || "Neste"}
             </button>
@@ -469,12 +534,18 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
               aria-label={page.delivery_step?.phone_label || "Mottakers telefonnummer"}
               value={form.recipientPhone}
               onChange={(e) => update("recipientPhone", e.target.value)}
+              aria-invalid={errors.recipientPhone ? true : undefined}
+              aria-describedby={errors.recipientPhone ? `${uid}-recipientPhone` : undefined}
               data-cy="giftcard-phone"
             />
             {page.delivery_step?.phone_help && (
               <p className={styles.help}>{page.delivery_step.phone_help}</p>
             )}
-            {errors.recipientPhone && <p className={styles.error}>{errors.recipientPhone}</p>}
+            {errors.recipientPhone && (
+              <p className={styles.error} id={`${uid}-recipientPhone`} role="alert">
+                {errors.recipientPhone}
+              </p>
+            )}
             <p className={styles.label}>
               {page.delivery_step?.when_label || "Når skal SMS-en leveres?"}
             </p>
@@ -493,7 +564,11 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
               options={SEND_TIMES.map((t) => ({ value: t, label: t }))}
               dataCy="giftcard-time"
             />
-            {errors.sendAt && <p className={styles.error}>{errors.sendAt}</p>}
+            {errors.sendAt && (
+              <p className={styles.error} id={`${uid}-sendAt`} role="alert">
+                {errors.sendAt}
+              </p>
+            )}
             <button type="submit" className={styles.button} data-cy="giftcard-next">
               {page.next_button_text || "Neste"}
             </button>
@@ -573,9 +648,15 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
                   aria-label={pay?.tax_deduction?.ssn_label || "Fødselsnummer"}
                   value={form.ssn}
                   onChange={(e) => update("ssn", e.target.value)}
+                  aria-invalid={errors.ssn ? true : undefined}
+                  aria-describedby={errors.ssn ? `${uid}-ssn` : undefined}
                   data-cy="giftcard-ssn"
                 />
-                {errors.ssn && <p className={styles.error}>{errors.ssn}</p>}
+                {errors.ssn && (
+                  <p className={styles.error} id={`${uid}-ssn`} role="alert">
+                    {errors.ssn}
+                  </p>
+                )}
                 <input
                   className={styles.input}
                   type="text"
@@ -596,9 +677,15 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
               aria-label={pay?.email_label || "E-post"}
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
+              aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? `${uid}-email` : undefined}
               data-cy="giftcard-email"
             />
-            {errors.email && <p className={styles.error}>{errors.email}</p>}
+            {errors.email && (
+              <p className={styles.error} id={`${uid}-email`} role="alert">
+                {errors.email}
+              </p>
+            )}
 
             {pay?.privacy_policy && (
               <PrivacyPolicy
@@ -737,7 +824,11 @@ const PrivacyPolicy: React.FC<{
             </>
           </EffektCheckbox>
         </div>
-        {error && <p className={styles.error}>{error}</p>}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
       </>
     );
   }
