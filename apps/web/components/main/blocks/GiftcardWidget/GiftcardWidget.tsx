@@ -258,6 +258,12 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
 
   const flowSteps: Step[] = steps.filter((s) => s !== "product" && s !== "bank");
   const flowIndex = flowSteps.indexOf(step);
+  // While the indicator closes (back to the start) it keeps showing the step it was on
+  const [shownFlowIndex, setShownFlowIndex] = useState(0);
+  useEffect(() => {
+    if (flowIndex >= 0) setShownFlowIndex(flowIndex);
+  }, [flowIndex]);
+  const dotIndex = flowIndex >= 0 ? flowIndex : shownFlowIndex;
   const messageCount = countMessage(form.message);
 
   return (
@@ -268,34 +274,30 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
       <AnimatedSteps
         stepKey={step}
         direction={direction}
+        headerOpen={flowIndex >= 0}
         header={
-          flowIndex >= 0 && (
-            <div className={`${styles.nav} ${styles.naventer}`}>
-              <button
-                type="button"
-                className={styles.back}
-                style={{ opacity: step === "bank" ? 0 : 1 }}
-                onClick={back}
-                aria-label="Tilbake"
-                data-cy="giftcard-back"
-              >
-                ←
-              </button>
-              <ol
-                className={styles.dots}
-                aria-label={`Steg ${flowIndex + 1} av ${flowSteps.length}`}
-              >
-                {flowSteps.map((s, i) => (
-                  <li
-                    key={s}
-                    className={i <= flowIndex ? styles.dotactive : styles.dot}
-                    aria-current={i === flowIndex ? "step" : undefined}
-                  />
-                ))}
-              </ol>
-              <span />
-            </div>
-          )
+          <div className={styles.nav}>
+            <button
+              type="button"
+              className={styles.back}
+              style={{ opacity: step === "bank" ? 0 : 1 }}
+              onClick={back}
+              aria-label="Tilbake"
+              data-cy="giftcard-back"
+            >
+              ←
+            </button>
+            <ol className={styles.dots} aria-label={`Steg ${dotIndex + 1} av ${flowSteps.length}`}>
+              {flowSteps.map((s, i) => (
+                <li
+                  key={s}
+                  className={i <= dotIndex ? styles.dotactive : styles.dot}
+                  aria-current={i === dotIndex ? "step" : undefined}
+                />
+              ))}
+            </ol>
+            <span />
+          </div>
         }
       >
         {product === null && step !== "bank" && (

@@ -345,18 +345,42 @@
   position: relative;
 }
 
-// Shrinking eases (the old step fades out inside); growing is immediate so nothing is cut off
-.stepsshrinking {
-  transition: height 0.22s cubic-bezier(0.2, 0, 0, 1);
+// After the first interaction the panel eases to its new height (never on page load)
+.stepsinteractive {
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .headerwrap {
+    transition:
+      grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.25s ease;
+  }
 }
 
-// Contains the children's margins, so the measured height is the height they take up
-.stepsinner {
+// The step indicator opens and closes by its height, so the steps glide down instead of jumping
+.headerwrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.headeropen {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.headerclip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Contains the children's margins, so measured heights are the heights they take up
+.flowroot {
   display: flow-root;
 }
 
 .stage {
   position: relative;
+  display: flow-root;
 }
 
 // The step being left, on top of where it was, fading out
@@ -391,10 +415,6 @@
   --giftcard-step-from: -12px;
 }
 
-.naventer {
-  animation: giftcard-fade-in 0.2s ease both;
-}
-
 @keyframes giftcard-step-in {
   from {
     opacity: 0;
@@ -417,17 +437,9 @@
   }
 }
 
-@keyframes giftcard-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .stepsshrinking,
+  .stepsinteractive,
+  .stepsinteractive .headerwrap,
   .back,
   .dots li {
     transition: none;
@@ -438,8 +450,7 @@
   }
 
   .enterforward,
-  .enterbackward,
-  .naventer {
+  .enterbackward {
     animation: none;
   }
 }

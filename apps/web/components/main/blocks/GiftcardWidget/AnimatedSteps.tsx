@@ -11,17 +11,19 @@ type Exiting = { key: string; node: React.ReactNode; direction: StepDirection };
 /**
  * The widget's steps with a short crossfade: the step being left fades out where it was while
  * the next one slides a little in from the side it comes from, so the panel is never empty.
- * Nothing is clipped: the panel grows at once (new content is never cut off) and shrinks
- * smoothly (the old step fades out inside it). Nothing animates until the first step change,
- * and reduced motion turns it all off (CSS).
+ * The header (step indicator) opens and closes smoothly, and the panel eases to its new height
+ * both ways without clipping anything. Nothing animates until the first step change, and
+ * reduced motion turns it all off (CSS).
  */
 export const AnimatedSteps: React.FC<{
   stepKey: string;
   direction: StepDirection;
   /** Shown above the steps without sliding (the step indicator) */
   header?: React.ReactNode;
+  /** Whether the header shows: it opens and closes by animating its height */
+  headerOpen?: boolean;
   children: React.ReactNode;
-}> = ({ stepKey, direction, header, children }) => {
+}> = ({ stepKey, direction, header, headerOpen = false, children }) => {
   // Known in the same render as the first change: the step that comes in needs its class
   const [initialStep] = useState(stepKey);
   const [changedBefore, setChangedBefore] = useState(false);
@@ -51,46 +53,59 @@ export const AnimatedSteps: React.FC<{
     return () => clearTimeout(timer);
   }, [exiting]);
 
-  // The panel follows the current step's height: growing is immediate, shrinking eases
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState<{ height: number; growing: boolean } | null>(null);
+  // The panel's height goes straight to where it ends up (the header's full height when open,
+  // plus the current step), so it eases once instead of chasing the header as it opens
+  const headerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [heights, setHeights] = useState<{ header: number; stage: number } | null>(null);
   useLayoutEffect(() => {
-    const inner = innerRef.current;
-    if (!inner) return;
+    const headerEl = headerRef.current;
+    const stage = stageRef.current;
+    if (!headerEl || !stage) return;
     const measure = () => {
-      const height = inner.offsetHeight;
-      setSize((prev) =>
-        prev?.height === height ? prev : { height, growing: !prev || height > prev.height },
+      const next = { header: headerEl.offsetHeight, stage: stage.offsetHeight };
+      setHeights((prev) =>
+        prev?.header === next.header && prev.stage === next.stage ? prev : next,
       );
     };
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
-    observer.observe(inner);
+    observer.observe(headerEl);
+    observer.observe(stage);
     return () => observer.disconnect();
   }, []);
+  const height = heights ? (headerOpen ? heights.header : 0) + heights.stage : undefined;
 
   return (
     <div
-      className={`${styles.steps} ${animate && size && !size.growing ? styles.stepsshrinking : ""}`}
-      style={size ? { height: size.height } : undefined}
+      className={`${styles.steps} ${animate ? styles.stepsinteractive : ""}`}
+      style={height === undefined ? undefined : { height }}
     >
-      <div ref={innerRef} className={styles.stepsinner}>
-        {header}
-        <div className={styles.stage}>
-          {exiting && (
-            <div
-              key={exiting.key}
-              className={`${styles.stepexit} ${styles[`exit${exiting.direction}`]}`}
-              aria-hidden="true"
-              inert
-            >
-              {exiting.node}
-            </div>
-          )}
-          <div key={stepKey} className={animate ? styles[`enter${direction}`] : undefined}>
-            {children}
+      <div
+        className={`${styles.headerwrap} ${headerOpen ? styles.headeropen : ""}`}
+        inert={!headerOpen}
+        aria-hidden={!headerOpen || undefined}
+      >
+        <div className={styles.headerclip}>
+          <div ref={headerRef} className={styles.flowroot}>
+            {header}
           </div>
+        </div>
+      </div>
+      <div ref={stageRef} className={styles.stage}>
+        {exiting && (
+          <div
+            key={exiting.key}
+            className={`${styles.stepexit} ${styles[`exit${exiting.direction}`]}`}
+            aria-hidden="true"
+            inert
+          >
+            {exiting.node}
+          </div>
+        )}
+        <div key={stepKey} className={animate ? styles[`enter${direction}`] : undefined}>
+          {children}
         </div>
       </div>
     </div>
