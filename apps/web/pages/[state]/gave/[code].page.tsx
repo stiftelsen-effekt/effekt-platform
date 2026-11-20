@@ -7,6 +7,7 @@ import { getClient } from "../../../lib/sanity.client";
 import { publicTrpcFor } from "../../../lib/trpc/client";
 import type { ConsentState } from "../../../proxy.page";
 import { isGiftCode } from "../../../util/giftcardPaths";
+import { getDemoGift } from "../../../util/giftDemos";
 import { Navbar } from "../../../components/shared/components/Navbar/Navbar";
 import {
   GiftPage,
@@ -78,7 +79,8 @@ export const getServerSideProps = async (
   ctx.res.setHeader("Cache-Control", "private, no-store");
 
   const [gift, appStaticProps, navbar] = await Promise.all([
-    fetchGift(code),
+    // On previews and locally, the demo codes show made-up gift cards (util/giftDemos.ts)
+    getDemoGift(code, process.env.VERCEL_ENV) ?? fetchGift(code),
     getAppStaticProps({ draftMode: false, consentState, showGiveButton: false }),
     // The main menu, shown after the story instead of on top
     Navbar.getStaticProps({ dashboard: false, draftMode: false }),
