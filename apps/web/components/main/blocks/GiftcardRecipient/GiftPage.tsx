@@ -278,7 +278,7 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
             <span className={`detailheader ${styles.scrollHint}`}>Se hva gaven gjør ↓</span>
           </Slide>
 
-          <Impact units={gift.units} unit={unit} unitSingular={gift.unitSingular} impact={impact} />
+          <Impact units={gift.units} unit={unit} impact={impact} />
 
           {story.map((chapter, i) => (
             <StoryChapter
@@ -368,9 +368,8 @@ const Slide: React.FC<{
 const Impact: React.FC<{
   units: number;
   unit: string;
-  unitSingular: string;
   impact: string;
-}> = ({ units, unit, unitSingular, impact }) => {
+}> = ({ units, unit, impact }) => {
   const perSquare = Math.max(1, Math.ceil(units / MAX_SQUARES));
   const squares = Math.ceil(units / perSquare);
   return (
@@ -392,9 +391,12 @@ const Impact: React.FC<{
                   />
                 ))}
               </div>
-              <span className="caption">
-                1 rute = {perSquare === 1 ? `1 ${unitSingular}` : `${perSquare} ${unit}`}
-              </span>
+              {/* One square per unit needs no key; only say it when a square stands for several */}
+              {perSquare > 1 && (
+                <span className={styles.statLabel}>
+                  1 rute = {perSquare} {unit}
+                </span>
+              )}
             </div>
             <p className={styles.lead}>Gaven {impact}.</p>
           </div>
@@ -557,7 +559,7 @@ const Stat: React.FC<{
         )}
       </span>
       <span className={styles.statRule} aria-hidden />
-      {label && <span className="caption">{label}</span>}
+      {label && <span className={styles.statLabel}>{label}</span>}
     </div>
   );
 };
@@ -580,7 +582,7 @@ const HorizontalBars: React.FC<{ chart: ChartData; start: boolean }> = ({ chart,
   const max = Math.max(...bars.map((b) => barValue(b.value)), 1);
   return (
     <figure className={styles.barChart} data-visible={start}>
-      {chart.title && <figcaption className="caption">{chart.title}</figcaption>}
+      {chart.title && <figcaption className={styles.chartTitle}>{chart.title}</figcaption>}
       <div className={styles.hbars} role="img" aria-label={chart.title ?? undefined}>
         {bars.map((bar, i) => (
           <div key={bar._key} className={styles.hbarRow}>
@@ -601,7 +603,7 @@ const HorizontalBars: React.FC<{ chart: ChartData; start: boolean }> = ({ chart,
       </div>
       {chart.caption && (
         <div className={styles.legend}>
-          <span className="caption">{chart.caption}</span>
+          <span className={styles.source}>{chart.caption}</span>
         </div>
       )}
     </figure>
@@ -627,9 +629,9 @@ const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, st
       className={`${styles.barChart} ${callouts.length ? styles.withCallouts : ""}`}
       data-visible={start}
     >
-      {chart.title && <figcaption className="caption">{chart.title}</figcaption>}
-      {/* With bars stacked, what the hatched part means comes first, larger, before they grow */}
-      {stacked && (chart.highlight_label || chart.extra_label) && (
+      {chart.title && <figcaption className={styles.chartTitle}>{chart.title}</figcaption>}
+      {/* What the bars mean comes first, larger, before they grow */}
+      {(chart.highlight_label || chart.extra_label) && (
         <div className={styles.legendTop}>
           {chart.highlight_label && (
             <span>
@@ -688,19 +690,9 @@ const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, st
           </div>
         )}
       </div>
-      {((!stacked && (chart.highlight_label || chart.extra_label)) || chart.caption) && (
+      {chart.caption && (
         <div className={styles.legend}>
-          {!stacked && chart.highlight_label && (
-            <span className="caption">
-              <span className={styles.legendSwatch} aria-hidden /> {chart.highlight_label}
-            </span>
-          )}
-          {!stacked && chart.extra_label && (
-            <span className="caption">
-              <span className={styles.legendSwatchHatched} aria-hidden /> {chart.extra_label}
-            </span>
-          )}
-          {chart.caption && <span className="caption">{chart.caption}</span>}
+          <span className={styles.source}>{chart.caption}</span>
         </div>
       )}
     </figure>

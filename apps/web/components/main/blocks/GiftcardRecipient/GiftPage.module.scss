@@ -463,10 +463,9 @@ $wide: 1100px; // two columns from here
   padding-top: 1.25rem;
   margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
 
-  :global(.caption) {
-    display: block;
+  .statLabel {
     margin-top: 0.75rem;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 }
 
@@ -586,10 +585,30 @@ $wide: 1100px; // two columns from here
   margin: 0 0 clamp(1.25rem, 3.5vh, 2rem);
   max-width: 34rem;
 
-  :global(.caption) {
-    display: block;
+  .statLabel {
     margin-top: 0.75rem;
   }
+}
+
+// Small text that must still read easily: what a big number counts, a chart's title. Never the
+// global caption size, which is 12px on some laptop widths; shorten the text instead of shrinking it.
+.statLabel,
+.chartTitle {
+  display: block;
+  font-size: var(--type-body);
+  line-height: 1.35;
+}
+
+.chartTitle {
+  margin-bottom: 1rem;
+}
+
+// Sources: a little smaller than body text, but never tiny
+.source {
+  display: block;
+  font-size: clamp(14px, min(1.05vw, 1.9vh), 16px);
+  line-height: 1.4;
+  opacity: 0.75;
 }
 
 .statValue {
@@ -724,7 +743,8 @@ $wide: 1100px; // two columns from here
 
   // Larger swatches, matching the larger text
   .legendSwatch,
-  .legendSwatchHatched {
+  .legendSwatchHatched,
+  .legendSwatchEmpty {
     width: 1em;
     height: 1em;
     vertical-align: -0.15em;
@@ -766,7 +786,7 @@ $wide: 1100px; // two columns from here
     right: calc(100% + 0.6rem);
     top: 0;
     transform: translateY(-50%);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1;
     white-space: nowrap;
   }
@@ -810,7 +830,7 @@ $wide: 1100px; // two columns from here
   position: relative;
   top: 0.5rem;
   height: 0;
-  font-size: 12px;
+  font-size: clamp(12px, 1vw, 14px);
   line-height: 1;
   text-align: center;
   white-space: nowrap;
@@ -848,7 +868,7 @@ $wide: 1100px; // two columns from here
 }
 
 .hbarLabel {
-  font-size: 14px;
+  font-size: var(--type-body);
   line-height: 1.3;
 }
 

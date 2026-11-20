@@ -335,15 +335,6 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: "thank_you_page",
-      title: "Thank-you page",
-      type: "reference",
-      group: "thankyou",
-      description:
-        'Where buyers land after paying with Vipps: an ordinary page (like /donasjon-mottatt), optionally with a "Gift card purchase details" block. Default /gavekort-mottatt.',
-      to: [{ type: "generic_page" }],
-    }),
-    defineField({
       name: "thank_you",
       title: "Purchase details texts",
       type: "object",

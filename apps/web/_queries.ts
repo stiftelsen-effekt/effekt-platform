@@ -412,7 +412,6 @@ export const giftcardProductQuery = `
   summary_step,
   next_button_text,
   thank_you,
-  "thank_you_slug": thank_you_page->slug.current,
   payment_configuration -> {
     email_label,
     tax_deduction_enabled,

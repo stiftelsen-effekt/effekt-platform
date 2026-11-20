@@ -98,8 +98,6 @@ export type GiftcardDocument = {
   next_button_text?: string | null;
   payment_configuration?: GiftcardPaymentConfiguration | null;
   thank_you?: GiftcardThankYouTexts | null;
-  /** Slug of the thank-you page after Vipps (thank_you_page), default gavekort-mottatt */
-  thank_you_slug?: string | null;
 };
 
 export type GiftcardReceiptDocument = Pick<

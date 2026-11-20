@@ -26,6 +26,21 @@ export const Waffle: React.FC<{
   const emptied = new Map(order.slice(0, share).map((square, rank) => [square, rank]));
   return (
     <figure className={styles.waffle} data-visible={start}>
+      {/* What the squares mean comes first, larger, before they empty out */}
+      {(data.empty_label || data.filled_label) && (
+        <div className={styles.legendTop}>
+          {data.empty_label && (
+            <span>
+              <span className={styles.legendSwatchEmpty} aria-hidden /> {data.empty_label}
+            </span>
+          )}
+          {data.filled_label && (
+            <span>
+              <span className={styles.legendSwatch} aria-hidden /> {data.filled_label}
+            </span>
+          )}
+        </div>
+      )}
       <div className={styles.waffleGrid} role="img" aria-label={`${share} av 100`}>
         {Array.from({ length: 100 }, (_, i) => {
           const rank = emptied.get(i);
@@ -39,19 +54,9 @@ export const Waffle: React.FC<{
           );
         })}
       </div>
-      {(data.filled_label || data.empty_label || data.caption) && (
+      {data.caption && (
         <figcaption className={styles.legend}>
-          {data.empty_label && (
-            <span className="caption">
-              <span className={styles.legendSwatchEmpty} aria-hidden /> {data.empty_label}
-            </span>
-          )}
-          {data.filled_label && (
-            <span className="caption">
-              <span className={styles.legendSwatch} aria-hidden /> {data.filled_label}
-            </span>
-          )}
-          {data.caption && <span className="caption">{data.caption}</span>}
+          <span className={styles.source}>{data.caption}</span>
         </figcaption>
       )}
     </figure>

@@ -135,7 +135,7 @@ export const StoryMap: React.FC<{
             </li>
           ))}
         </ul>
-        {caption && <span className="caption">{caption}</span>}
+        {caption && <span className={styles.source}>{caption}</span>}
       </figcaption>
     </figure>
   );
