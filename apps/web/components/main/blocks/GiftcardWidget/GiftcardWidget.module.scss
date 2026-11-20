@@ -7,6 +7,14 @@
   max-width: 34rem;
 }
 
+// Above the footer (position: relative, later in the page): the step animation's fill keeps a
+// stacking context on each step, which would otherwise let the footer's line paint over the
+// open time dropdown
+.widget {
+  position: relative;
+  z-index: 1;
+}
+
 .receipt {
   display: flex;
   flex-direction: column;
