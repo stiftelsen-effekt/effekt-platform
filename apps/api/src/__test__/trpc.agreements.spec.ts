@@ -41,6 +41,7 @@ const row: AgreementRow = {
   lastUpdated: new Date("2026-02-02T03:04:05.000Z"),
   cancelled: null,
   pausedUntil: null,
+  campaignCode: null,
 };
 
 describe("tRPC agreements router", () => {
@@ -140,7 +141,7 @@ describe("tRPC agreements router", () => {
       expect(result.filename).to.match(/^agreements-.*\.csv$/);
       const lines = result.csv.replace(/^﻿/, "").trim().split("\n");
       expect(lines[0]).to.equal(
-        "provider,id,KID,donorId,donorName,amount,chargeDay,status,providerStatus,created,lastUpdated,cancelled,pausedUntil",
+        "provider,id,KID,donorId,donorName,amount,chargeDay,status,providerStatus,created,lastUpdated,cancelled,pausedUntil,campaignCode",
       );
       expect(lines).to.have.length(3);
       expect(lines[2]).to.contain("vipps,agr_1");
@@ -181,6 +182,9 @@ describe("tRPC agreements router", () => {
       expect(sql).to.not.contain("AutoGiro_agreements");
       expect(sql.match(/UNION ALL/g)).to.have.length(1);
       expect(sql).to.contain("CAST(AG.amount / 100 AS DECIMAL(16, 2))");
+      expect(sql).to.contain("CampaignCodes.campaign_codes");
+      expect(sql).to.contain("ON CampaignCodes.KID = VA.KID");
+      expect(sql).to.contain("ON CampaignCodes.KID = AG.KID");
       expect(sql).to.match(/ORDER BY createdDb DESC, provider DESC/);
       // The created columns are filled by MySQL defaults (DB clock), returned as UTC
       expect(sql).to.contain("VA.timestamp_created AS createdDb");
@@ -207,6 +211,7 @@ describe("tRPC agreements router", () => {
           created: { from: "2026-01-01", to: "2026-01-31" },
           donor: "50%_off",
           KID: "123",
+          campaignCode: "AUTUMN",
         },
         sort: { id: "id", desc: false },
         page: 2,
@@ -218,6 +223,8 @@ describe("tRPC agreements router", () => {
       expect(sql).to.not.contain("Vipps_agreements");
       expect(sql).to.not.contain("UNION ALL");
       expect(sql).to.not.contain("50%");
+      expect(sql).to.contain("WHERE status IN (?)");
+      expect(sql).to.contain("AND campaignCode LIKE ?");
       expect(sql).to.match(/ORDER BY CHAR_LENGTH\(id\) ASC, id ASC/);
       expect(params).to.deep.equal([
         ["stopped", "pending"],
@@ -230,6 +237,7 @@ describe("tRPC agreements router", () => {
         "%50\\%\\_off%",
         "%50\\%\\_off%",
         "%123%",
+        "%AUTUMN%",
         25,
         50,
       ]);

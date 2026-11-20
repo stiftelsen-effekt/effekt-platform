@@ -74,6 +74,7 @@ describe("fromListRow", () => {
       cancelled: null,
       pausedUntil: "2026-12-01",
       orgSplit: [],
+      campaignCode: null,
     });
     expect(row).toMatchObject({
       key: "vipps:agr_1",

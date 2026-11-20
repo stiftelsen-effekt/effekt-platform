@@ -98,6 +98,8 @@ export type Donation = {
   taxUnitId?: number;
   timestamp?: string;
   metaOwnerId?: number;
+  /** Distinct campaign/referral codes attached to this donation's KID, most recent first */
+  campaignCode?: string | null;
 };
 
 export type Fundraiser = {

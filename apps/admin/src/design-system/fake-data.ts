@@ -321,6 +321,7 @@ export const donations: FakeDonation[] = Array.from({ length: 1240 }, (_, index)
     kid: String(10_000_000 + Math.floor(rand() * 89_999_999)),
     taxUnitType: rand() < 0.08 ? ORGANIZATION : rand() < 0.7 ? PERSON : null,
     orgSplit: fakeOrgSplit,
+    campaignCode: rand() > 0.6 ? campaignCodes[Math.floor(rand() * campaignCodes.length)]! : null,
   };
 }).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
