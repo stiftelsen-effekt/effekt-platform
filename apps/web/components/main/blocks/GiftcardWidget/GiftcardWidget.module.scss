@@ -38,6 +38,7 @@
 }
 
 .back {
+  transition: opacity 0.3s ease;
   background: none;
   border: none;
   padding: 0;
@@ -62,6 +63,13 @@
     border: 1px solid var(--primary);
     background: var(--secondary);
     position: relative;
+    transition:
+      background-color 0.3s ease,
+      transform 0.3s ease;
+
+    &[aria-current="step"] {
+      transform: scale(1.25);
+    }
 
     & + li {
       margin-left: 2rem;
@@ -332,5 +340,71 @@
   .presetactive {
     text-align: left;
     padding: 0.75rem;
+  }
+}
+
+// Step animation (AnimatedSteps.tsx), as the fundraiser widget's panes
+.steps {
+  overflow: hidden;
+  transition: height 0.3s ease;
+  will-change: height;
+  // Room for focus outlines at the edges while overflow is hidden
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+// Contains the children's margins, so the measured height is the height they take up
+.stepsinner {
+  display: flow-root;
+}
+
+.enterforward,
+.enterbackward {
+  animation: giftcard-step-in 0.3s ease both;
+}
+
+.enterforward {
+  --giftcard-step-from: 30px;
+}
+
+.enterbackward {
+  --giftcard-step-from: -30px;
+}
+
+.naventer {
+  animation: giftcard-fade-in 0.3s ease both;
+}
+
+@keyframes giftcard-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--giftcard-step-from));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes giftcard-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steps,
+  .back,
+  .dots li {
+    transition: none;
+  }
+
+  .enterforward,
+  .enterbackward,
+  .naventer {
+    animation: none;
   }
 }

@@ -29,6 +29,7 @@ import {
 } from "./giftcardForm";
 import { giftcardSessionKey, type GiftcardDocument, type GiftcardSession } from "./types";
 import styles from "./GiftcardWidget.module.scss";
+import { AnimatedSteps, type StepDirection } from "./AnimatedSteps";
 
 type Product = RouterOutputs["giftcard"]["products"][number];
 type Step = "product" | "amount" | "message" | "delivery" | "summary" | "bank";
@@ -103,6 +104,7 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
     "bank",
   ];
   const [step, setStep] = useState<Step>("product");
+  const [direction, setDirection] = useState<StepDirection>("forward");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -124,6 +126,7 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
 
   const goTo = (next: Step) => {
     setErrors({});
+    setDirection(steps.indexOf(next) < steps.indexOf(step) ? "backward" : "forward");
     setStep(next);
     panelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
@@ -236,424 +239,439 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
       <h2 className={styles.title}>{page.title}</h2>
       {page.price_label && <p className={styles.pricelabel}>{page.price_label}</p>}
 
-      {flowIndex >= 0 && (
-        <div className={styles.nav}>
-          <button
-            type="button"
-            className={styles.back}
-            onClick={back}
-            aria-label="Tilbake"
-            data-cy="giftcard-back"
-          >
-            ←
-          </button>
-          <ol className={styles.dots} aria-label={`Steg ${flowIndex + 1} av ${flowSteps.length}`}>
-            {flowSteps.map((s, i) => (
-              <li
-                key={s}
-                className={i <= flowIndex ? styles.dotactive : styles.dot}
-                aria-current={i === flowIndex ? "step" : undefined}
-              />
-            ))}
-          </ol>
-          <span />
-        </div>
-      )}
-
-      {product === null && step !== "bank" && (
-        <p className={styles.error} role="alert">
-          Dette gavekortet er ikke tilgjengelig akkurat nå.
-        </p>
-      )}
-
-      {step === "product" && (
-        <div className={styles.step} data-cy="giftcard-step-product">
-          {page.description && <p className={styles.description}>{page.description}</p>}
-          {allowSms && allowPdf && (
-            <label className={styles.field}>
-              <span>{page.delivery?.question || "Hvordan vil du gi gavekortet?"}</span>
-              <select
-                value={form.delivery}
-                onChange={(e) => update("delivery", e.target.value as GiftcardDelivery)}
-                data-cy="giftcard-delivery-select"
-              >
-                <option value="sms">{page.delivery?.sms_label || "Gavekort på SMS"}</option>
-                <option value="pdf">{page.delivery?.pdf_label || "Gavebevis til utskrift"}</option>
-              </select>
-            </label>
-          )}
-          <button
-            type="button"
-            className={styles.button}
-            onClick={next}
-            disabled={!product}
-            data-cy="giftcard-start"
-          >
-            {product === undefined ? (
-              <Spinner className={styles.spinner} />
-            ) : (
-              page.delivery?.start_button_text || "Gi et gavekort"
-            )}
-          </button>
-        </div>
-      )}
-
-      {step === "amount" && product && (
-        <form
-          className={styles.step}
-          onSubmit={(e) => {
-            e.preventDefault();
-            next();
-          }}
-          data-cy="giftcard-step-amount"
-        >
-          <div className={styles.presets}>
-            {(page.amount_step?.preset_units ?? [5, 15, 30]).map((units) => (
+      <AnimatedSteps
+        stepKey={step}
+        direction={direction}
+        header={
+          flowIndex >= 0 && (
+            <div className={`${styles.nav} ${styles.naventer}`}>
               <button
-                key={units}
                 type="button"
-                className={form.units === units ? styles.presetactive : styles.preset}
-                onClick={() => update("units", units)}
-                data-cy={`giftcard-preset-${units}`}
+                className={styles.back}
+                style={{ opacity: step === "bank" ? 0 : 1 }}
+                onClick={back}
+                aria-label="Tilbake"
+                data-cy="giftcard-back"
               >
-                {presetLabel(page.amount_step?.preset_label_template, units)}
+                ←
               </button>
-            ))}
-          </div>
-          <label className={styles.field}>
-            <span>{page.amount_step?.units_label || "Hvor mange?"}</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={product.minUnits}
-              max={product.maxUnits}
-              step={1}
-              value={form.units ?? ""}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                update("units", Number.isNaN(value) ? null : value);
-              }}
-              data-cy="giftcard-units-input"
-            />
-          </label>
-          {errors.units && <p className={styles.error}>{errors.units}</p>}
-          <div className={styles.total} data-cy="giftcard-total">
-            <span>{page.amount_step?.total_label || "Totalt"}</span>
-            <span>{formatKroner(total)}</span>
-          </div>
-          <button type="submit" className={styles.button} data-cy="giftcard-next">
-            {page.next_button_text || "Neste"}
-          </button>
-        </form>
-      )}
+              <ol
+                className={styles.dots}
+                aria-label={`Steg ${flowIndex + 1} av ${flowSteps.length}`}
+              >
+                {flowSteps.map((s, i) => (
+                  <li
+                    key={s}
+                    className={i <= flowIndex ? styles.dotactive : styles.dot}
+                    aria-current={i === flowIndex ? "step" : undefined}
+                  />
+                ))}
+              </ol>
+              <span />
+            </div>
+          )
+        }
+      >
+        {product === null && step !== "bank" && (
+          <p className={styles.error} role="alert">
+            Dette gavekortet er ikke tilgjengelig akkurat nå.
+          </p>
+        )}
 
-      {step === "message" && (
-        <form
-          className={styles.step}
-          onSubmit={(e) => {
-            e.preventDefault();
-            next();
-          }}
-          data-cy="giftcard-step-message"
-        >
-          {page.message_step?.heading && (
-            <p className={styles.heading}>{page.message_step.heading}</p>
-          )}
-          <input
-            className={styles.input}
-            type="text"
-            maxLength={100}
-            placeholder={page.message_step?.recipient_name_label || "Navn på mottaker"}
-            aria-label={page.message_step?.recipient_name_label || "Navn på mottaker"}
-            value={form.recipientName}
-            onChange={(e) => update("recipientName", e.target.value)}
-            data-cy="giftcard-recipient-name"
-          />
-          {errors.recipientName && <p className={styles.error}>{errors.recipientName}</p>}
-          <div className={styles.textarea}>
-            <textarea
-              rows={5}
-              placeholder={page.message_step?.message_label || "En personlig hilsen (valgfritt)"}
-              aria-label={page.message_step?.message_label || "En personlig hilsen (valgfritt)"}
-              value={form.message}
-              onChange={(e) => update("message", clampMessage(e.target.value))}
-              data-cy="giftcard-message"
-            />
-            <div
-              className={messageCount.nearLimit ? styles.counterwarn : styles.counter}
-              data-cy="giftcard-message-count"
+        {step === "product" && (
+          <div className={styles.step} data-cy="giftcard-step-product">
+            {page.description && <p className={styles.description}>{page.description}</p>}
+            {allowSms && allowPdf && (
+              <label className={styles.field}>
+                <span>{page.delivery?.question || "Hvordan vil du gi gavekortet?"}</span>
+                <select
+                  value={form.delivery}
+                  onChange={(e) => update("delivery", e.target.value as GiftcardDelivery)}
+                  data-cy="giftcard-delivery-select"
+                >
+                  <option value="sms">{page.delivery?.sms_label || "Gavekort på SMS"}</option>
+                  <option value="pdf">
+                    {page.delivery?.pdf_label || "Gavebevis til utskrift"}
+                  </option>
+                </select>
+              </label>
+            )}
+            <button
+              type="button"
+              className={styles.button}
+              onClick={next}
+              disabled={!product}
+              data-cy="giftcard-start"
             >
-              {form.message.length > 0 && (
-                <CharacterCountCircle count={messageCount.count} max={GIFTCARD_MESSAGE_MAX} />
+              {product === undefined ? (
+                <Spinner className={styles.spinner} />
+              ) : (
+                page.delivery?.start_button_text || "Gi et gavekort"
               )}
-            </div>
+            </button>
           </div>
-          {errors.message && <p className={styles.error}>{errors.message}</p>}
-          <input
-            className={styles.input}
-            type="text"
-            maxLength={100}
-            placeholder={page.message_step?.sender_name_label || "Navn på avsender"}
-            aria-label={page.message_step?.sender_name_label || "Navn på avsender"}
-            value={form.senderName}
-            onChange={(e) => update("senderName", e.target.value)}
-            data-cy="giftcard-sender-name"
-          />
-          {errors.senderName && <p className={styles.error}>{errors.senderName}</p>}
-          <button type="submit" className={styles.button} data-cy="giftcard-next">
-            {page.next_button_text || "Neste"}
-          </button>
-        </form>
-      )}
+        )}
 
-      {step === "delivery" && (
-        <form
-          className={styles.step}
-          onSubmit={(e) => {
-            e.preventDefault();
-            next();
-          }}
-          data-cy="giftcard-step-delivery"
-        >
-          <input
-            className={styles.input}
-            type="tel"
-            inputMode="tel"
-            autoComplete="off"
-            placeholder={page.delivery_step?.phone_label || "Mottakers telefonnummer"}
-            aria-label={page.delivery_step?.phone_label || "Mottakers telefonnummer"}
-            value={form.recipientPhone}
-            onChange={(e) => update("recipientPhone", e.target.value)}
-            data-cy="giftcard-phone"
-          />
-          {page.delivery_step?.phone_help && (
-            <p className={styles.help}>{page.delivery_step.phone_help}</p>
-          )}
-          {errors.recipientPhone && <p className={styles.error}>{errors.recipientPhone}</p>}
-          <p className={styles.label}>
-            {page.delivery_step?.when_label || "Når skal SMS-en leveres?"}
-          </p>
-          <div className={styles.datetime}>
-            <label className={styles.field}>
-              <span>{page.delivery_step?.date_label || "Dato"}</span>
-              <input
-                type="date"
-                min={osloToday()}
-                value={form.sendDate}
-                onChange={(e) => update("sendDate", e.target.value)}
-                data-cy="giftcard-date"
-              />
-            </label>
-            <label className={styles.field}>
-              <span>{page.delivery_step?.time_label || "Klokka"}</span>
-              <input
-                type="time"
-                step={900}
-                value={form.sendTime}
-                onChange={(e) => update("sendTime", e.target.value)}
-                data-cy="giftcard-time"
-              />
-            </label>
-          </div>
-          {errors.sendAt && <p className={styles.error}>{errors.sendAt}</p>}
-          <button type="submit" className={styles.button} data-cy="giftcard-next">
-            {page.next_button_text || "Neste"}
-          </button>
-        </form>
-      )}
-
-      {step === "summary" && product && (
-        <form
-          className={styles.step}
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-          data-cy="giftcard-step-summary"
-        >
-          <dl className={styles.summary}>
-            <div>
-              <dt>{page.summary_step?.units_label || page.title}</dt>
-              <dd>{form.units}</dd>
-            </div>
-            <div>
-              <dt>{page.summary_step?.price_label || "Pris"}</dt>
-              <dd>{formatKroner(total)}</dd>
-            </div>
-            {form.delivery === "sms" ? (
-              <div>
-                <dt>{page.summary_step?.send_label || "Sendes"}</dt>
-                <dd>{sendAtText}</dd>
-              </div>
-            ) : (
-              <div>
-                <dt>{page.summary_step?.format_label || "Gavetype"}</dt>
-                <dd>{page.summary_step?.pdf_format_value || "Gavebevis"}</dd>
-              </div>
-            )}
-          </dl>
-          <p className={styles.summarytext}>
-            {form.delivery === "sms"
-              ? fillGiftcardText(page.summary_step?.sms_text, {
-                  dato: sendAtText,
-                  mottaker: form.recipientName.trim(),
-                })
-              : fillGiftcardText(page.summary_step?.pdf_text, {})}
-          </p>
-          <hr className={styles.divider} />
-
-          {pay?.tax_deduction_enabled && pay.tax_deduction && (
-            <div className={styles.checkbox}>
-              <EffektCheckbox
-                checked={form.taxDeduction}
-                onChange={(checked) => update("taxDeduction", checked)}
-                dataCy="giftcard-tax-deduction"
-              >
-                {pay.tax_deduction.label || "Jeg ønsker skattefradrag"}
-              </EffektCheckbox>
-            </div>
-          )}
-          {pay?.newsletter_enabled && pay.newsletter && (
-            <div className={styles.checkbox}>
-              <EffektCheckbox
-                checked={form.newsletter}
-                onChange={(checked) => update("newsletter", checked)}
-                dataCy="giftcard-newsletter"
-              >
-                {pay.newsletter.label || "Jeg ønsker å melde meg på nyhetsbrevet"}
-              </EffektCheckbox>
-            </div>
-          )}
-          {form.taxDeduction && (
-            <>
-              <input
-                className={styles.input}
-                type="text"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder={pay?.tax_deduction?.ssn_label || "Fødselsnummer"}
-                aria-label={pay?.tax_deduction?.ssn_label || "Fødselsnummer"}
-                value={form.ssn}
-                onChange={(e) => update("ssn", e.target.value)}
-                data-cy="giftcard-ssn"
-              />
-              {errors.ssn && <p className={styles.error}>{errors.ssn}</p>}
-              <input
-                className={styles.input}
-                type="text"
-                autoComplete="name"
-                placeholder="Fullt navn"
-                aria-label="Fullt navn"
-                value={form.name}
-                onChange={(e) => update("name", e.target.value)}
-                data-cy="giftcard-donor-name"
-              />
-            </>
-          )}
-          <input
-            className={styles.input}
-            type="email"
-            autoComplete="email"
-            placeholder={pay?.email_label || "E-post"}
-            aria-label={pay?.email_label || "E-post"}
-            value={form.email}
-            onChange={(e) => update("email", e.target.value)}
-            data-cy="giftcard-email"
-          />
-          {errors.email && <p className={styles.error}>{errors.email}</p>}
-
-          {pay?.privacy_policy && (
-            <p className={styles.privacy}>
-              {pay.privacy_policy.text}
-              {pay.privacy_policy.privacy_policy_url?.slug && (
-                <Link href={`/${pay.privacy_policy.privacy_policy_url.slug}`} target="_blank">
-                  {` ${pay.privacy_policy.privacy_policy_url.title ?? "personvernerklæring"} ↗`}
-                </Link>
-              )}
-            </p>
-          )}
-
-          {paymentMethods.length > 1 && (
-            <div className={styles.methods}>
-              <RadioButtonGroup
-                options={paymentMethods.map((m, i) => ({
-                  title: m.selector_text || m._type,
-                  value: i,
-                  data_cy: `giftcard-method-${m._type}`,
-                }))}
-                selected={Math.max(
-                  0,
-                  paymentMethods.findIndex((m) => m._type === form.method),
-                )}
-                onSelect={(i: number) =>
-                  update("method", paymentMethods[i]._type as "vipps" | "bank")
-                }
-              />
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className={styles.button}
-            disabled={submitting}
-            aria-busy={submitting || undefined}
-            data-cy="giftcard-submit"
-          >
-            {submitting ? (
-              <Spinner className={styles.spinner} />
-            ) : (
-              paymentMethods.find((m) => m._type === form.method)?.single_button_text ||
-              paymentMethods.find((m) => m._type === form.method)?.button_text ||
-              (form.method === "vipps" ? "Gi med Vipps" : "Gi med bank")
-            )}
-          </button>
-          {submitError && (
-            <p className={styles.error} role="alert" data-cy="giftcard-submit-error">
-              {submitError}
-            </p>
-          )}
-        </form>
-      )}
-
-      {step === "bank" && registration && (
-        <div className={styles.step} data-cy="giftcard-step-bank">
-          {pay?.bank_account_details?.bank_transfer_info && (
-            <p>
-              {pay.bank_account_details.bank_transfer_info.replace(
-                /\{accountNumber\}/g,
-                pay.bank_account_details.account_number ?? "",
-              )}
-            </p>
-          )}
-          <div className={styles.account} data-cy="giftcard-bank-details">
-            <p>
-              <strong>{pay?.bank_account_details?.account_number_prefix || "Kontonummer:"}</strong>{" "}
-              {pay?.bank_account_details?.account_number}
-            </p>
-            <p data-cy="giftcard-kid">
-              <strong>{pay?.bank_account_details?.kid_prefix || "KID:"}</strong> {registration.KID}
-            </p>
-            <p>
-              <strong>Beløp:</strong> {formatKroner(registration.amount)}
-            </p>
-          </div>
-          {pay?.bank_account_details?.transfer_delay_text && (
-            <p>{pay.bank_account_details.transfer_delay_text}</p>
-          )}
-          <GiftcardPurchaseDetails
-            product={page}
-            status={{
-              product: page.slug?.current ?? "",
-              units: form.units ?? 0,
-              amount: registration.amount,
-              delivery: form.delivery,
-              recipientName: form.recipientName.trim(),
-              sendAt: sendAtIso,
-              status: "pending",
+        {step === "amount" && product && (
+          <form
+            className={styles.step}
+            onSubmit={(e) => {
+              e.preventDefault();
+              next();
             }}
-          />
-        </div>
-      )}
+            data-cy="giftcard-step-amount"
+          >
+            <div className={styles.presets}>
+              {(page.amount_step?.preset_units ?? [5, 15, 30]).map((units) => (
+                <button
+                  key={units}
+                  type="button"
+                  className={form.units === units ? styles.presetactive : styles.preset}
+                  onClick={() => update("units", units)}
+                  data-cy={`giftcard-preset-${units}`}
+                >
+                  {presetLabel(page.amount_step?.preset_label_template, units)}
+                </button>
+              ))}
+            </div>
+            <label className={styles.field}>
+              <span>{page.amount_step?.units_label || "Hvor mange?"}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={product.minUnits}
+                max={product.maxUnits}
+                step={1}
+                value={form.units ?? ""}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10);
+                  update("units", Number.isNaN(value) ? null : value);
+                }}
+                data-cy="giftcard-units-input"
+              />
+            </label>
+            {errors.units && <p className={styles.error}>{errors.units}</p>}
+            <div className={styles.total} data-cy="giftcard-total">
+              <span>{page.amount_step?.total_label || "Totalt"}</span>
+              <span>{formatKroner(total)}</span>
+            </div>
+            <button type="submit" className={styles.button} data-cy="giftcard-next">
+              {page.next_button_text || "Neste"}
+            </button>
+          </form>
+        )}
+
+        {step === "message" && (
+          <form
+            className={styles.step}
+            onSubmit={(e) => {
+              e.preventDefault();
+              next();
+            }}
+            data-cy="giftcard-step-message"
+          >
+            {page.message_step?.heading && (
+              <p className={styles.heading}>{page.message_step.heading}</p>
+            )}
+            <input
+              className={styles.input}
+              type="text"
+              maxLength={100}
+              placeholder={page.message_step?.recipient_name_label || "Navn på mottaker"}
+              aria-label={page.message_step?.recipient_name_label || "Navn på mottaker"}
+              value={form.recipientName}
+              onChange={(e) => update("recipientName", e.target.value)}
+              data-cy="giftcard-recipient-name"
+            />
+            {errors.recipientName && <p className={styles.error}>{errors.recipientName}</p>}
+            <div className={styles.textarea}>
+              <textarea
+                rows={5}
+                placeholder={page.message_step?.message_label || "En personlig hilsen (valgfritt)"}
+                aria-label={page.message_step?.message_label || "En personlig hilsen (valgfritt)"}
+                value={form.message}
+                onChange={(e) => update("message", clampMessage(e.target.value))}
+                data-cy="giftcard-message"
+              />
+              <div
+                className={messageCount.nearLimit ? styles.counterwarn : styles.counter}
+                data-cy="giftcard-message-count"
+              >
+                {form.message.length > 0 && (
+                  <CharacterCountCircle count={messageCount.count} max={GIFTCARD_MESSAGE_MAX} />
+                )}
+              </div>
+            </div>
+            {errors.message && <p className={styles.error}>{errors.message}</p>}
+            <input
+              className={styles.input}
+              type="text"
+              maxLength={100}
+              placeholder={page.message_step?.sender_name_label || "Navn på avsender"}
+              aria-label={page.message_step?.sender_name_label || "Navn på avsender"}
+              value={form.senderName}
+              onChange={(e) => update("senderName", e.target.value)}
+              data-cy="giftcard-sender-name"
+            />
+            {errors.senderName && <p className={styles.error}>{errors.senderName}</p>}
+            <button type="submit" className={styles.button} data-cy="giftcard-next">
+              {page.next_button_text || "Neste"}
+            </button>
+          </form>
+        )}
+
+        {step === "delivery" && (
+          <form
+            className={styles.step}
+            onSubmit={(e) => {
+              e.preventDefault();
+              next();
+            }}
+            data-cy="giftcard-step-delivery"
+          >
+            <input
+              className={styles.input}
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              placeholder={page.delivery_step?.phone_label || "Mottakers telefonnummer"}
+              aria-label={page.delivery_step?.phone_label || "Mottakers telefonnummer"}
+              value={form.recipientPhone}
+              onChange={(e) => update("recipientPhone", e.target.value)}
+              data-cy="giftcard-phone"
+            />
+            {page.delivery_step?.phone_help && (
+              <p className={styles.help}>{page.delivery_step.phone_help}</p>
+            )}
+            {errors.recipientPhone && <p className={styles.error}>{errors.recipientPhone}</p>}
+            <p className={styles.label}>
+              {page.delivery_step?.when_label || "Når skal SMS-en leveres?"}
+            </p>
+            <div className={styles.datetime}>
+              <label className={styles.field}>
+                <span>{page.delivery_step?.date_label || "Dato"}</span>
+                <input
+                  type="date"
+                  min={osloToday()}
+                  value={form.sendDate}
+                  onChange={(e) => update("sendDate", e.target.value)}
+                  data-cy="giftcard-date"
+                />
+              </label>
+              <label className={styles.field}>
+                <span>{page.delivery_step?.time_label || "Klokka"}</span>
+                <input
+                  type="time"
+                  step={900}
+                  value={form.sendTime}
+                  onChange={(e) => update("sendTime", e.target.value)}
+                  data-cy="giftcard-time"
+                />
+              </label>
+            </div>
+            {errors.sendAt && <p className={styles.error}>{errors.sendAt}</p>}
+            <button type="submit" className={styles.button} data-cy="giftcard-next">
+              {page.next_button_text || "Neste"}
+            </button>
+          </form>
+        )}
+
+        {step === "summary" && product && (
+          <form
+            className={styles.step}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+            data-cy="giftcard-step-summary"
+          >
+            <dl className={styles.summary}>
+              <div>
+                <dt>{page.summary_step?.units_label || page.title}</dt>
+                <dd>{form.units}</dd>
+              </div>
+              <div>
+                <dt>{page.summary_step?.price_label || "Pris"}</dt>
+                <dd>{formatKroner(total)}</dd>
+              </div>
+              {form.delivery === "sms" ? (
+                <div>
+                  <dt>{page.summary_step?.send_label || "Sendes"}</dt>
+                  <dd>{sendAtText}</dd>
+                </div>
+              ) : (
+                <div>
+                  <dt>{page.summary_step?.format_label || "Gavetype"}</dt>
+                  <dd>{page.summary_step?.pdf_format_value || "Gavebevis"}</dd>
+                </div>
+              )}
+            </dl>
+            <p className={styles.summarytext}>
+              {form.delivery === "sms"
+                ? fillGiftcardText(page.summary_step?.sms_text, {
+                    dato: sendAtText,
+                    mottaker: form.recipientName.trim(),
+                  })
+                : fillGiftcardText(page.summary_step?.pdf_text, {})}
+            </p>
+            <hr className={styles.divider} />
+
+            {pay?.tax_deduction_enabled && pay.tax_deduction && (
+              <div className={styles.checkbox}>
+                <EffektCheckbox
+                  checked={form.taxDeduction}
+                  onChange={(checked) => update("taxDeduction", checked)}
+                  dataCy="giftcard-tax-deduction"
+                >
+                  {pay.tax_deduction.label || "Jeg ønsker skattefradrag"}
+                </EffektCheckbox>
+              </div>
+            )}
+            {pay?.newsletter_enabled && pay.newsletter && (
+              <div className={styles.checkbox}>
+                <EffektCheckbox
+                  checked={form.newsletter}
+                  onChange={(checked) => update("newsletter", checked)}
+                  dataCy="giftcard-newsletter"
+                >
+                  {pay.newsletter.label || "Jeg ønsker å melde meg på nyhetsbrevet"}
+                </EffektCheckbox>
+              </div>
+            )}
+            {form.taxDeduction && (
+              <>
+                <input
+                  className={styles.input}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder={pay?.tax_deduction?.ssn_label || "Fødselsnummer"}
+                  aria-label={pay?.tax_deduction?.ssn_label || "Fødselsnummer"}
+                  value={form.ssn}
+                  onChange={(e) => update("ssn", e.target.value)}
+                  data-cy="giftcard-ssn"
+                />
+                {errors.ssn && <p className={styles.error}>{errors.ssn}</p>}
+                <input
+                  className={styles.input}
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Fullt navn"
+                  aria-label="Fullt navn"
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  data-cy="giftcard-donor-name"
+                />
+              </>
+            )}
+            <input
+              className={styles.input}
+              type="email"
+              autoComplete="email"
+              placeholder={pay?.email_label || "E-post"}
+              aria-label={pay?.email_label || "E-post"}
+              value={form.email}
+              onChange={(e) => update("email", e.target.value)}
+              data-cy="giftcard-email"
+            />
+            {errors.email && <p className={styles.error}>{errors.email}</p>}
+
+            {pay?.privacy_policy && (
+              <p className={styles.privacy}>
+                {pay.privacy_policy.text}
+                {pay.privacy_policy.privacy_policy_url?.slug && (
+                  <Link href={`/${pay.privacy_policy.privacy_policy_url.slug}`} target="_blank">
+                    {` ${pay.privacy_policy.privacy_policy_url.title ?? "personvernerklæring"} ↗`}
+                  </Link>
+                )}
+              </p>
+            )}
+
+            {paymentMethods.length > 1 && (
+              <div className={styles.methods}>
+                <RadioButtonGroup
+                  options={paymentMethods.map((m, i) => ({
+                    title: m.selector_text || m._type,
+                    value: i,
+                    data_cy: `giftcard-method-${m._type}`,
+                  }))}
+                  selected={Math.max(
+                    0,
+                    paymentMethods.findIndex((m) => m._type === form.method),
+                  )}
+                  onSelect={(i: number) =>
+                    update("method", paymentMethods[i]._type as "vipps" | "bank")
+                  }
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className={styles.button}
+              disabled={submitting}
+              aria-busy={submitting || undefined}
+              data-cy="giftcard-submit"
+            >
+              {submitting ? (
+                <Spinner className={styles.spinner} />
+              ) : (
+                paymentMethods.find((m) => m._type === form.method)?.single_button_text ||
+                paymentMethods.find((m) => m._type === form.method)?.button_text ||
+                (form.method === "vipps" ? "Gi med Vipps" : "Gi med bank")
+              )}
+            </button>
+            {submitError && (
+              <p className={styles.error} role="alert" data-cy="giftcard-submit-error">
+                {submitError}
+              </p>
+            )}
+          </form>
+        )}
+
+        {step === "bank" && registration && (
+          <div className={styles.step} data-cy="giftcard-step-bank">
+            {pay?.bank_account_details?.bank_transfer_info && (
+              <p>
+                {pay.bank_account_details.bank_transfer_info.replace(
+                  /\{accountNumber\}/g,
+                  pay.bank_account_details.account_number ?? "",
+                )}
+              </p>
+            )}
+            <div className={styles.account} data-cy="giftcard-bank-details">
+              <p>
+                <strong>
+                  {pay?.bank_account_details?.account_number_prefix || "Kontonummer:"}
+                </strong>{" "}
+                {pay?.bank_account_details?.account_number}
+              </p>
+              <p data-cy="giftcard-kid">
+                <strong>{pay?.bank_account_details?.kid_prefix || "KID:"}</strong>{" "}
+                {registration.KID}
+              </p>
+              <p>
+                <strong>Beløp:</strong> {formatKroner(registration.amount)}
+              </p>
+            </div>
+            {pay?.bank_account_details?.transfer_delay_text && (
+              <p>{pay.bank_account_details.transfer_delay_text}</p>
+            )}
+            <GiftcardPurchaseDetails
+              product={page}
+              status={{
+                product: page.slug?.current ?? "",
+                units: form.units ?? 0,
+                amount: registration.amount,
+                delivery: form.delivery,
+                recipientName: form.recipientName.trim(),
+                sendAt: sendAtIso,
+                status: "pending",
+              }}
+            />
+          </div>
+        )}
+      </AnimatedSteps>
     </div>
   );
 };
