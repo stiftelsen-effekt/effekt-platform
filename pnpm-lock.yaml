@@ -478,9 +478,6 @@ importers:
       mailersend:
         specifier: ^3.7.0
         version: 3.7.0(supports-color@5.5.0)
-      moment:
-        specifier: ^2.31.0
-        version: 2.31.0
       morgan:
         specifier: ^1.12.1
         version: 1.12.1(supports-color@5.5.0)
@@ -8851,9 +8848,6 @@ packages:
   modern-tar@0.8.6:
     resolution: {integrity: sha512-LYSks0tNVqbtez/9OB0YFP6qLRSqkdAxJWOQpVaR67lNTbj2zNLyYpowkRMia5lXLCZKzxwoxkxH2MbbBR2aEg==}
     engines: {node: '>=18.0.0'}
-
-  moment@2.31.0:
-    resolution: {integrity: sha512-0acOTfMiWOheYS4eoWb80yYMb/JLvVv9SHbs2PehaDzfUG0Bw855SKyk0IKTnPGa5+U2bmi3W68l1+sGLX/pvw==}
 
   morgan@1.12.1:
     resolution: {integrity: sha512-tljKC0ex20AjO58Ob/eZ53JloycbVswbVNCHx6V6VLGzqt/w8dIynVGL0G8qVjNKwiA7sYSogCrN6QtJ82IV+g==}
@@ -20395,8 +20389,6 @@ snapshots:
   mkdirp@1.0.4: {}
 
   modern-tar@0.8.6: {}
-
-  moment@2.31.0: {}
 
   morgan@1.12.1(supports-color@5.5.0):
     dependencies:

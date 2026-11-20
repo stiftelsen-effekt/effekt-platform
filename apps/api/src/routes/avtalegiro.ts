@@ -2,7 +2,7 @@ import * as express from "express";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { sendAvtalegiroRegistered } from "../custom_modules/mail";
-import moment from "moment";
+import { isIso8601 } from "../custom_modules/dates";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { encodePlausibleData } from "../custom_modules/plausible";
 import { getFundraiserRedirectUrl } from "../custom_modules/fundraiserRedirect";
@@ -121,8 +121,7 @@ router.get("/missing/", authMiddleware.isAdmin, async (req, res, next) => {
 
     if (!date) throw new Error("Date query missing");
 
-    if (!moment(date, moment.ISO_8601, true).isValid())
-      throw new Error("Date query must be in ISO 8601 format");
+    if (!isIso8601(date)) throw new Error("Date query must be in ISO 8601 format");
 
     date = new Date(date);
 
@@ -143,8 +142,7 @@ router.get("/expected/", authMiddleware.isAdmin, async (req, res, next) => {
 
     if (!date) throw new Error("Date query missing");
 
-    if (!moment(date, moment.ISO_8601, true).isValid())
-      throw new Error("Date query must be in ISO 8601 format");
+    if (!isIso8601(date)) throw new Error("Date query must be in ISO 8601 format");
 
     date = new Date(date);
 
@@ -165,8 +163,7 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
 
     if (!date) throw new Error("Date query missing");
 
-    if (!moment(date, moment.ISO_8601, true).isValid())
-      throw new Error("Date query must be in ISO 8601 format");
+    if (!isIso8601(date)) throw new Error("Date query must be in ISO 8601 format");
 
     date = new Date(date);
 
