@@ -33,6 +33,7 @@ process.setSourceMapsEnabled(true);
 // Module#_compile is what Node's own loaders call; @types/node doesn't declare it
 type CompilableModule = NodeJS.Module & { _compile(code: string, filename: string): void };
 const compile = (module: NodeJS.Module, filename: string) => {
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-fs-filename.detect-non-literal-fs-filename -- test-only require hook; filename is the module path Node's loader resolved, never request input
   const source = fs.readFileSync(filename, "utf8");
   const { outputText } = ts.transpileModule(source, { fileName: filename, compilerOptions });
   (module as CompilableModule)._compile(outputText, filename);
