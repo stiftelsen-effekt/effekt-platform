@@ -524,6 +524,12 @@ router.get("/redirect/:orderId", async (req, res, next) => {
       if (order && order.donationID != null) {
         const donation = await DAO.donations.getByID(order.donationID);
 
+        if (await DAO.giftcards.getByKID(order.KID)) {
+          const base = config.frontend_url || "https://gieffektivt.no";
+          res.redirect(`${base}/gavekort/takk?kid=${encodeURIComponent(order.KID)}`);
+          return true;
+        }
+
         if (donation.fundraiserId) {
           // Temp hardcoded to preview frontend, should be changed to production frontend (${config.frontend_url}/)
           const plausible = encodePlausibleData({

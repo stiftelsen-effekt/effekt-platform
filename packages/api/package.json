@@ -2,7 +2,7 @@
   "name": "@effekt/api",
   "private": true,
   "version": "0.0.0",
-  "description": "The backend's tRPC contract for apps/web: the AppRouter type and the shared Min Side, donation widget and public site schemas",
+  "description": "The backend's tRPC contract for apps/web: the AppRouter type and the shared Min Side, donation widget, gift card and public site schemas",
   "exports": {
     ".": {
       "types": "./index.d.ts"
@@ -10,7 +10,8 @@
     "./minside": "./minside.ts",
     "./widget": "./widget.ts",
     "./site": "./site.ts",
-    "./impact": "./impact.ts"
+    "./impact": "./impact.ts",
+    "./giftcard": "./giftcard.ts"
   },
   "scripts": {
     "build": "pnpm --dir ../../apps/api build:types"

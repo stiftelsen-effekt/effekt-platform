@@ -17,6 +17,7 @@ import { agreementType } from "./inflationadjustment";
 import { VippsAgreement } from "./DAO_modules/vipps";
 import { isUserRegisteredInAuth0, getProfilePageLink } from "./auth0";
 import { redactForAlert } from "./requestErrors";
+import { handleGiftcardDonation } from "./giftcards/service";
 
 export function formatCurrency(currencyString) {
   return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(currencyString);
@@ -39,6 +40,10 @@ export async function sendDonationReceipt(donationID, reciever: string | null = 
     console.error(ex);
     return false;
   }
+
+  // A gift card's donation gets the gift card receipt (and marks the gift card paid)
+  const giftcardReceipt = await handleGiftcardDonation(donation, reciever);
+  if (giftcardReceipt !== null) return giftcardReceipt;
 
   /**
    * Check if the donation is the first donation for the donor
@@ -1237,7 +1242,7 @@ type SendTemplateParameters = {
   templateId: string;
   personalization?: any;
 };
-async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse | false> {
+export async function sendTemplate(params: SendTemplateParameters): Promise<APIResponse | false> {
   const mailersend = new MailerSend({
     apiKey: config.mailersend_api_key,
   });

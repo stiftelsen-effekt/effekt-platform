@@ -1283,6 +1283,10 @@ async function add(
     [donorID, paymentMethodID, externalPaymentID, sum, registeredDate, KID, metaOwnerID],
   );
 
+  // Every way a payment is registered ends here: a payment on a gift card's KID makes it paid
+  // (whether or not a receipt is sent), so its SMS can go out
+  await DAO.giftcards.markPaid(KID, new Date());
+
   publishEvent("donation:confirmed", {
     donationId: addDonationQuery.insertId,
     KID,

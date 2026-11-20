@@ -3,6 +3,7 @@ import { analysisRouter } from "./routers/analysis";
 import { configRouter } from "./routers/config";
 import { donationsRouter } from "./routers/donations";
 import { donorsRouter } from "./routers/donors";
+import { giftcardRouter } from "./routers/giftcard";
 import { giroRouter } from "./routers/giro";
 import { homeRouter } from "./routers/home";
 import { impactRouter } from "./routers/impact";
@@ -36,6 +37,8 @@ export const appRouter = router({
   minside: minsideRouter,
   // The public donation widget on the website (no login)
   widget: widgetRouter,
+  // Gift cards on the website (no login)
+  giftcard: giftcardRouter,
   // Public reads for the rest of the website: results, fundraisers, LTV (no login)
   site: siteRouter,
 });

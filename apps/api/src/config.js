@@ -35,6 +35,13 @@ module.exports = {
   api_url: process.env.EFFEKT_API_URL,
   minside_url: process.env.MIN_SIDE_URL,
   frontend_url: process.env.FRONTEND_URL,
+
+  // Gift cards (custom_modules/giftcards): SMS provider ("log" prints instead of sending; the
+  // default outside production) and the MailerSend templates. Without a template the standard
+  // donation receipt is sent and no "SMS sent" email goes out.
+  sms_provider: process.env.SMS_PROVIDER,
+  mailersend_giftcard_receipt_template_id: process.env.MAILERSEND_GIFTCARD_RECEIPT_TEMPLATE_ID,
+  mailersend_giftcard_sms_sent_template_id: process.env.MAILERSEND_GIFTCARD_SMS_SENT_TEMPLATE_ID,
   revalidate_token: process.env.REVALIDATE_TOKEN,
 
   //Shared secrets for inbound webhooks (requests are rejected when unset)

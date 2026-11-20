@@ -321,6 +321,55 @@ async function upsertReference(conn: mysql.Connection) {
   await upsert("Recurring_agreement_stopped_reasons", STOP_REASONS);
   await linkImpactCharities(conn);
   await seedExchangeRates(conn);
+  await seedGiftcardProducts(conn);
+}
+
+/**
+ * Gift card products (Giftcard_products), linked to organizations by abbreviation. Prices and
+ * texts are placeholders for local testing, not decided values.
+ */
+const GIFTCARD_PRODUCTS = [
+  {
+    slug: "malaria",
+    name: "Beskytt et barn mot malaria",
+    org: "MC",
+    price: 100,
+    singular: "barn",
+    plural: "barn",
+    sms: "Kjære {recipientName}!\n\n{senderName} har gitt deg en gave som beskytter {units} {unit} mot malaria gjennom en hel sesong.\n\n{message}\n\nSe hva gaven går til: https://gieffektivt.no/gavekort/malaria",
+  },
+  {
+    slug: "myggnett",
+    name: "Gi myggnett",
+    org: "AMF",
+    price: 60,
+    singular: "myggnett",
+    plural: "myggnett",
+    sms: "Kjære {recipientName}!\n\n{senderName} har gitt deg en gave: {units} {unit} som beskytter familier mot malaria.\n\n{message}\n\nSe hva gaven går til: https://gieffektivt.no/gavekort/myggnett",
+  },
+  {
+    slug: "vaksine",
+    name: "Vaksiner et barn",
+    org: "NI",
+    price: 200,
+    singular: "barn",
+    plural: "barn",
+    sms: "Kjære {recipientName}!\n\n{senderName} har gitt deg en gave som sørger for at {units} {unit} blir vaksinert.\n\n{message}\n\nSe hva gaven går til: https://gieffektivt.no/gavekort/vaksine",
+  },
+];
+
+async function seedGiftcardProducts(conn: mysql.Connection) {
+  for (const p of GIFTCARD_PRODUCTS) {
+    await conn.query(
+      `INSERT INTO Giftcard_products
+         (Slug, Name, Organization_ID, Unit_price, Unit_singular, Unit_plural, Sms_template)
+       SELECT ?, ?, ID, ?, ?, ?, ? FROM Organizations WHERE abbriv = ?
+       ON DUPLICATE KEY UPDATE Name = VALUES(Name), Organization_ID = VALUES(Organization_ID),
+         Unit_price = VALUES(Unit_price), Unit_singular = VALUES(Unit_singular),
+         Unit_plural = VALUES(Unit_plural), Sms_template = VALUES(Sms_template)`,
+      [p.slug, p.name, p.price, p.singular, p.plural, p.sms, p.org],
+    );
+  }
 }
 
 function mapId(segments: Segment[] | undefined, genId: number): number {
@@ -485,9 +534,11 @@ export async function topUp(conn: mysql.Connection, end: number): Promise<TopUpR
     );
     return "not-generated";
   }
-  // Idempotent; gives databases seeded before the impact tables their links and rates
+  // Idempotent; gives databases seeded before the impact tables their links and rates (and
+  // before gift cards their products)
   await linkImpactCharities(conn);
   await seedExchangeRates(conn);
+  await seedGiftcardProducts(conn);
   const previousEnd = toDay(meta.end);
   if (end <= previousEnd) {
     console.log(`Dev data is up to date (generated through ${meta.end}).`);

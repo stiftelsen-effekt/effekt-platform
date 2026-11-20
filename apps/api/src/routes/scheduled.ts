@@ -23,6 +23,7 @@ import { Payment_follow_up, Payment_intent } from "@prisma/client";
 import { previewInflationRound } from "../custom_modules/inflationadjustment";
 import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
 import { updateExchangeRates } from "../custom_modules/exchangeRates";
+import { sendDueGiftcardSms } from "../custom_modules/giftcards/service";
 import { runCompatDiff } from "../custom_modules/impact/compat/diff";
 import {
   addMembersInBatches,
@@ -390,6 +391,21 @@ router.post("/exchange-rates", authMiddleware.isAdmin, async (req, res, next) =>
     const result = await updateExchangeRates({ from });
     await DAO.logging.add("ExchangeRates", result);
     res.json(result);
+  } catch (ex) {
+    next({ ex });
+  }
+});
+
+/**
+ * Every 5 minutes (Cloud Scheduler `GiftcardSms`, dispatcher type `giftcardsms`): sends the SMS
+ * of paid gift cards whose send time has come (custom_modules/giftcards/service.ts). Logged in
+ * Import_logs as GiftcardSms when anything was due.
+ */
+router.post("/giftcard-sms", authMiddleware.isAdmin, async (req, res, next) => {
+  try {
+    const summary = await sendDueGiftcardSms();
+    if (summary.due > 0) await DAO.logging.add("GiftcardSms", summary);
+    res.json(summary);
   } catch (ex) {
     next({ ex });
   }
