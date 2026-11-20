@@ -694,7 +694,7 @@ model Mailersend_survey_responses {
   surveyID   Int
   questionID Int
   DonorID    Int
-  answer     String
+  answer     String   @db.Text
   answerID   String
   timestamp  DateTime @default(now()) @db.DateTime(0)
 
