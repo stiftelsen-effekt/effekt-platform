@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createGatewayApiProvider,
-  GATEWAYAPI_URL,
+  GATEWAYAPI_BASE_URL,
   maskPhone,
   SmsProviderError,
 } from "../custom_modules/giftcards/sms";
@@ -18,7 +18,7 @@ function fakeFetch(status: number, body: string) {
 }
 
 describe("GatewayAPI SMS provider", () => {
-  it("posts the message to the EU endpoint with a token header and integer MSISDN", async () => {
+  it("posts the message with a token header and integer MSISDN", async () => {
     const { impl, calls } = fakeFetch(
       200,
       JSON.stringify({ msg_id: "01JNN696A9E0WS89FPYGT15NBX" }),
@@ -33,7 +33,7 @@ describe("GatewayAPI SMS provider", () => {
 
     expect(result).toEqual({ id: "01JNN696A9E0WS89FPYGT15NBX" });
     expect(calls).toHaveLength(1);
-    expect(calls[0].url).toBe(GATEWAYAPI_URL);
+    expect(calls[0].url).toBe(`${GATEWAYAPI_BASE_URL}/mobile/single`);
     expect(calls[0].init.method).toBe("POST");
     expect((calls[0].init.headers as Record<string, string>).Authorization).toBe("Token tok");
     expect(JSON.parse(calls[0].init.body as string)).toEqual({
@@ -42,6 +42,18 @@ describe("GatewayAPI SMS provider", () => {
       recipient: 4791234567,
       reference: "giftcard-10",
     });
+  });
+
+  it("uses another platform's base URL when given", async () => {
+    const { impl, calls } = fakeFetch(200, "{}");
+    const provider = createGatewayApiProvider({
+      token: "tok",
+      sender: "GiEffektivt",
+      baseUrl: "https://messaging.gatewayapi.eu/",
+      fetchImpl: impl,
+    });
+    await provider.send("+4791234567", "Hei!");
+    expect(calls[0].url).toBe("https://messaging.gatewayapi.eu/mobile/single");
   });
 
   it("throws with the status and body on an error response, without the token", async () => {

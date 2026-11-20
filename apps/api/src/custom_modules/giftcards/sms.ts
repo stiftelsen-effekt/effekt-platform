@@ -2,7 +2,7 @@ const config = require("../../config.js");
 
 /**
  * Sends SMS. Providers:
- * - "gatewayapi": GatewayAPI's Messaging API (EU endpoint), the production provider
+ * - "gatewayapi": GatewayAPI's Messaging API, the production provider
  * - "log": prints the message instead of sending it; the default outside production and
  *   refused in production
  * Production without a configured provider fails closed: getSmsProvider throws and no gift card
@@ -29,7 +29,11 @@ const logProvider: SmsProvider = {
   },
 };
 
-export const GATEWAYAPI_URL = "https://messaging.gatewayapi.eu/mobile/single";
+/**
+ * GatewayAPI's Google Cloud (EU region) platform. Accounts on their EU-owned platform use
+ * https://messaging.gatewayapi.eu instead (GATEWAYAPI_BASE_URL); a token only works on its own.
+ */
+export const GATEWAYAPI_BASE_URL = "https://messaging.gatewayapi.com";
 
 /** An error from the SMS provider. Never carries the API token. */
 export class SmsProviderError extends Error {
@@ -49,10 +53,18 @@ export class SmsProviderError extends Error {
 export function createGatewayApiProvider(opts: {
   token: string;
   sender: string;
+  baseUrl?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
 }): SmsProvider {
-  const { token, sender, fetchImpl = fetch, timeoutMs = 15_000 } = opts;
+  const {
+    token,
+    sender,
+    baseUrl = GATEWAYAPI_BASE_URL,
+    fetchImpl = fetch,
+    timeoutMs = 15_000,
+  } = opts;
+  const url = `${baseUrl.replace(/\/+$/, "")}/mobile/single`;
   if (!token) throw new Error("GATEWAYAPI_TOKEN is not set");
   if (!/^[A-Za-z0-9 ]{1,11}$/.test(sender)) {
     throw new Error(`Invalid SMS sender "${sender}" (1–11 characters, A–Z, a–z, 0–9)`);
@@ -61,7 +73,7 @@ export function createGatewayApiProvider(opts: {
     name: "gatewayapi",
     async send(to, text, reference) {
       if (!/^\+\d{8,15}$/.test(to)) throw new SmsProviderError("Recipient is not E.164", null);
-      const res = await fetchImpl(GATEWAYAPI_URL, {
+      const res = await fetchImpl(url, {
         method: "POST",
         headers: {
           Authorization: `Token ${token}`,
@@ -107,6 +119,7 @@ export function getSmsProvider(): SmsProvider {
       return createGatewayApiProvider({
         token: config.gatewayapi_token,
         sender: config.sms_sender || "GiEffektivt",
+        baseUrl: config.gatewayapi_base_url || undefined,
       });
     default:
       throw new Error(`SMS provider not configured (SMS_PROVIDER="${name}")`);

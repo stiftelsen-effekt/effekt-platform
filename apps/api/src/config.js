@@ -43,6 +43,7 @@ module.exports = {
   // is the alphanumeric sender shown to the recipient (max 11 characters, no æøå).
   sms_provider: process.env.SMS_PROVIDER,
   gatewayapi_token: process.env.GATEWAYAPI_TOKEN,
+  gatewayapi_base_url: process.env.GATEWAYAPI_BASE_URL,
   sms_sender: process.env.SMS_SENDER,
   mailersend_giftcard_receipt_template_id: process.env.MAILERSEND_GIFTCARD_RECEIPT_TEMPLATE_ID,
   mailersend_giftcard_sms_sent_template_id: process.env.MAILERSEND_GIFTCARD_SMS_SENT_TEMPLATE_ID,
