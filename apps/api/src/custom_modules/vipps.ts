@@ -6,7 +6,7 @@ const config = require("./../config");
 import crypto from "crypto";
 import paymentMethods from "../enums/paymentMethods";
 import request from "request-promise-native";
-import moment from "moment";
+import { formatIsoDay } from "./dates";
 import { pollLoop } from "./pollLoop";
 
 //Timings selected based on the vipps guidelines
@@ -1002,7 +1002,7 @@ module.exports = {
     }
 
     // This is the date format that Vipps accepts
-    const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
+    const formattedDueDate = formatIsoDay(dueDate);
 
     const token = await this.fetchToken();
     if (token === false) return false;
@@ -1500,7 +1500,7 @@ module.exports = {
 
         if (await this.hasChargedDueMonth(agreement.ID, dueDate)) continue;
 
-        const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
+        const formattedDueDate = formatIsoDay(dueDate);
         console.log(
           "Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id,
         );

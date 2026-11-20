@@ -1,4 +1,4 @@
-import moment from "moment";
+import { isNorwegianDate, parseNorwegianDate } from "../dates";
 import { parse } from "csv-parse/sync";
 
 const parseUtil = require("./util");
@@ -89,7 +89,7 @@ export const validateReport = (report): string | null => {
     const row = data[i];
     const line = `row ${i + 1}`;
     if (row.length < REQUIRED_COLUMNS) return `${line} has ${row.length} columns`;
-    if (!moment.utc(row[fieldMapping.date], "DD.MM.YYYY", true).isValid()) {
+    if (!isNorwegianDate(row[fieldMapping.date])) {
       return `${line} has no date in the first column (DD.MM.YYYY)`;
     }
     const amount = Number(row[fieldMapping.sum].replace(/\./g, "").replace(/,/g, "."));
@@ -105,9 +105,9 @@ export const validateReport = (report): string | null => {
  * @param {Array<string>} row
  * @returns {BankCustomTransactions}
  */
-const parseRow = (row: Array<string>) => {
+export const parseRow = (row: Array<string>) => {
   return {
-    date: moment.utc(row[fieldMapping.date], "DD.MM.YYYY"),
+    date: parseNorwegianDate(row[fieldMapping.date]),
     message: row[fieldMapping.message].replace(/(\r\n|\r|\n)/g, ""),
     amount: Number(row[fieldMapping.sum].replace(/\./g, "").replace(/,/g, ".")),
     KID: parseUtil.extractKID(row[fieldMapping.KID]),

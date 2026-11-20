@@ -1,4 +1,5 @@
 import moment from "moment";
+import { parseNorwegianDate } from "../dates";
 import { parse } from "csv-parse/sync";
 const parseUtil = require("./util");
 
@@ -175,7 +176,7 @@ const updateDateRange = (transaction: VippsTransaction, currentMinDate, currentM
 const buildTransactionFromLegacyArray = (inputArray): VippsTransaction | false => {
   if (inputArray[legacyFieldMapping.TransactionType] !== "Salg") return false;
   let transaction = {
-    date: moment.utc(inputArray[legacyFieldMapping.SalesDate], "DD.MM.YYYY"),
+    date: parseNorwegianDate(inputArray[legacyFieldMapping.SalesDate]),
     location: inputArray[legacyFieldMapping.SalesLocation],
     transactionID: inputArray[legacyFieldMapping.TransactionID],
     amount: parseAmount(inputArray[legacyFieldMapping.GrossAmount]),
