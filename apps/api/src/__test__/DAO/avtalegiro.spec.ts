@@ -1,6 +1,4 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import sinon from "sinon";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import { DAO } from "../../custom_modules/DAO";
 import { Distribution, DistributionInput } from "../../schemas/types";
 
@@ -90,18 +88,20 @@ describe("DAO avtalegiroagreements", () => {
     let rollbackTransactionStub;
     let distributionAddStub;
     beforeEach(() => {
-      queryStub = sinon.stub(DAO, "query");
-      metaStub = sinon.stub(DAO.meta, "getDefaultOwnerID");
+      queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      metaStub = vi.spyOn(DAO.meta, "getDefaultOwnerID").mockReturnValue(undefined as any);
 
-      // Create a fake mysql connection using sinon
+      // Create a fake mysql connection with spies
       const connection = {
         query: queryStub,
       } as any;
 
-      startTransactionStub = sinon.stub(DAO, "startTransaction").resolves(connection);
-      commitTransactionStub = sinon.stub(DAO, "commitTransaction");
-      rollbackTransactionStub = sinon.stub(DAO, "rollbackTransaction");
-      distributionAddStub = sinon.stub(DAO.distributions, "add");
+      startTransactionStub = vi.spyOn(DAO, "startTransaction").mockResolvedValue(connection);
+      commitTransactionStub = vi.spyOn(DAO, "commitTransaction").mockReturnValue(undefined as any);
+      rollbackTransactionStub = vi
+        .spyOn(DAO, "rollbackTransaction")
+        .mockReturnValue(undefined as any);
+      distributionAddStub = vi.spyOn(DAO.distributions, "add").mockReturnValue(undefined as any);
     });
 
     it("Should call get default owner ID if none is provided", async () => {
@@ -111,7 +111,7 @@ describe("DAO avtalegiroagreements", () => {
         newDistributionInput,
       );
 
-      expect(metaStub.calledOnce).to.be.true;
+      expect(metaStub).toHaveBeenCalledOnce();
     });
 
     it("Should not call get default owner ID if one is provided", async () => {
@@ -122,11 +122,11 @@ describe("DAO avtalegiroagreements", () => {
         1,
       );
 
-      expect(metaStub.called).to.be.false;
+      expect(metaStub).not.toHaveBeenCalled();
     });
 
     it("Should abort and rollback if updating KID fails", async () => {
-      queryStub.onFirstCall().rejects();
+      queryStub.mockRejectedValueOnce(new Error("Error"));
 
       try {
         await DAO.avtalegiroagreements.replaceDistribution(
@@ -135,15 +135,15 @@ describe("DAO avtalegiroagreements", () => {
           newDistributionInput,
         );
       } catch (ex) {
-        expect(ex).to.not.be.undefined;
-        expect(startTransactionStub.calledOnce).to.be.true;
-        expect(commitTransactionStub.called).to.be.false;
-        expect(rollbackTransactionStub.calledOnce).to.be.true;
+        expect(ex).not.toBeUndefined();
+        expect(startTransactionStub).toHaveBeenCalledOnce();
+        expect(commitTransactionStub).not.toHaveBeenCalled();
+        expect(rollbackTransactionStub).toHaveBeenCalledOnce();
       }
     });
 
     it("Should abort and rollback if updating donations fails", async () => {
-      queryStub.onSecondCall().rejects();
+      queryStub.mockRejectedValueOnce(new Error("Error"));
 
       try {
         await DAO.avtalegiroagreements.replaceDistribution(
@@ -152,15 +152,15 @@ describe("DAO avtalegiroagreements", () => {
           newDistributionInput,
         );
       } catch (ex) {
-        expect(ex).to.not.be.undefined;
-        expect(startTransactionStub.calledOnce).to.be.true;
-        expect(commitTransactionStub.called).to.be.false;
-        expect(rollbackTransactionStub.calledOnce).to.be.true;
+        expect(ex).not.toBeUndefined();
+        expect(startTransactionStub).toHaveBeenCalledOnce();
+        expect(commitTransactionStub).not.toHaveBeenCalled();
+        expect(rollbackTransactionStub).toHaveBeenCalledOnce();
       }
     });
 
     it("Should abort and rollback if adding new distribution fails", async () => {
-      distributionAddStub.rejects();
+      distributionAddStub.mockRejectedValue(new Error("Error"));
 
       try {
         await DAO.avtalegiroagreements.replaceDistribution(
@@ -169,15 +169,15 @@ describe("DAO avtalegiroagreements", () => {
           newDistributionInput,
         );
       } catch (ex) {
-        expect(ex).to.not.be.undefined;
-        expect(startTransactionStub.calledOnce).to.be.true;
-        expect(commitTransactionStub.called).to.be.false;
-        expect(rollbackTransactionStub.calledOnce).to.be.true;
+        expect(ex).not.toBeUndefined();
+        expect(startTransactionStub).toHaveBeenCalledOnce();
+        expect(commitTransactionStub).not.toHaveBeenCalled();
+        expect(rollbackTransactionStub).toHaveBeenCalledOnce();
       }
     });
 
     it("Should abort and rollback if adding link between old and new distribution fails", async () => {
-      queryStub.onThirdCall().rejects();
+      queryStub.mockRejectedValueOnce(new Error("Error"));
 
       try {
         await DAO.avtalegiroagreements.replaceDistribution(
@@ -186,10 +186,10 @@ describe("DAO avtalegiroagreements", () => {
           newDistributionInput,
         );
       } catch (ex) {
-        expect(ex).to.not.be.undefined;
-        expect(startTransactionStub.calledOnce).to.be.true;
-        expect(commitTransactionStub.called).to.be.false;
-        expect(rollbackTransactionStub.calledOnce).to.be.true;
+        expect(ex).not.toBeUndefined();
+        expect(startTransactionStub).toHaveBeenCalledOnce();
+        expect(commitTransactionStub).not.toHaveBeenCalled();
+        expect(rollbackTransactionStub).toHaveBeenCalledOnce();
       }
     });
 
@@ -200,33 +200,31 @@ describe("DAO avtalegiroagreements", () => {
         newDistributionInput,
       );
 
-      expect(startTransactionStub.calledOnce).to.be.true;
-      expect(commitTransactionStub.calledOnce).to.be.true;
-      expect(rollbackTransactionStub.called).to.be.false;
+      expect(startTransactionStub).toHaveBeenCalledOnce();
+      expect(commitTransactionStub).toHaveBeenCalledOnce();
+      expect(rollbackTransactionStub).not.toHaveBeenCalled();
     });
 
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
   });
 
   describe("queries rewritten for the multiple cause area schema", () => {
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
 
     it("getMissingForDate finds the donor through Distributions", async () => {
       const rows = [{ ID: 1, amount: 500 }];
-      const queryStub = sinon.stub(DAO, "query").resolves([rows, []]);
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([rows, []]);
 
-      expect(await DAO.avtalegiroagreements.getMissingForDate(new Date(2024, 10, 19))).to.equal(
-        rows,
-      );
+      expect(await DAO.avtalegiroagreements.getMissingForDate(new Date(2024, 10, 19))).toBe(rows);
 
-      const [sql, params] = queryStub.firstCall.args;
-      expect(sql).to.not.match(/Combining_table|call /i);
-      expect(sql).to.contain("INNER JOIN Distributions");
-      expect(params).to.deep.equal([
+      const [sql, params] = queryStub.mock.calls[0];
+      expect(sql).not.toMatch(/Combining_table|call /i);
+      expect(sql).toContain("INNER JOIN Distributions");
+      expect(params).toStrictEqual([
         ...Array(8).fill("2024-11-19"),
         ["CLAIMED", "COMPLETED"],
         "2024-11-19",
@@ -235,18 +233,18 @@ describe("DAO avtalegiroagreements", () => {
     });
 
     it("getMissingForDate leaves out agreements claimed on another date that month", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([[], []]);
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([[], []]);
 
       await DAO.avtalegiroagreements.getMissingForDate(new Date(2024, 10, 19));
 
-      const [sql] = queryStub.firstCall.args;
-      expect(sql).to.contain("FROM Avtalegiro_agreement_charges AS C");
-      expect(sql).to.contain("C.due_date <> DATE(?)");
-      expect(sql).to.contain("C.status IN (?)");
+      const [sql] = queryStub.mock.calls[0];
+      expect(sql).toContain("FROM Avtalegiro_agreement_charges AS C");
+      expect(sql).toContain("C.due_date <> DATE(?)");
+      expect(sql).toContain("C.status IN (?)");
     });
 
     it("getRecievedDonationsForDate maps donations", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([
         [
           {
             ID: 3,
@@ -265,8 +263,8 @@ describe("DAO avtalegiroagreements", () => {
         new Date(2024, 10, 19),
       );
 
-      expect(queryStub.firstCall.args[0]).to.not.match(/Combining_table|call /i);
-      expect(result).to.deep.equal([
+      expect(queryStub.mock.calls[0][0]).not.toMatch(/Combining_table|call /i);
+      expect(result).toStrictEqual([
         {
           id: 3,
           kid: "123",
@@ -281,9 +279,9 @@ describe("DAO avtalegiroagreements", () => {
     });
 
     it("getAgreement returns the donor id separately from the agreement id", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([[{ ID: 7, donorId: 12 }], []]);
-      expect(await DAO.avtalegiroagreements.getAgreement(7)).to.deep.equal({ ID: 7, donorId: 12 });
-      expect(queryStub.firstCall.args[0]).to.contain("Donors.ID as donorId");
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([[{ ID: 7, donorId: 12 }], []]);
+      expect(await DAO.avtalegiroagreements.getAgreement(7)).toStrictEqual({ ID: 7, donorId: 12 });
+      expect(queryStub.mock.calls[0][0]).toContain("Donors.ID as donorId");
     });
   });
 });

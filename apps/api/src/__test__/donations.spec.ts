@@ -1,7 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express from "express";
-import sinon from "sinon";
 import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
@@ -21,21 +20,21 @@ describe("donations", () => {
     });
 
     describe("POST /donations/register", () => {
-      let donorsGetIDByEmailStub: sinon.SinonStub;
-      let donorsGetByIDStub: sinon.SinonStub;
-      let donorsAddStub: sinon.SinonStub;
-      let addTaxUnitStub: sinon.SinonStub;
-      let taxGetByDonorIdAndSsnStub: sinon.SinonStub;
-      let createKIDStub: sinon.SinonStub;
-      let distributionsGetStandardDistributionByCauseAreaIDStub: sinon.SinonStub;
-      let distributionsGetKIDBySplitStub: sinon.SinonStub;
-      let addReferralCodeStub: sinon.SinonStub;
+      let donorsGetIDByEmailStub: MockInstance;
+      let donorsGetByIDStub: MockInstance;
+      let donorsAddStub: MockInstance;
+      let addTaxUnitStub: MockInstance;
+      let taxGetByDonorIdAndSsnStub: MockInstance;
+      let createKIDStub: MockInstance;
+      let distributionsGetStandardDistributionByCauseAreaIDStub: MockInstance;
+      let distributionsGetKIDBySplitStub: MockInstance;
+      let addReferralCodeStub: MockInstance;
 
       function withDonor(
         donor: Partial<Awaited<ReturnType<typeof DAO.donors.getByID>>> | null,
       ): void {
-        donorsGetIDByEmailStub.resolves(donor ? donor.id : null);
-        donorsGetByIDStub.resolves(donor);
+        donorsGetIDByEmailStub.mockResolvedValue(donor ? donor.id : null);
+        donorsGetByIDStub.mockResolvedValue(donor);
       }
 
       function withCauseAreaStandardDistribution(
@@ -43,38 +42,45 @@ describe("donations", () => {
           ReturnType<typeof DAO.distributions.getStandardDistributionByCauseAreaID>
         >,
       ): void {
-        distributionsGetStandardDistributionByCauseAreaIDStub.returns(distribution);
+        distributionsGetStandardDistributionByCauseAreaIDStub.mockReturnValue(distribution);
       }
 
       function withCreatedKID(KID: string) {
-        createKIDStub.resolves(KID);
+        createKIDStub.mockResolvedValue(KID);
       }
 
       function withDistributionsKID(KID?: string) {
-        distributionsGetKIDBySplitStub.resolves(KID);
+        distributionsGetKIDBySplitStub.mockResolvedValue(KID);
       }
 
       function withTaxUnit(
         taxUnit: Partial<Awaited<ReturnType<typeof DAO.tax.getByDonorIdAndSsn>>> | null,
       ) {
-        taxGetByDonorIdAndSsnStub.resolves(taxUnit);
+        taxGetByDonorIdAndSsnStub.mockResolvedValue(taxUnit);
       }
 
       beforeEach(() => {
-        donorsGetIDByEmailStub = sinon.stub(DAO.donors, "getIDbyEmail");
-        donorsGetByIDStub = sinon.stub(DAO.donors, "getByID");
-        donorsAddStub = sinon.stub(DAO.donors, "add");
-        addTaxUnitStub = sinon.stub(DAO.tax, "addTaxUnit");
-        distributionsGetStandardDistributionByCauseAreaIDStub = sinon.stub(
-          DAO.distributions,
-          "getStandardDistributionByCauseAreaID",
-        );
-        createKIDStub = sinon.stub(donationHelpers, "createKID");
-        distributionsGetKIDBySplitStub = sinon.stub(DAO.distributions, "getKIDbySplit");
-        sinon.stub(DAO.distributions, "add");
-        sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent");
-        taxGetByDonorIdAndSsnStub = sinon.stub(DAO.tax, "getByDonorIdAndSsn");
-        addReferralCodeStub = sinon.stub(DAO.donationReferralCodes, "add");
+        donorsGetIDByEmailStub = vi
+          .spyOn(DAO.donors, "getIDbyEmail")
+          .mockReturnValue(undefined as any);
+        donorsGetByIDStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
+        donorsAddStub = vi.spyOn(DAO.donors, "add").mockReturnValue(undefined as any);
+        addTaxUnitStub = vi.spyOn(DAO.tax, "addTaxUnit").mockReturnValue(undefined as any);
+        distributionsGetStandardDistributionByCauseAreaIDStub = vi
+          .spyOn(DAO.distributions, "getStandardDistributionByCauseAreaID")
+          .mockReturnValue(undefined as any);
+        createKIDStub = vi.spyOn(donationHelpers, "createKID").mockReturnValue(undefined as any);
+        distributionsGetKIDBySplitStub = vi
+          .spyOn(DAO.distributions, "getKIDbySplit")
+          .mockReturnValue(undefined as any);
+        vi.spyOn(DAO.distributions, "add").mockReturnValue(undefined as any);
+        vi.spyOn(DAO.initialpaymentmethod, "addPaymentIntent").mockReturnValue(undefined as any);
+        taxGetByDonorIdAndSsnStub = vi
+          .spyOn(DAO.tax, "getByDonorIdAndSsn")
+          .mockReturnValue(undefined as any);
+        addReferralCodeStub = vi
+          .spyOn(DAO.donationReferralCodes, "add")
+          .mockReturnValue(undefined as any);
 
         withDonor(null);
         withCauseAreaStandardDistribution([]);
@@ -107,14 +113,14 @@ describe("donations", () => {
         };
         const response = await request(server).post("/donations/register").send(body).expect(200);
 
-        expect(donorsAddStub.calledOnce).to.be.true;
-        expect(donorsAddStub.firstCall.args[0]).to.deep.equal({
+        expect(donorsAddStub).toHaveBeenCalledOnce();
+        expect(donorsAddStub.mock.calls[0][0]).toStrictEqual({
           email: body.donor.email,
           full_name: body.donor.name,
           newsletter: body.donor.newsletter,
         });
 
-        expect(response.body).to.deep.equal({
+        expect(response.body).toStrictEqual({
           content: {
             hasAnsweredReferral: false,
             registrationToken: null,
@@ -126,7 +132,7 @@ describe("donations", () => {
 
       it("should add tax unit to added donor", async () => {
         const donorId = 123;
-        donorsAddStub.resolves(donorId);
+        donorsAddStub.mockResolvedValue(donorId);
 
         const body = {
           distributionCauseAreas: [
@@ -153,10 +159,10 @@ describe("donations", () => {
         };
         await request(server).post("/donations/register").send(body).expect(200);
 
-        expect(addTaxUnitStub.calledOnce).to.be.true;
-        expect(addTaxUnitStub.firstCall.args[0]).to.equal(donorId);
-        expect(addTaxUnitStub.firstCall.args[1]).to.equal(body.donor.ssn);
-        expect(addTaxUnitStub.firstCall.args[2]).to.equal(body.donor.name);
+        expect(addTaxUnitStub).toHaveBeenCalledOnce();
+        expect(addTaxUnitStub.mock.calls[0][0]).toBe(donorId);
+        expect(addTaxUnitStub.mock.calls[0][1]).toBe(body.donor.ssn);
+        expect(addTaxUnitStub.mock.calls[0][2]).toBe(body.donor.name);
       });
 
       it("should not add tax unit if donor already has one", async () => {
@@ -188,7 +194,7 @@ describe("donations", () => {
         };
         await request(server).post("/donations/register").send(body).expect(200);
 
-        expect(addTaxUnitStub.called).to.be.false;
+        expect(addTaxUnitStub).not.toHaveBeenCalled();
       });
 
       it("should return 400 for the discontinued Swish and AutoGiro methods", async () => {
@@ -204,7 +210,7 @@ describe("donations", () => {
             })
             .expect(400);
         }
-        expect(createKIDStub.called).to.be.false;
+        expect(createKIDStub).not.toHaveBeenCalled();
       });
 
       it("should return 400 if missing body", async () => {
@@ -242,8 +248,8 @@ describe("donations", () => {
 
         await request(server).post("/donations/register").send(body).expect(200);
 
-        expect(addReferralCodeStub.calledOnce).to.be.true;
-        expect(addReferralCodeStub.firstCall.args).to.deep.equal([KID, "match-2026"]);
+        expect(addReferralCodeStub).toHaveBeenCalledOnce();
+        expect(addReferralCodeStub.mock.calls[0]).toStrictEqual([KID, "match-2026"]);
       });
 
       it("should not store a referral code when it is missing", async () => {
@@ -275,7 +281,7 @@ describe("donations", () => {
 
         await request(server).post("/donations/register").send(body).expect(200);
 
-        expect(addReferralCodeStub.called).to.be.false;
+        expect(addReferralCodeStub).not.toHaveBeenCalled();
       });
 
       it("should return 400 if the referral code is too long", async () => {
@@ -306,6 +312,6 @@ describe("donations", () => {
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 });

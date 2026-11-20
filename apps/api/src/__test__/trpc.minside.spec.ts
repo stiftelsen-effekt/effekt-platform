@@ -1,10 +1,9 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express, { type Request, type Response } from "express";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import request from "supertest";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { donorImpact } from "../custom_modules/impact/donations";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -38,9 +37,9 @@ type Caller = ReturnType<typeof callerWith>;
 const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
+    expect(err.code).toBe(code);
   }
 };
 
@@ -54,28 +53,28 @@ const dbDonor = {
 };
 
 describe("tRPC minside router", () => {
-  let getByID: sinon.SinonStub;
-  let getDonationImpacts: sinon.SinonStub;
+  let getByID: MockInstance;
+  let getDonationImpacts: MockInstance;
 
   beforeEach(() => {
-    getByID = sinon.stub(DAO.donors, "getByID").resolves(dbDonor as any);
+    getByID = vi.spyOn(DAO.donors, "getByID").mockResolvedValue(dbDonor as any);
     // minside.donations adds impact; without figures (an empty map) the donations stay as they are
-    getDonationImpacts = sinon.stub(donorImpact, "getDonationImpacts").resolves(new Map());
+    getDonationImpacts = vi.spyOn(donorImpact, "getDonationImpacts").mockResolvedValue(new Map());
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("profile", () => {
     it("rejects anonymous callers", async () => {
       await expectTrpcError(callerWith().minside.profile({ donorId: 7 }), "UNAUTHORIZED");
-      expect(getByID.called).to.be.false;
+      expect(getByID).not.toHaveBeenCalled();
     });
 
     it("rejects another donor", async () => {
       await expectTrpcError(theDonor().minside.profile({ donorId: 8 }), "FORBIDDEN");
-      expect(getByID.called).to.be.false;
+      expect(getByID).not.toHaveBeenCalled();
     });
 
     it("rejects the donor without the read:donations permission", async () => {
@@ -83,37 +82,37 @@ describe("tRPC minside router", () => {
         callerWith({ permissions: ["read:profile"], donorId: 7 }).minside.profile({ donorId: 7 }),
         "FORBIDDEN",
       );
-      expect(getByID.called).to.be.false;
+      expect(getByID).not.toHaveBeenCalled();
     });
 
     it("rejects ids that are not positive integers", async () => {
       for (const donorId of [1.5, 0, -7, "7", "1.2e4"]) {
         await expectTrpcError(theDonor().minside.profile({ donorId } as any), "BAD_REQUEST");
       }
-      expect(getByID.called).to.be.false;
+      expect(getByID).not.toHaveBeenCalled();
     });
 
     it("returns the profile to the donor, with only the declared fields", async () => {
       const profile = await theDonor().minside.profile({ donorId: 7 });
-      expect(profile).to.deep.equal({
+      expect(profile).toStrictEqual({
         id: 7,
         name: "Jack Torrence",
         email: "jack@overlookhotel.com",
         newsletter: true,
         registered: "2020-01-01T00:00:00.000Z",
       });
-      expect(getByID.calledOnceWith(7)).to.be.true;
+      expect(getByID).toHaveBeenCalledExactlyOnceWith(7);
     });
 
     it("returns any donor's profile to an admin", async () => {
       const profile = await callerWith({
         permissions: ["read:donations", "admin"],
       }).minside.profile({ donorId: 7 });
-      expect(profile.id).to.equal(7);
+      expect(profile.id).toBe(7);
     });
 
     it("answers NOT_FOUND for a missing donor", async () => {
-      getByID.resolves(null);
+      getByID.mockResolvedValue(null);
       await expectTrpcError(theDonor().minside.profile({ donorId: 7 }), "NOT_FOUND");
     });
   });
@@ -179,14 +178,14 @@ describe("tRPC minside router", () => {
     const procedures: {
       name: string;
       permission: string;
-      stub: () => sinon.SinonStub;
+      stub: () => MockInstance;
       call: (caller: Caller, input: any) => Promise<unknown>;
       expected: unknown;
     }[] = [
       {
         name: "taxUnits",
         permission: "read:profile",
-        stub: () => sinon.stub(DAO.tax, "getByDonorId").resolves([dbTaxUnit] as any),
+        stub: () => vi.spyOn(DAO.tax, "getByDonorId").mockResolvedValue([dbTaxUnit] as any),
         call: (caller, input) => caller.minside.taxUnits(input),
         expected: [{ ...dbTaxUnit, registered: "2021-02-03T04:05:06.000Z" }],
       },
@@ -194,7 +193,9 @@ describe("tRPC minside router", () => {
         name: "donationsAggregated",
         permission: "read:donations",
         stub: () =>
-          sinon.stub(DAO.donations, "getYearlyAggregateByDonorId").resolves([dbAggregate] as any),
+          vi
+            .spyOn(DAO.donations, "getYearlyAggregateByDonorId")
+            .mockResolvedValue([dbAggregate] as any),
         call: (caller, input) => caller.minside.donationsAggregated(input),
         // ID, causeAreaID and chartColor are not declared (Min Side doesn't use them)
         expected: [
@@ -209,7 +210,7 @@ describe("tRPC minside router", () => {
       {
         name: "donations",
         permission: "read:donations",
-        stub: () => sinon.stub(DAO.donations, "getByDonorId").resolves([dbDonation] as any),
+        stub: () => vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([dbDonation] as any),
         call: (caller, input) => caller.minside.donations(input),
         expected: [{ ...dbDonation, timestamp: "2023-05-06T07:08:09.000Z" }],
       },
@@ -217,9 +218,9 @@ describe("tRPC minside router", () => {
         name: "distributions",
         permission: "read:donations",
         stub: () =>
-          sinon
-            .stub(DAO.distributions, "getAllByDonor")
-            .resolves({ donorID: 7, distributions: [distribution("111")] } as any),
+          vi
+            .spyOn(DAO.distributions, "getAllByDonor")
+            .mockResolvedValue({ donorID: 7, distributions: [distribution("111")] } as any),
         call: (caller, input) => caller.minside.distributions(input),
         // fundraiserTransactionId and widgetDisplayName are not declared
         expected: [
@@ -259,50 +260,50 @@ describe("tRPC minside router", () => {
       const second = { ...dbDonation, id: 102, timestamp: new Date("2023-06-06T07:08:09.000Z") };
 
       beforeEach(() => {
-        sinon.stub(DAO.donations, "getByDonorId").resolves([dbDonation, second] as any);
+        vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([dbDonation, second] as any);
       });
 
       it("adds each donation's impact, looked up for the caller's donor only", async () => {
         // A map that also holds another donor's donation (id 999) must not leak into the answer
-        getDonationImpacts.resolves(
+        getDonationImpacts.mockResolvedValue(
           new Map([
             [101, [amf]],
             [999, [{ ...amf, amount: 5 }]],
           ]),
         );
         const result = await theDonor().minside.donations({ donorId: 7 });
-        expect(getDonationImpacts.calledOnceWithExactly({ donorId: 7 })).to.be.true;
-        expect(result.map((d) => d.id)).to.deep.equal([101, 102]);
-        expect(result[0].impact).to.deep.equal([amf]);
+        expect(getDonationImpacts).toHaveBeenCalledExactlyOnceWith({ donorId: 7 });
+        expect(result.map((d) => d.id)).toStrictEqual([101, 102]);
+        expect(result[0].impact).toStrictEqual([amf]);
         // No figures for 102 (no exchange rate for its day): no impact field, Min Side falls back
-        expect(result[1]).to.not.have.property("impact");
+        expect(result[1]).not.toHaveProperty("impact");
       });
 
       it("never looks up another donor's impact", async () => {
         await expectTrpcError(theDonor().minside.donations({ donorId: 8 }), "FORBIDDEN");
-        expect(getDonationImpacts.called).to.be.false;
+        expect(getDonationImpacts).not.toHaveBeenCalled();
       });
 
       it("looks up the requested donor's impact for an admin", async () => {
         await callerWith({ permissions: ["read:donations", "admin"] }).minside.donations({
           donorId: 8,
         });
-        expect(getDonationImpacts.calledOnceWithExactly({ donorId: 8 })).to.be.true;
+        expect(getDonationImpacts).toHaveBeenCalledExactlyOnceWith({ donorId: 8 });
       });
 
       it("still lists the donations when the impact lookup fails", async () => {
-        const error = sinon.stub(console, "error");
-        getDonationImpacts.rejects(new Error("Impact tables unavailable"));
+        const error = vi.spyOn(console, "error").mockReturnValue(undefined);
+        getDonationImpacts.mockRejectedValue(new Error("Impact tables unavailable"));
         const result = await theDonor().minside.donations({ donorId: 7 });
-        expect(result.map((d) => d.id)).to.deep.equal([101, 102]);
-        expect(result.some((d) => "impact" in d)).to.be.false;
-        expect(error.calledOnce).to.be.true;
+        expect(result.map((d) => d.id)).toStrictEqual([101, 102]);
+        expect(result.some((d) => "impact" in d)).toBe(false);
+        expect(error).toHaveBeenCalledOnce();
       });
     });
 
     for (const procedure of procedures) {
       describe(procedure.name, () => {
-        let stub: sinon.SinonStub;
+        let stub: MockInstance;
         const donor = (donorId = 7) => callerWith({ permissions: [procedure.permission], donorId });
 
         beforeEach(() => {
@@ -311,12 +312,12 @@ describe("tRPC minside router", () => {
 
         it("rejects anonymous callers", async () => {
           await expectTrpcError(procedure.call(callerWith(), { donorId: 7 }), "UNAUTHORIZED");
-          expect(stub.called).to.be.false;
+          expect(stub).not.toHaveBeenCalled();
         });
 
         it("rejects another donor", async () => {
           await expectTrpcError(procedure.call(donor(), { donorId: 8 }), "FORBIDDEN");
-          expect(stub.called).to.be.false;
+          expect(stub).not.toHaveBeenCalled();
         });
 
         it(`rejects the donor without the ${procedure.permission} permission`, async () => {
@@ -325,7 +326,7 @@ describe("tRPC minside router", () => {
             procedure.call(callerWith({ permissions: [other], donorId: 7 }), { donorId: 7 }),
             "FORBIDDEN",
           );
-          expect(stub.called).to.be.false;
+          expect(stub).not.toHaveBeenCalled();
         });
 
         it("rejects ids that are not positive integers, and unknown fields", async () => {
@@ -339,13 +340,13 @@ describe("tRPC minside router", () => {
           ]) {
             await expectTrpcError(procedure.call(donor(), input), "BAD_REQUEST");
           }
-          expect(stub.called).to.be.false;
+          expect(stub).not.toHaveBeenCalled();
         });
 
         it("returns the donor's data with only the declared fields", async () => {
-          expect(await procedure.call(donor(), { donorId: 7 })).to.deep.equal(procedure.expected);
-          expect(stub.calledOnce).to.be.true;
-          expect(stub.firstCall.args[0]).to.equal(7);
+          expect(await procedure.call(donor(), { donorId: 7 })).toStrictEqual(procedure.expected);
+          expect(stub).toHaveBeenCalledOnce();
+          expect(stub.mock.calls[0][0]).toBe(7);
         });
 
         it("returns any donor's data to an admin", async () => {
@@ -353,11 +354,11 @@ describe("tRPC minside router", () => {
             callerWith({ permissions: [procedure.permission, "admin"] }),
             { donorId: 7 },
           );
-          expect(result).to.deep.equal(procedure.expected);
+          expect(result).toStrictEqual(procedure.expected);
         });
 
         it("fails as an internal error when the data doesn't match the output schema", async () => {
-          stub.resolves(
+          stub.mockResolvedValue(
             procedure.name === "distributions"
               ? { donorID: 7, distributions: [{ kid: 1 }] }
               : [{ unexpected: true }],
@@ -368,12 +369,12 @@ describe("tRPC minside router", () => {
     }
 
     it("taxUnits uses the NO locale by default and passes SV on", async () => {
-      const stub = sinon.stub(DAO.tax, "getByDonorId").resolves([]);
+      const stub = vi.spyOn(DAO.tax, "getByDonorId").mockResolvedValue([]);
       const caller = callerWith({ permissions: ["read:profile"], donorId: 7 });
       await caller.minside.taxUnits({ donorId: 7 });
       await caller.minside.taxUnits({ donorId: 7, locale: "SV" });
-      expect(stub.firstCall.args).to.deep.equal([7, "NO"]);
-      expect(stub.secondCall.args).to.deep.equal([7, "SV"]);
+      expect(stub.mock.calls[0]).toStrictEqual([7, "NO"]);
+      expect(stub.mock.calls[1]).toStrictEqual([7, "SV"]);
       await expectTrpcError(
         caller.minside.taxUnits({ donorId: 7, locale: "DK" } as any),
         "BAD_REQUEST",
@@ -381,7 +382,7 @@ describe("tRPC minside router", () => {
     });
 
     it("distributions returns only the given KIDs when kids is set", async () => {
-      sinon.stub(DAO.distributions, "getAllByDonor").resolves({
+      vi.spyOn(DAO.distributions, "getAllByDonor").mockResolvedValue({
         donorID: 7,
         distributions: [distribution("111"), distribution("222"), distribution("333")],
       } as any);
@@ -389,9 +390,9 @@ describe("tRPC minside router", () => {
       const kids = async (input: { kids?: string[] }) =>
         (await caller.minside.distributions({ donorId: 7, ...input })).map((d) => d.kid);
 
-      expect(await kids({})).to.deep.equal(["111", "222", "333"]);
-      expect(await kids({ kids: ["333", "111", "999"] })).to.deep.equal(["111", "333"]);
-      expect(await kids({ kids: [] })).to.deep.equal([]);
+      expect(await kids({})).toStrictEqual(["111", "222", "333"]);
+      expect(await kids({ kids: ["333", "111", "999"] })).toStrictEqual(["111", "333"]);
+      expect(await kids({ kids: [] })).toStrictEqual([]);
       await expectTrpcError(
         caller.minside.distributions({ donorId: 7, kids: [""] }),
         "BAD_REQUEST",
@@ -421,8 +422,8 @@ describe("tRPC minside router", () => {
       encodeURIComponent(JSON.stringify(Object.fromEntries(inputs.map((v, i) => [i, v]))));
 
     it("checks each procedure of a batch against its own donor id", async () => {
-      const donations = sinon.stub(DAO.donations, "getByDonorId").resolves([]);
-      const taxUnits = sinon.stub(DAO.tax, "getByDonorId").resolves([]);
+      const donations = vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([]);
+      const taxUnits = vi.spyOn(DAO.tax, "getByDonorId").mockResolvedValue([]);
 
       const res = await request(app)
         .get(
@@ -433,15 +434,15 @@ describe("tRPC minside router", () => {
         )
         .expect(207);
 
-      expect(res.body[0].result.data).to.deep.equal([]);
-      expect(res.body[1].error.data.code).to.equal("FORBIDDEN");
-      expect(donations.calledOnceWith(7)).to.be.true;
-      expect(taxUnits.called).to.be.false;
+      expect(res.body[0].result.data).toStrictEqual([]);
+      expect(res.body[1].error.data.code).toBe("FORBIDDEN");
+      expect(donations).toHaveBeenCalledExactlyOnceWith(7);
+      expect(taxUnits).not.toHaveBeenCalled();
     });
 
     it("answers all of the donor's distributions (no KIDs) in Min Side's first batch, and only the donor's", async () => {
-      const donations = sinon.stub(DAO.donations, "getByDonorId").resolves([]);
-      const distributions = sinon.stub(DAO.distributions, "getAllByDonor").resolves({
+      const donations = vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([]);
+      const distributions = vi.spyOn(DAO.distributions, "getAllByDonor").mockResolvedValue({
         donorID: 7,
         distributions: ["111", "222"].map((kid) => ({
           kid,
@@ -461,18 +462,18 @@ describe("tRPC minside router", () => {
         )
         .expect(207);
 
-      expect(res.body[0].result.data).to.deep.equal([]);
-      expect(res.body[1].result.data.map((d: { kid: string }) => d.kid)).to.deep.equal([
+      expect(res.body[0].result.data).toStrictEqual([]);
+      expect(res.body[1].result.data.map((d: { kid: string }) => d.kid)).toStrictEqual([
         "111",
         "222",
       ]);
-      expect(res.body[2].error.data.code).to.equal("FORBIDDEN");
-      expect(donations.calledOnceWith(7)).to.be.true;
-      expect(distributions.calledOnceWith(7)).to.be.true;
+      expect(res.body[2].error.data.code).toBe("FORBIDDEN");
+      expect(donations).toHaveBeenCalledExactlyOnceWith(7);
+      expect(distributions).toHaveBeenCalledExactlyOnceWith(7);
     });
 
     it("rejects the other donor's id in either position of a batch", async () => {
-      const donations = sinon.stub(DAO.donations, "getByDonorId").resolves([]);
+      const donations = vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([]);
 
       const res = await request(app)
         .get(
@@ -483,9 +484,9 @@ describe("tRPC minside router", () => {
         )
         .expect(207);
 
-      expect(res.body[0].error.data.code).to.equal("FORBIDDEN");
-      expect(res.body[1].result.data).to.deep.equal([]);
-      expect(donations.calledOnceWith(7)).to.be.true;
+      expect(res.body[0].error.data.code).toBe("FORBIDDEN");
+      expect(res.body[1].result.data).toStrictEqual([]);
+      expect(donations).toHaveBeenCalledExactlyOnceWith(7);
     });
   });
 
@@ -500,7 +501,7 @@ describe("tRPC minside router", () => {
       const res = await request(app)
         .get(`/trpc/minside.profile?input=${input({ donorId: 7 })}`)
         .expect(401);
-      expect(res.body.error.data.code).to.equal("UNAUTHORIZED");
+      expect(res.body.error.data.code).toBe("UNAUTHORIZED");
     });
 
     it("answers 401 with an invalid token", async () => {
@@ -516,6 +517,6 @@ describe("tRPC minside router", () => {
     const imports = [...source.matchAll(/(?:from|import|require\()\s*["']([^"']+)["']/g)].map(
       (m) => m[1],
     );
-    expect(imports).to.deep.equal(["zod"]);
+    expect(imports).toStrictEqual(["zod"]);
   });
 });

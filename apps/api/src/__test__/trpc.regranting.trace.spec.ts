@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import type { Request, Response } from "express";
 import { appRouter } from "../trpc/router";
 import { createCallerFactory } from "../trpc/trpc";
@@ -13,10 +12,10 @@ const api = createCallerFactory(appRouter)({
 const expectBadRequest = async (promise: Promise<unknown>, message?: RegExp) => {
   try {
     await promise;
-    expect.fail("expected BAD_REQUEST");
+    expect.unreachable("expected BAD_REQUEST");
   } catch (err: any) {
-    expect(err.code, err.message).to.equal("BAD_REQUEST");
-    if (message) expect(err.message).to.match(message);
+    expect(err.code, err.message).toBe("BAD_REQUEST");
+    if (message) expect(err.message).toMatch(message);
   }
 };
 

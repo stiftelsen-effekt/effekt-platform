@@ -1,8 +1,7 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import crypto from "crypto";
 import express from "express";
-import sinon from "sinon";
 import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
 import * as mail from "../custom_modules/mail";
@@ -36,7 +35,7 @@ const appWith = (path: string, router: express.Router) => {
 
 describe("public widget paths", () => {
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("registration tokens", () => {
@@ -45,18 +44,18 @@ describe("public widget paths", () => {
     it("round-trips its claims until it expires", () => {
       const now = Date.parse("2026-10-30T12:00:00Z");
       const token = createRegistrationToken(claims, now);
-      expect(verifyRegistrationToken(token, now)).to.deep.equal({
+      expect(verifyRegistrationToken(token, now)).toStrictEqual({
         ...claims,
         exp: now + REGISTRATION_TOKEN_TTL_MS,
       });
-      expect(verifyRegistrationToken(token, now + REGISTRATION_TOKEN_TTL_MS + 1)).to.equal(null);
+      expect(verifyRegistrationToken(token, now + REGISTRATION_TOKEN_TTL_MS + 1)).toBe(null);
     });
 
     it("is only good for its KID and method", () => {
       const token = createRegistrationToken(claims);
-      expect(registrationFor(token, "12345678", [methods.AVTALEGIRO])).to.not.equal(null);
-      expect(registrationFor(token, "12345679", [methods.AVTALEGIRO])).to.equal(null);
-      expect(registrationFor(token, "12345678", [methods.BANK, methods.VIPPS])).to.equal(null);
+      expect(registrationFor(token, "12345678", [methods.AVTALEGIRO])).not.toBe(null);
+      expect(registrationFor(token, "12345679", [methods.AVTALEGIRO])).toBe(null);
+      expect(registrationFor(token, "12345678", [methods.BANK, methods.VIPPS])).toBe(null);
     });
 
     it("refuses tokens not signed with the key", () => {
@@ -73,57 +72,64 @@ describe("public widget paths", () => {
         null,
         { kid: "12345678" },
       ]) {
-        expect(verifyRegistrationToken(bad)).to.equal(null);
+        expect(verifyRegistrationToken(bad)).toBe(null);
       }
     });
 
     it("uses WIDGET_REGISTRATION_TOKEN_SECRET when it is set", () => {
       const token = createRegistrationToken(claims);
-      sinon.stub(config, "widget_registration_token_secret").value("another key");
-      expect(verifyRegistrationToken(token)).to.equal(null);
-      expect(verifyRegistrationToken(createRegistrationToken(claims))).to.not.equal(null);
+      vi.spyOn(config, "widget_registration_token_secret", "get").mockReturnValue("another key");
+      expect(verifyRegistrationToken(token)).toBe(null);
+      expect(verifyRegistrationToken(createRegistrationToken(claims))).not.toBe(null);
     });
   });
 
   describe("GET /avtalegiro/:KID/redirect", () => {
     let app: express.Express;
-    let send: sinon.SinonStub;
-    let claim: sinon.SinonStub;
+    let send: MockInstance;
+    let claim: MockInstance;
 
     beforeEach(() => {
       app = appWith("/avtalegiro", require("../routes/avtalegiro"));
-      sinon
-        .stub(DAO.avtalegiroagreements, "getByKID")
-        .resolves({ id: 1, KID: "12345678", amount: 30000, paymentDate: 20, notice: true });
-      sinon.stub(DAO.fundraisers, "getFundraiserTransactionByKID").resolves(null);
-      claim = sinon.stub(DAO.avtalegiroagreements, "claimRegisteredMail");
-      claim.onFirstCall().resolves(true);
-      claim.resolves(false);
-      send = sinon.stub(mail, "sendAvtalegiroRegistered").resolves();
+      vi.spyOn(DAO.avtalegiroagreements, "getByKID").mockResolvedValue({
+        id: 1,
+        KID: "12345678",
+        amount: 30000,
+        paymentDate: 20,
+        notice: true,
+      });
+      vi.spyOn(DAO.fundraisers, "getFundraiserTransactionByKID").mockResolvedValue(null);
+      claim = vi
+        .spyOn(DAO.avtalegiroagreements, "claimRegisteredMail")
+        .mockReturnValue(undefined as any);
+      claim.mockResolvedValueOnce(true);
+      claim.mockResolvedValue(false);
+      send = vi.spyOn(mail, "sendAvtalegiroRegistered").mockResolvedValue(undefined as any);
     });
 
     it("sends the registered email the first time only", async () => {
       for (let i = 0; i < 3; i++) {
         const res = await request(app).get("/avtalegiro/12345678/redirect?status=OK").expect(302);
-        expect(res.headers.location).to.match(/^https:\/\/gieffektivt\.no\/opprettet\?plausible=/);
+        expect(res.headers.location).toMatch(/^https:\/\/gieffektivt\.no\/opprettet\?plausible=/);
       }
-      expect(send.calledOnce).to.equal(true);
-      expect(claim.alwaysCalledWith("12345678")).to.equal(true);
+      expect(send).toHaveBeenCalledOnce();
+      expect(claim).toHaveBeenCalled();
+      expect(claim.mock.calls.every(([kid]) => kid === "12345678")).toBe(true);
     });
 
     it("sends nothing for a KID without an agreement", async () => {
-      (DAO.avtalegiroagreements.getByKID as sinon.SinonStub).resolves(null);
+      vi.mocked(DAO.avtalegiroagreements.getByKID).mockResolvedValue(null);
       const res = await request(app).get("/avtalegiro/999/redirect?status=OK").expect(302);
-      expect(res.headers.location).to.equal("https://gieffektivt.no/avtale-feilet");
-      expect(claim.called).to.equal(false);
-      expect(send.called).to.equal(false);
+      expect(res.headers.location).toBe("https://gieffektivt.no/avtale-feilet");
+      expect(claim).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
     });
   });
 
   describe("POST /mail/mailersend/security/sanitynotification", () => {
     const secret = "sanity-test-secret";
     let app: express.Express;
-    let send: sinon.SinonStub;
+    let send: MockInstance;
     const body = {
       document: "bank",
       sanityUser: "p-user",
@@ -140,9 +146,9 @@ describe("public widget paths", () => {
         .digest("base64url")}`;
 
     beforeEach(() => {
-      sinon.stub(config, "sanity_security_webhook_secret").value(secret);
+      vi.spyOn(config, "sanity_security_webhook_secret", "get").mockReturnValue(secret);
       app = appWith("/mail", require("../routes/mail"));
-      send = sinon.stub(mail, "sendSanitySecurityNotice").resolves(true as any);
+      send = vi.spyOn(mail, "sendSanitySecurityNotice").mockResolvedValue(true as any);
     });
 
     const post = (signature?: string, payload: unknown = body) => {
@@ -156,8 +162,8 @@ describe("public widget paths", () => {
 
     it("sends the notice for a signed webhook, with only the changed fields", async () => {
       await post(sign(JSON.stringify(body))).expect(200);
-      expect(send.calledOnce).to.equal(true);
-      expect(send.firstCall.args[0]).to.deep.equal({
+      expect(send).toHaveBeenCalledOnce();
+      expect(send.mock.calls[0][0]).toStrictEqual({
         document: "bank",
         sanityUser: "p-user",
         fields: [{ name: "kontonr", prev: "1234.56.78903", new: "9876.54.32101" }],
@@ -173,14 +179,14 @@ describe("public widget paths", () => {
     ] as Array<[string, string | undefined]>) {
       it(`refuses ${what}`, async () => {
         await post(signature).expect(401);
-        expect(send.called).to.equal(false);
+        expect(send).not.toHaveBeenCalled();
       });
     }
 
     it("refuses everything when the secret is not configured", async () => {
-      sinon.stub(config, "sanity_security_webhook_secret").value(undefined);
+      vi.spyOn(config, "sanity_security_webhook_secret", "get").mockReturnValue(undefined);
       await post(sign(JSON.stringify(body))).expect(401);
-      expect(send.called).to.equal(false);
+      expect(send).not.toHaveBeenCalled();
     });
   });
 
@@ -192,25 +198,29 @@ describe("public widget paths", () => {
     });
 
     it("need an admin token for the Vipps API passthrough routes", async () => {
-      const getAgreements = sinon.stub(vipps, "getAgreements").resolves([]);
-      const createCharge = sinon.stub(vipps, "createCharge").resolves({});
-      const refundOrder = sinon.stub(vipps, "refundOrder").resolves(true);
+      const getAgreements = vi.spyOn(vipps, "getAgreements").mockResolvedValue([]);
+      const createCharge = vi.spyOn(vipps, "createCharge").mockResolvedValue({});
+      const refundOrder = vi.spyOn(vipps, "refundOrder").mockResolvedValue(true);
       await request(app).get("/vipps/agreement/agr_1").expect(401);
       await request(app)
         .post("/vipps/agreement/charge/create")
         .send({ agreementId: "agr_1", amount: 1 })
         .expect(401);
       await request(app).post("/vipps/refund/order-1").expect(401);
-      expect(getAgreements.called || createCharge.called || refundOrder.called).to.equal(false);
+      expect(
+        getAgreements.mock.calls.length > 0 ||
+          createCharge.mock.calls.length > 0 ||
+          refundOrder.mock.calls.length > 0,
+      ).toBe(false);
     });
 
     it("no longer take problem reports", async () => {
-      const report = sinon.stub(mail, "sendVippsProblemReport").resolves(true);
+      const report = vi.spyOn(mail, "sendVippsProblemReport").mockResolvedValue(true);
       await request(app)
         .post("/vipps/agreement/report/problem")
         .send({ email: "a@b.no", donorMessage: "x" })
         .expect(404);
-      expect(report.called).to.equal(false);
+      expect(report).not.toHaveBeenCalled();
     });
   });
 
@@ -218,7 +228,7 @@ describe("public widget paths", () => {
     it("limits the widget's tRPC mutations per IP, with a tRPC error", async () => {
       const app = express();
       mountTrpc(app, { publicMutationLimiter: createPublicMutationLimiter(2) });
-      const send = sinon.stub(mail, "sendDonationRegistered").resolves(true);
+      const send = vi.spyOn(mail, "sendDonationRegistered").mockResolvedValue(true);
       const input = { KID: "12345", sum: 100, registrationToken: "x" };
 
       await request(app).post("/trpc/widget.registerBankPending").send(input).expect(400);
@@ -227,14 +237,14 @@ describe("public widget paths", () => {
         .post("/trpc/widget.registerBankPending")
         .send(input)
         .expect(429);
-      expect(res.body.error.data).to.deep.equal({ code: "TOO_MANY_REQUESTS", httpStatus: 429 });
-      expect(send.called).to.equal(false);
+      expect(res.body.error.data).toStrictEqual({ code: "TOO_MANY_REQUESTS", httpStatus: 429 });
+      expect(send).not.toHaveBeenCalled();
     });
 
     it("doesn't count the widget's queries", async () => {
       const app = express();
       mountTrpc(app, { publicMutationLimiter: createPublicMutationLimiter(1) });
-      sinon.stub(DAO.referrals, "getTypes").resolves([]);
+      vi.spyOn(DAO.referrals, "getTypes").mockResolvedValue([]);
       for (let i = 0; i < 3; i++) {
         await request(app).get("/trpc/widget.referralTypes").expect(200);
       }

@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import express from "express";
 import fs from "fs";
 import os from "os";
@@ -41,13 +40,13 @@ const rules = (env: NodeJS.ProcessEnv) => checkPreviewEnvironment(env).map((v) =
 
 describe("Preview environment guard", function () {
   it("accepts a correctly configured preview (Cloud Run service)", function () {
-    expect(checkPreviewEnvironment(validEnv())).to.deep.equal([]);
+    expect(checkPreviewEnvironment(validEnv())).toStrictEqual([]);
   });
 
   it("accepts the migrate/seed job and a local throwaway database", function () {
     expect(
       rules(validEnv({ K_SERVICE: undefined, CLOUD_RUN_JOB: "effekt-preview-seed-pr-12" })),
-    ).to.deep.equal([]);
+    ).toStrictEqual([]);
     expect(
       rules(
         validEnv({
@@ -58,24 +57,24 @@ describe("Preview environment guard", function () {
           DB_NAME: "preview_pr_0",
         }),
       ),
-    ).to.deep.equal([]);
+    ).toStrictEqual([]);
   });
 
   describe("session secret", function () {
     it("refuses a missing PREVIEW_JWT_SECRET", function () {
-      expect(rules(validEnv({ PREVIEW_JWT_SECRET: undefined }))).to.deep.equal(["jwt-secret"]);
+      expect(rules(validEnv({ PREVIEW_JWT_SECRET: undefined }))).toStrictEqual(["jwt-secret"]);
     });
     it("refuses a short PREVIEW_JWT_SECRET", function () {
-      expect(rules(validEnv({ PREVIEW_JWT_SECRET: "short" }))).to.deep.equal(["jwt-secret"]);
+      expect(rules(validEnv({ PREVIEW_JWT_SECRET: "short" }))).toStrictEqual(["jwt-secret"]);
     });
   });
 
   describe("database name", function () {
     it("refuses a database not starting with preview_", function () {
-      expect(rules(validEnv({ DB_NAME: "EffektDonasjonDB" }))).to.deep.equal(["db-name"]);
+      expect(rules(validEnv({ DB_NAME: "EffektDonasjonDB" }))).toStrictEqual(["db-name"]);
     });
     it("refuses a missing database name", function () {
-      expect(rules(validEnv({ DB_NAME: undefined }))).to.deep.equal(["db-name"]);
+      expect(rules(validEnv({ DB_NAME: undefined }))).toStrictEqual(["db-name"]);
     });
   });
 
@@ -85,15 +84,15 @@ describe("Preview environment guard", function () {
         rules(
           validEnv({ CLOUD_SQL_CONNECTION_NAME: "hidden-display-243419:europe-north1:effekt-db" }),
         ),
-      ).to.deep.equal(["db-instance"]);
+      ).toStrictEqual(["db-instance"]);
     });
     it("refuses any instance other than effekt-previews", function () {
       expect(
         rules(validEnv({ CLOUD_SQL_CONNECTION_NAME: "other-project:europe-north1:something" })),
-      ).to.deep.equal(["db-instance"]);
+      ).toStrictEqual(["db-instance"]);
     });
     it("requires a connection name on Cloud Run", function () {
-      expect(rules(validEnv({ CLOUD_SQL_CONNECTION_NAME: undefined }))).to.deep.equal([
+      expect(rules(validEnv({ CLOUD_SQL_CONNECTION_NAME: undefined }))).toStrictEqual([
         "db-instance",
       ]);
       expect(
@@ -104,29 +103,29 @@ describe("Preview environment guard", function () {
             CLOUD_SQL_CONNECTION_NAME: "",
           }),
         ),
-      ).to.deep.equal(["db-instance"]);
+      ).toStrictEqual(["db-instance"]);
     });
     it("refuses a DB_HOST naming the production instance", function () {
-      expect(rules(validEnv({ DB_HOST: "effekt-db.internal" }))).to.deep.equal(["db-host"]);
+      expect(rules(validEnv({ DB_HOST: "effekt-db.internal" }))).toStrictEqual(["db-host"]);
     });
     it("refuses a public IP DB_HOST but allows private and loopback addresses", function () {
-      expect(rules(validEnv({ DB_HOST: "35.228.1.2" }))).to.deep.equal(["db-host"]);
+      expect(rules(validEnv({ DB_HOST: "35.228.1.2" }))).toStrictEqual(["db-host"]);
       for (const host of ["127.0.0.1", "10.0.0.5", "172.17.0.2", "192.168.1.9", "localhost"]) {
-        expect(rules(validEnv({ DB_HOST: host })), host).to.deep.equal([]);
+        expect(rules(validEnv({ DB_HOST: host })), host).toStrictEqual([]);
       }
     });
     it("checks DB_URL: database, host, socket", function () {
       const url = (rest: string) => validEnv({ DB_URL: `mysql://u:p@${rest}` });
-      expect(rules(url("localhost/preview_pr_12?socket=/cloudsql/" + CONNECTION))).to.deep.equal(
+      expect(rules(url("localhost/preview_pr_12?socket=/cloudsql/" + CONNECTION))).toStrictEqual(
         [],
       );
-      expect(rules(url("localhost/EffektDonasjonDB"))).to.include("db-url");
-      expect(rules(url("localhost/preview_pr_99"))).to.deep.equal(["db-url"]);
-      expect(rules(url("35.228.1.2/preview_pr_12"))).to.deep.equal(["db-url"]);
+      expect(rules(url("localhost/EffektDonasjonDB"))).toContain("db-url");
+      expect(rules(url("localhost/preview_pr_99"))).toStrictEqual(["db-url"]);
+      expect(rules(url("35.228.1.2/preview_pr_12"))).toStrictEqual(["db-url"]);
       expect(
         rules(url("localhost/preview_pr_12?socket=/cloudsql/p:europe-north1:effekt-db")),
-      ).to.include("db-url");
-      expect(rules(validEnv({ DB_URL: "not a url" }))).to.deep.equal(["db-url"]);
+      ).toContain("db-url");
+      expect(rules(validEnv({ DB_URL: "not a url" }))).toStrictEqual(["db-url"]);
     });
   });
 
@@ -134,15 +133,15 @@ describe("Preview environment guard", function () {
     for (const [name, integration] of Object.entries(FORBIDDEN_PREVIEW_SETTINGS)) {
       it(`refuses ${name} (${integration})`, function () {
         const violations = checkPreviewEnvironment(validEnv({ [name]: "configured" }));
-        expect(violations.map((v) => v.rule)).to.deep.equal(["integration"]);
-        expect(violations[0].message).to.contain(name);
+        expect(violations.map((v) => v.rule)).toStrictEqual(["integration"]);
+        expect(violations[0].message).toContain(name);
       });
     }
     it("ignores integrations that are set but blank", function () {
-      expect(rules(validEnv({ VIPPS_CLIENT_ID: "", MAILERSEND_API_KEY: "  " }))).to.deep.equal([]);
+      expect(rules(validEnv({ VIPPS_CLIENT_ID: "", MAILERSEND_API_KEY: "  " }))).toStrictEqual([]);
     });
     it("refuses Tidbyt push", function () {
-      expect(rules(validEnv({ TIDBYT_PUSH_ENABLED: "true" }))).to.deep.equal(["integration"]);
+      expect(rules(validEnv({ TIDBYT_PUSH_ENABLED: "true" }))).toStrictEqual(["integration"]);
     });
     it("covers the integrations named in the preview requirements", function () {
       const covered = new Set(Object.values(FORBIDDEN_PREVIEW_SETTINGS));
@@ -155,23 +154,23 @@ describe("Preview environment guard", function () {
         "Auth0 MCP",
         "Survey export",
       ]) {
-        expect(covered.has(integration), integration).to.equal(true);
+        expect(covered.has(integration), integration).toBe(true);
       }
     });
   });
 
   it("refuses NODE_ENV=production", function () {
-    expect(rules(validEnv({ NODE_ENV: "production" }))).to.deep.equal(["node-env"]);
+    expect(rules(validEnv({ NODE_ENV: "production" }))).toStrictEqual(["node-env"]);
   });
 
   describe("Cloud Run names", function () {
     it("refuses a service not named effekt-preview-*", function () {
-      expect(rules(validEnv({ K_SERVICE: "effektapi" }))).to.deep.equal(["cloud-run-name"]);
+      expect(rules(validEnv({ K_SERVICE: "effektapi" }))).toStrictEqual(["cloud-run-name"]);
     });
     it("refuses a job not named effekt-preview-*", function () {
       expect(
         rules(validEnv({ K_SERVICE: undefined, CLOUD_RUN_JOB: "effektapi-db-migrate" })),
-      ).to.deep.equal(["cloud-run-name"]);
+      ).toStrictEqual(["cloud-run-name"]);
     });
   });
 
@@ -186,7 +185,7 @@ describe("Preview environment guard", function () {
       MAILERSEND_API_KEY: "real",
       AUTH_BASE_URL: "https://gieffektivt.eu.auth0.com/",
     };
-    expect(new Set(rules(production))).to.deep.equal(
+    expect(new Set(rules(production))).toStrictEqual(
       new Set([
         "jwt-secret",
         "db-name",
@@ -209,23 +208,23 @@ describe("Preview environment guard", function () {
     } finally {
       console.error = originalError;
     }
-    expect(exitCode).to.equal(1);
+    expect(exitCode).toBe(1);
   });
 });
 
 describe("Preview mode switch", function () {
   it("is on only for PREVIEW_MODE=true exactly", function () {
-    expect(isPreviewMode({ PREVIEW_MODE: "true" })).to.equal(true);
+    expect(isPreviewMode({ PREVIEW_MODE: "true" })).toBe(true);
     for (const value of [undefined, "", "1", "TRUE", "yes", "false"]) {
-      expect(isPreviewMode({ PREVIEW_MODE: value }), String(value)).to.equal(false);
+      expect(isPreviewMode({ PREVIEW_MODE: value }), String(value)).toBe(false);
     }
   });
 
   it("uses the production check unless preview mode is on", function () {
     const production: express.RequestHandler = (_req, _res, next) => next();
-    expect(selectJwtCheck(() => production, {})).to.equal(production);
-    expect(selectJwtCheck(() => production, { PREVIEW_MODE: "false" })).to.equal(production);
-    expect(selectJwtCheck(() => production, { PREVIEW_MODE: "true" })).to.not.equal(production);
+    expect(selectJwtCheck(() => production, {})).toBe(production);
+    expect(selectJwtCheck(() => production, { PREVIEW_MODE: "false" })).toBe(production);
+    expect(selectJwtCheck(() => production, { PREVIEW_MODE: "true" })).not.toBe(production);
   });
 });
 
@@ -249,21 +248,21 @@ describe("Preview sessions", function () {
     const app = appWith(SECRET);
     for (const user of previewUsers) {
       const session = await request(app).post("/preview/session").send({ as: user.id });
-      expect(session.status).to.equal(200);
-      expect(session.headers["cache-control"]).to.equal("no-store");
+      expect(session.status).toBe(200);
+      expect(session.headers["cache-control"]).toBe("no-store");
       const protectedRes = await request(app)
         .get("/protected")
         .set("Authorization", `Bearer ${session.body.accessToken}`);
-      expect(protectedRes.status).to.equal(200);
-      expect(protectedRes.body.payload.email).to.equal(user.email);
-      expect(protectedRes.body.payload.permissions).to.include("admin");
-      expect(protectedRes.body.payload.permissions).to.not.include("analysis_mcp");
+      expect(protectedRes.status).toBe(200);
+      expect(protectedRes.body.payload.email).toBe(user.email);
+      expect(protectedRes.body.payload.permissions).toContain("admin");
+      expect(protectedRes.body.payload.permissions).not.toContain("analysis_mcp");
     }
   });
 
   it("rejects unknown users", async function () {
     const res = await request(appWith(SECRET)).post("/preview/session").send({ as: "root" });
-    expect(res.status).to.equal(400);
+    expect(res.status).toBe(400);
   });
 
   it("rejects tokens signed with another secret, expired tokens and alg=none", async function () {
@@ -271,32 +270,32 @@ describe("Preview sessions", function () {
     const other = signPreviewToken(previewUsers[0], "y".repeat(48)).accessToken;
     expect(
       (await request(app).get("/protected").set("Authorization", `Bearer ${other}`)).status,
-    ).to.equal(401);
+    ).toBe(401);
 
     const expired = signPreviewToken(previewUsers[0], SECRET, 1_000_000).accessToken;
     expect(
       (await request(app).get("/protected").set("Authorization", `Bearer ${expired}`)).status,
-    ).to.equal(401);
+    ).toBe(401);
 
     const [, payload] = signPreviewToken(previewUsers[0], SECRET).accessToken.split(".");
     const none = `${Buffer.from('{"alg":"none","typ":"JWT"}').toString("base64url")}.${payload}.`;
     expect(
       (await request(app).get("/protected").set("Authorization", `Bearer ${none}`)).status,
-    ).to.equal(401);
+    ).toBe(401);
   });
 
   it("does not accept anything without a secret", async function () {
     const app = appWith(undefined);
-    expect(() => signPreviewToken(previewUsers[0], undefined)).to.throw(/PREVIEW_JWT_SECRET/);
+    expect(() => signPreviewToken(previewUsers[0], undefined)).toThrow(/PREVIEW_JWT_SECRET/);
     const token = signPreviewToken(previewUsers[0], SECRET).accessToken;
     const res = await request(app).get("/protected").set("Authorization", `Bearer ${token}`);
-    expect(res.status).to.not.equal(200);
+    expect(res.status).not.toBe(200);
   });
 
   it("describes the preview for the banner", async function () {
     const res = await request(appWith(SECRET)).get("/preview/info");
-    expect(res.body.pr).to.equal("12");
-    expect(res.body.users.map((u) => u.email)).to.deep.equal([
+    expect(res.body.pr).toBe("12");
+    expect(res.body.users.map((u) => u.email)).toStrictEqual([
       "ops@example.org",
       "finance@example.org",
       "approver@example.org",
@@ -329,34 +328,34 @@ describe("Preview HTTP", function () {
 
   it("sets X-Robots-Tag on every response", async function () {
     const res = await request(app()).get("/nothing-here");
-    expect(res.headers["x-robots-tag"]).to.equal("noindex, nofollow");
+    expect(res.headers["x-robots-tag"]).toBe("noindex, nofollow");
   });
 
   it("serves the admin to browser navigations and the API to API calls", async function () {
     const page = await request(app()).get("/donors/12").set("Accept", "text/html");
-    expect(page.text).to.contain("admin");
-    expect(page.headers["cache-control"]).to.equal("no-cache");
+    expect(page.text).toContain("admin");
+    expect(page.headers["cache-control"]).toBe("no-cache");
     const api = await request(app()).get("/donors/12").set("Accept", "application/json");
-    expect(api.body).to.deep.equal({ api: true });
+    expect(api.body).toStrictEqual({ api: true });
     const asset = await request(app()).get("/assets/app-abc.js");
-    expect(asset.headers["cache-control"]).to.contain("immutable");
+    expect(asset.headers["cache-control"]).toContain("immutable");
     const trpc = await request(app()).get("/trpc/health").set("Accept", "text/html");
-    expect(trpc.status).to.equal(404);
+    expect(trpc.status).toBe(404);
   });
 
   it("is off without a built admin", function () {
-    expect(previewAdmin(undefined)).to.equal(undefined);
-    expect(previewAdmin(path.join(adminDir, "missing"))).to.equal(undefined);
+    expect(previewAdmin(undefined)).toBe(undefined);
+    expect(previewAdmin(path.join(adminDir, "missing"))).toBe(undefined);
   });
 });
 
 describe("Preview database commands", function () {
   it("build socket URLs for Prisma and mysql2", function () {
     const env = validEnv({ DB_PASS: "p@ss/word" });
-    expect(databaseUrl(env, "prisma")).to.equal(
+    expect(databaseUrl(env, "prisma")).toBe(
       `mysql://preview:p%40ss%2Fword@localhost/preview_pr_12?socket=/cloudsql/${CONNECTION}`,
     );
-    expect(databaseUrl(env, "mysql2")).to.contain(`?socketPath=/cloudsql/${CONNECTION}`);
+    expect(databaseUrl(env, "mysql2")).toContain(`?socketPath=/cloudsql/${CONNECTION}`);
   });
 
   it("refuse to run outside a valid preview environment", async function () {
@@ -372,7 +371,7 @@ describe("Preview database commands", function () {
       } catch (err) {
         error = err;
       }
-      expect(error, env.DB_NAME).to.be.instanceOf(Error);
+      expect(error, env.DB_NAME).toBeInstanceOf(Error);
     }
   });
 });

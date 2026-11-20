@@ -1,23 +1,22 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import { mapPureOrgSharesToDistributionInputCauseAreas } from "../custom_modules/mapping";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
-import { expect } from "chai";
 
 describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
-  let getByIDStub: sinon.SinonStub;
+  let getByIDStub: MockInstance;
 
   beforeEach(() => {
-    getByIDStub = sinon.stub(DAO.organizations, "getByID");
+    getByIDStub = vi.spyOn(DAO.organizations, "getByID").mockReturnValue(undefined as any);
   });
 
   afterEach(() => {
-    getByIDStub.restore();
+    getByIDStub.mockRestore();
   });
 
   it("should map pure org shares to distribution input cause areas", async () => {
     // Stubbing the DAO requests
-    getByIDStub.resolves({ cause_area_ID: 1 });
+    getByIDStub.mockResolvedValue({ cause_area_ID: 1 });
 
     // Test data
     const shares = [
@@ -44,18 +43,18 @@ describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
     const result = await mapPureOrgSharesToDistributionInputCauseAreas(shares);
 
     // Assertions
-    expect(result).to.deep.equal(expectedCauseAreas);
-    expect(getByIDStub.calledThrice).to.be.true;
-    expect(getByIDStub.firstCall.calledWith(1)).to.be.true;
-    expect(getByIDStub.secondCall.calledWith(2)).to.be.true;
-    expect(getByIDStub.thirdCall.calledWith(3)).to.be.true;
+    expect(result).toStrictEqual(expectedCauseAreas);
+    expect(getByIDStub).toHaveBeenCalledTimes(3);
+    expect(getByIDStub.mock.calls[0][0]).toBe(1);
+    expect(getByIDStub.mock.calls[1][0]).toBe(2);
+    expect(getByIDStub.mock.calls[2][0]).toBe(3);
   });
 
   it("should map pure org shares to distribution input cause areas with multiple cause areas", async () => {
     // Stubbing the DAO requests
-    getByIDStub.onCall(0).resolves({ cause_area_ID: 1 });
-    getByIDStub.onCall(1).resolves({ cause_area_ID: 2 });
-    getByIDStub.onCall(2).resolves({ cause_area_ID: 2 });
+    getByIDStub.mockResolvedValueOnce({ cause_area_ID: 1 });
+    getByIDStub.mockResolvedValueOnce({ cause_area_ID: 2 });
+    getByIDStub.mockResolvedValueOnce({ cause_area_ID: 2 });
 
     // Test data
     const shares = [
@@ -87,11 +86,11 @@ describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
     const result = await mapPureOrgSharesToDistributionInputCauseAreas(shares);
 
     // Assertions
-    expect(result).to.deep.equal(expectedCauseAreas);
-    expect(getByIDStub.calledThrice).to.be.true;
-    expect(getByIDStub.firstCall.calledWith(1)).to.be.true;
-    expect(getByIDStub.secondCall.calledWith(2)).to.be.true;
-    expect(getByIDStub.thirdCall.calledWith(3)).to.be.true;
+    expect(result).toStrictEqual(expectedCauseAreas);
+    expect(getByIDStub).toHaveBeenCalledTimes(3);
+    expect(getByIDStub.mock.calls[0][0]).toBe(1);
+    expect(getByIDStub.mock.calls[1][0]).toBe(2);
+    expect(getByIDStub.mock.calls[2][0]).toBe(3);
   });
 
   it("should throw an error if no shares are provided", async () => {
@@ -103,7 +102,7 @@ describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
       await mapPureOrgSharesToDistributionInputCauseAreas(shares);
       throw new Error("Expected an error to be thrown");
     } catch (error) {
-      expect(error.message).to.equal("No shares");
+      expect(error.message).toBe("No shares");
     }
   });
 
@@ -119,13 +118,13 @@ describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
       await mapPureOrgSharesToDistributionInputCauseAreas(shares);
       throw new Error("Expected an error to be thrown");
     } catch (error) {
-      expect(error.message).to.equal("Shares do not add up to 100");
+      expect(error.message).toBe("Shares do not add up to 100");
     }
   });
 
   it("should throw an error if organization is not found", async () => {
     // Stubbing the DAO requests
-    getByIDStub.resolves(null);
+    getByIDStub.mockResolvedValue(null);
 
     // Test data
     const shares = [
@@ -138,8 +137,8 @@ describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
       await mapPureOrgSharesToDistributionInputCauseAreas(shares);
       throw new Error("Expected an error to be thrown");
     } catch (error) {
-      expect(error.message).to.equal("Organization not found");
-      expect(getByIDStub.calledOnceWith(1)).to.be.true;
+      expect(error.message).toBe("Organization not found");
+      expect(getByIDStub).toHaveBeenCalledExactlyOnceWith(1);
     }
   });
 });

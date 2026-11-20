@@ -1,6 +1,4 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import {
   ecbCsvToUsdRates,
@@ -20,7 +18,7 @@ EXR.D.ISK.EUR.SP00.A,D,ISK,EUR,SP00,A,2026-10-30,
 
 describe("ecbCsvToUsdRates", () => {
   it("turns per-EUR rates into per-USD rates and adds EUR", () => {
-    expect(ecbCsvToUsdRates(CSV)).to.deep.equal([
+    expect(ecbCsvToUsdRates(CSV)).toStrictEqual([
       { date: "2026-10-30", currency: "EUR", perUsd: "0.86206897" },
       { date: "2026-10-30", currency: "NOK", perUsd: "10.00000000" },
       { date: "2026-10-30", currency: "SEK", perUsd: "9.48275862" },
@@ -30,8 +28,8 @@ describe("ecbCsvToUsdRates", () => {
 
   it("leaves out days without a USD rate and empty values", () => {
     const rates = ecbCsvToUsdRates(CSV);
-    expect(rates.some((r) => r.date === "2026-10-29")).to.equal(false);
-    expect(rates.some((r) => r.currency === "ISK")).to.equal(false);
+    expect(rates.some((r) => r.date === "2026-10-29")).toBe(false);
+    expect(rates.some((r) => r.currency === "ISK")).toBe(false);
   });
 });
 
@@ -43,14 +41,14 @@ describe("rateOn", () => {
   };
 
   it("takes the date itself or the latest earlier one", () => {
-    expect(rateOn(table, "2026-10-30")).to.deep.equal({ date: "2026-10-30", perUsd: 10.2 });
-    expect(rateOn(table, "2026-11-01")).to.deep.equal({ date: "2026-10-30", perUsd: 10.2 });
-    expect(rateOn(table, "2027-01-01")).to.deep.equal({ date: "2026-11-02", perUsd: 10.3 });
+    expect(rateOn(table, "2026-10-30")).toStrictEqual({ date: "2026-10-30", perUsd: 10.2 });
+    expect(rateOn(table, "2026-11-01")).toStrictEqual({ date: "2026-10-30", perUsd: 10.2 });
+    expect(rateOn(table, "2027-01-01")).toStrictEqual({ date: "2026-11-02", perUsd: 10.3 });
   });
 
   it("has no rate before the first date, and USD is always 1", () => {
-    expect(rateOn(table, "2026-10-28")).to.equal(null);
-    expect(rateOn({ currency: "USD", dates: [], perUsd: [] }, "2010-01-01")).to.deep.equal({
+    expect(rateOn(table, "2026-10-28")).toBe(null);
+    expect(rateOn({ currency: "USD", dates: [], perUsd: [] }, "2010-01-01")).toStrictEqual({
       date: "2010-01-01",
       perUsd: 1,
     });
@@ -58,11 +56,11 @@ describe("rateOn", () => {
 });
 
 describe("updateExchangeRates", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   const stubDb = (latest: string | null) => {
     const inserts: unknown[][][] = [];
-    sinon.stub(DAO, "query").callsFake((async (sql: string, params: any) => {
+    vi.spyOn(DAO, "query").mockImplementation((async (sql: string, params: any) => {
       if (sql.includes("MAX(date)")) return [[{ latest }], []];
       inserts.push(params[0]);
       return [{ affectedRows: params[0].length }, []];
@@ -73,33 +71,33 @@ describe("updateExchangeRates", () => {
   it("refetches the week before the newest stored day, up to today in Oslo", async () => {
     const inserts = stubDb("2026-10-30");
     const urls: string[] = [];
-    sinon.stub(globalThis, "fetch").callsFake((async (url: string) => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((async (url: string) => {
       urls.push(url);
       return new Response(CSV, { status: 200 });
     }) as any);
 
     const result = await updateExchangeRates({ now: new Date("2026-10-31T23:30:00Z") });
 
-    expect(urls).to.have.length(1);
-    expect(urls[0]).to.contain("EXR/D..EUR.SP00.A?startPeriod=2026-10-23&endPeriod=2026-11-01");
-    expect(result).to.deep.equal({ from: "2026-10-23", to: "2026-11-01", days: 1, rows: 4 });
-    expect(inserts[0][1]).to.deep.equal(["2026-10-30", "NOK", "10.00000000", "ECB"]);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toContain("EXR/D..EUR.SP00.A?startPeriod=2026-10-23&endPeriod=2026-11-01");
+    expect(result).toStrictEqual({ from: "2026-10-23", to: "2026-11-01", days: 1, rows: 4 });
+    expect(inserts[0][1]).toStrictEqual(["2026-10-30", "NOK", "10.00000000", "ECB"]);
   });
 
   it("backfills from 2013 a year at a time when the table is empty", async () => {
     stubDb(null);
     const urls: string[] = [];
-    sinon.stub(globalThis, "fetch").callsFake((async (url: string) => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((async (url: string) => {
       urls.push(url);
       return new Response("", { status: 404 });
     }) as any);
 
     const result = await updateExchangeRates({ now: new Date("2015-06-01T12:00:00Z") });
 
-    expect(result.from).to.equal("2013-01-01");
+    expect(result.from).toBe("2013-01-01");
     expect(
       urls.map((u) => u.match(/startPeriod=([\d-]+)&endPeriod=([\d-]+)/)!.slice(1)),
-    ).to.deep.equal([
+    ).toStrictEqual([
       ["2013-01-01", "2013-12-31"],
       ["2014-01-01", "2014-12-31"],
       ["2015-01-01", "2015-06-01"],
@@ -114,6 +112,6 @@ describe("updateExchangeRates", () => {
     } catch (e) {
       error = e as Error;
     }
-    expect(error?.message).to.contain("Invalid from date");
+    expect(error?.message).toContain("Invalid from date");
   });
 });

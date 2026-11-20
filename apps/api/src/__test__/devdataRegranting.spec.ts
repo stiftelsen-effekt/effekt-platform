@@ -1,5 +1,4 @@
-import { describe, it, beforeAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, expect } from "vitest";
 import { toDay } from "../../prisma/devdata/calendar";
 import { generate, type Dataset } from "../../prisma/devdata/generate";
 import { onwardFigures } from "../custom_modules/regranting/onward";
@@ -27,51 +26,53 @@ describe("dev data: regranting history", { timeout: 20000 }, function () {
 
   it("has paid regular rounds every three months, the last about three months ago", () => {
     const regular = rounds().filter((r) => r.kind === "regular");
-    expect(regular.length).to.be.greaterThan(15);
-    expect(regular.every((r) => r.status === "paid")).to.be.true;
+    expect(regular.length).toBeGreaterThan(15);
+    expect(regular.every((r) => r.status === "paid")).toBe(true);
     const last = toDay(String(regular[regular.length - 1].cutoff));
-    expect(end - last).to.be.within(75, 110);
+    expect(end - last).toBeGreaterThanOrEqual(75);
+    expect(end - last).toBeLessThanOrEqual(110);
   });
 
   it("covers every round kind and lifecycle state", () => {
-    expect(new Set(rounds().map((r) => r.kind))).to.deep.equal(
+    expect(new Set(rounds().map((r) => r.kind))).toStrictEqual(
       new Set(["regular", "major_donor", "fund_grant", "extraordinary"]),
     );
     const open = rounds().filter((r) => r.status !== "paid");
-    expect(open.map((r) => [r.kind, r.status])).to.deep.equal([
+    expect(open.map((r) => [r.kind, r.status])).toStrictEqual([
       ["major_donor", "approved"],
       ["fund_grant", "draft"],
     ]);
     for (const r of rounds().filter((x) => x.approved_by !== null)) {
-      expect(r.approved_by).to.not.equal(r.created_by);
+      expect(r.approved_by).not.toBe(r.created_by);
     }
   });
 
   it("writes transfers whose lines add up, never to an own fund", () => {
     for (const t of data.Regrant_transfers) {
       const lines = data.Regrant_transfer_lines.filter((l) => l.Transfer_ID === t.ID);
-      expect(sum(lines.map((l) => l.amount_nok)), `transfer ${t.ID}`).to.equal(sum([t.amount_nok]));
-      expect(lines.some((l) => l.Organization_ID === 18)).to.be.false;
+      expect(sum(lines.map((l) => l.amount_nok)), `transfer ${t.ID}`).toBe(sum([t.amount_nok]));
+      expect(lines.some((l) => l.Organization_ID === 18)).toBe(false);
     }
   });
 
   it("links the fronted payment to the donation that arrived later", () => {
     const fronted = data.Regrant_adjustments.filter((a) => a.type === "fronted");
-    expect(fronted).to.have.length(1);
+    expect(fronted).toHaveLength(1);
     const donation = data.Donations.find((d) => d.ID === fronted[0].linked_donation_ID)!;
-    expect(String(donation.timestamp_confirmed).slice(0, 10) > String(fronted[0].effective_at)).to
-      .be.true;
+    expect(
+      String(donation.timestamp_confirmed).slice(0, 10) > String(fronted[0].effective_at),
+    ).toBe(true);
   });
 
   it("covers the adjustment types", () => {
-    expect(new Set(data.Regrant_adjustments.map((a) => a.type))).to.deep.equal(
+    expect(new Set(data.Regrant_adjustments.map((a) => a.type))).toStrictEqual(
       new Set(["opening", "own_funds", "reallocation", "fronted", "fee", "correction"]),
     );
   });
 
   it("has GiveWell lines forwarded, partly forwarded, assumed and awaiting, and one TCF split", () => {
     const givewell = data.Intermediary_payees.map((i) => i.Payee_ID);
-    expect(givewell).to.have.length(1);
+    expect(givewell).toHaveLength(1);
     const paid = data.Regrant_transfers.filter((t) => t.Payee_ID === givewell[0] && t.paid_at);
     const lines = data.Regrant_transfer_lines.filter((l) =>
       paid.some((t) => t.ID === l.Transfer_ID),
@@ -86,25 +87,26 @@ describe("dev data: regranting history", { timeout: 20000 }, function () {
           amountNok: String(a.amount_nok),
         })),
       );
-      expect(Number(figures.awaitingNok), `line ${line.ID}`).to.be.at.least(0);
+      expect(Number(figures.awaitingNok), `line ${line.ID}`).toBeGreaterThanOrEqual(0);
       statuses.set(figures.status, (statuses.get(figures.status) ?? 0) + 1);
     }
-    expect([...statuses.keys()].sort()).to.deep.equal([
+    expect([...statuses.keys()].sort()).toStrictEqual([
       "awaiting",
       "forwarded",
       "forwarded_assumed",
       "partly_forwarded",
     ]);
     const grantee = data.Onward_allocations.filter((a) => a.External_grantee_ID !== null);
-    expect(grantee).to.have.length(1);
+    expect(grantee).toHaveLength(1);
     const tcfLine = data.Regrant_transfer_lines.find((l) => l.ID === grantee[0].Transfer_line_ID)!;
-    expect(tcfLine.Organization_ID).to.equal(2);
-    expect(data.Onward_allocations.filter((a) => a.Transfer_line_ID === tcfLine.ID)).to.have.length(
+    expect(tcfLine.Organization_ID).toBe(2);
+    expect(data.Onward_allocations.filter((a) => a.Transfer_line_ID === tcfLine.ID)).toHaveLength(
       5,
     );
-    expect(data.Onward_allocations.every((a) => a.basis === "reported" || a.Report_ID === null)).to
-      .be.true;
-    expect(data.Regrant_documents.filter((d) => d.Onward_report_ID !== null)).to.have.length(
+    expect(
+      data.Onward_allocations.every((a) => a.basis === "reported" || a.Report_ID === null),
+    ).toBe(true);
+    expect(data.Regrant_documents.filter((d) => d.Onward_report_ID !== null)).toHaveLength(
       data.Onward_reports.length,
     );
   });
@@ -118,7 +120,7 @@ describe("dev data: regranting history", { timeout: 20000 }, function () {
       "Onward_reports",
       "Onward_allocations",
     ]) {
-      expect(later[table], table).to.deep.equal(data[table]);
+      expect(later[table], table).toStrictEqual(data[table]);
     }
   });
 });

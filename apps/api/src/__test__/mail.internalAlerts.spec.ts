@@ -1,6 +1,5 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import * as mail from "../custom_modules/mail";
 
 /**
@@ -20,13 +19,13 @@ describe("internal alerts", function () {
         ["Feiltype", "DRAFT"],
       ]);
 
-      expect(text).to.contain("Noe feilet");
-      expect(text).to.contain("Tidspunkt: 1. januar 2026");
-      expect(text).to.contain("Feiltype: DRAFT");
+      expect(text).toContain("Noe feilet");
+      expect(text).toContain("Tidspunkt: 1. januar 2026");
+      expect(text).toContain("Feiltype: DRAFT");
 
-      expect(html).to.contain("<strong>Noe feilet</strong>");
-      expect(html).to.contain("Tidspunkt:");
-      expect(html).to.contain("DRAFT");
+      expect(html).toContain("<strong>Noe feilet</strong>");
+      expect(html).toContain("Tidspunkt:");
+      expect(html).toContain("DRAFT");
     });
 
     it("escapes html so a donor message cannot inject markup", function () {
@@ -34,16 +33,16 @@ describe("internal alerts", function () {
         ["Melding", '<script>alert("x")</script> & "quoted"'],
       ]);
 
-      expect(html).to.not.contain("<script>");
-      expect(html).to.contain("&lt;script&gt;");
-      expect(html).to.contain("&amp;");
-      expect(html).to.contain("&quot;");
+      expect(html).not.toContain("<script>");
+      expect(html).toContain("&lt;script&gt;");
+      expect(html).toContain("&amp;");
+      expect(html).toContain("&quot;");
     });
 
     it("keeps the plain text unescaped", function () {
       const { text } = mail.formatInternalAlert("Rapport", [["Melding", "a & b"]]);
 
-      expect(text).to.contain("a & b");
+      expect(text).toContain("a & b");
     });
   });
 
@@ -54,33 +53,32 @@ describe("internal alerts", function () {
    * sending nothing.
    */
   describe("when MailerSend is not configured", function () {
-    const sandbox = sinon.createSandbox();
-    let errorStub: sinon.SinonStub;
+    let errorStub: MockInstance;
 
     beforeEach(function () {
-      errorStub = sandbox.stub(console, "error");
+      errorStub = vi.spyOn(console, "error").mockReturnValue(undefined);
     });
 
     afterEach(function () {
-      sandbox.restore();
+      vi.restoreAllMocks();
     });
 
     it("sendVippsProblemReport reports failure and names the missing configuration", async function () {
       const result = await mail.sendVippsProblemReport("url", "a@b.no", "melding", null);
 
-      expect(result).to.equal(false);
-      expect(errorStub.calledOnce).to.be.true;
-      expect(errorStub.firstCall.args[0]).to.contain("sendVippsProblemReport");
-      expect(errorStub.firstCall.args[0]).to.contain("MAILERSEND_API_KEY");
+      expect(result).toBe(false);
+      expect(errorStub).toHaveBeenCalledOnce();
+      expect(errorStub.mock.calls[0][0]).toContain("sendVippsProblemReport");
+      expect(errorStub.mock.calls[0][0]).toContain("MAILERSEND_API_KEY");
     });
 
     it("sendVippsErrorWarning reports failure and names the missing configuration", async function () {
       const result = await mail.sendVippsErrorWarning("DRAFT", "boom", { kid: "1" });
 
-      expect(result).to.equal(false);
-      expect(errorStub.calledOnce).to.be.true;
-      expect(errorStub.firstCall.args[0]).to.contain("sendVippsErrorWarning");
-      expect(errorStub.firstCall.args[0]).to.contain("MAILERSEND_API_KEY");
+      expect(result).toBe(false);
+      expect(errorStub).toHaveBeenCalledOnce();
+      expect(errorStub.mock.calls[0][0]).toContain("sendVippsErrorWarning");
+      expect(errorStub.mock.calls[0][0]).toContain("MAILERSEND_API_KEY");
     });
   });
 });

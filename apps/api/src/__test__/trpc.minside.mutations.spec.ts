@@ -1,7 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import * as avtalegiro from "../custom_modules/avtalegiro";
 import * as donorService from "../custom_modules/donorService";
@@ -32,9 +31,9 @@ type Caller = ReturnType<typeof callerWith>;
 const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code, err.message).to.equal(code);
+    expect(err.code, err.message).toBe(code);
   }
 };
 
@@ -72,10 +71,10 @@ const authMatrix = (
   permission: string,
   call: (caller: Caller, donorId: number) => Promise<unknown>,
   invalidInputs: ((caller: Caller) => Promise<unknown>)[],
-  writes: () => sinon.SinonStub[],
+  writes: () => MockInstance[],
 ) => {
   const donor = () => callerWith({ permissions: [permission], donorId: DONOR });
-  const assertNoWrites = () => writes().forEach((stub) => expect(stub.called).to.be.false);
+  const assertNoWrites = () => writes().forEach((stub) => expect(stub).not.toHaveBeenCalled());
 
   describe(`${name} authorization`, () => {
     it("rejects anonymous callers", async () => {
@@ -108,56 +107,56 @@ const authMatrix = (
     it("lets the donor and an admin through", async () => {
       await call(donor(), DONOR);
       await call(callerWith({ permissions: [permission, "admin"] }), DONOR);
-      expect(writes().some((stub) => stub.called)).to.be.true;
+      expect(writes().some((stub) => stub.mock.calls.length > 0)).toBe(true);
     });
   });
 };
 
 describe("tRPC minside mutations", () => {
-  let getDonor: sinon.SinonStub;
-  let getTaxUnit: sinon.SinonStub;
-  let getVippsAgreement: sinon.SinonStub;
-  let getDonorByKID: sinon.SinonStub;
-  let getAvtaleGiroByKID: sinon.SinonStub;
+  let getDonor: MockInstance;
+  let getTaxUnit: MockInstance;
+  let getVippsAgreement: MockInstance;
+  let getDonorByKID: MockInstance;
+  let getAvtaleGiroByKID: MockInstance;
 
   const profileDonor = () => callerWith({ permissions: ["write:profile"], donorId: DONOR });
   const agreementDonor = () => callerWith({ permissions: ["write:agreements"], donorId: DONOR });
 
   beforeEach(() => {
-    getDonor = sinon.stub(DAO.donors, "getByID").resolves(dbDonor as any);
-    getTaxUnit = sinon
-      .stub(DAO.tax, "getById")
-      .callsFake(
+    getDonor = vi.spyOn(DAO.donors, "getByID").mockResolvedValue(dbDonor as any);
+    getTaxUnit = vi
+      .spyOn(DAO.tax, "getById")
+      .mockImplementation(
         async (id: number) => ([ownTaxUnit, othersTaxUnit].find((u) => u.id === id) ?? null) as any,
       );
-    getVippsAgreement = sinon
-      .stub(DAO.vipps, "getAgreement")
-      .callsFake(async (id: string) =>
+    getVippsAgreement = vi
+      .spyOn(DAO.vipps, "getAgreement")
+      .mockImplementation(async (id: string) =>
         id === "agr_own"
           ? (vippsAgreement as any)
           : id === "agr_other"
             ? ({ ...vippsAgreement, ID: id, donorID: OTHER_DONOR } as any)
             : false,
       );
-    getDonorByKID = sinon
-      .stub(DAO.donors, "getByKID")
-      .callsFake(
+    getDonorByKID = vi
+      .spyOn(DAO.donors, "getByKID")
+      .mockImplementation(
         async (kid: string) =>
           (kid === KID ? { id: DONOR } : kid === "999" ? { id: OTHER_DONOR } : null) as any,
       );
-    getAvtaleGiroByKID = sinon
-      .stub(DAO.avtalegiroagreements, "getByKID")
-      .callsFake(async (kid: string) => ({ id: 1, KID: kid }) as any);
+    getAvtaleGiroByKID = vi
+      .spyOn(DAO.avtalegiroagreements, "getByKID")
+      .mockImplementation(async (kid: string) => ({ id: 1, KID: kid }) as any);
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("updateProfile", () => {
-    let update: sinon.SinonStub;
+    let update: MockInstance;
     beforeEach(() => {
-      update = sinon.stub(DAO.donors, "update").resolves(true);
+      update = vi.spyOn(DAO.donors, "update").mockResolvedValue(true);
     });
 
     authMatrix(
@@ -181,25 +180,30 @@ describe("tRPC minside mutations", () => {
         name: "Jack T",
         newsletter: false,
       });
-      expect(result).to.equal(true);
-      expect(update.calledOnceWithExactly(DONOR, "Jack T", dbDonor.email, false, undefined)).to.be
-        .true;
+      expect(result).toBe(true);
+      expect(update).toHaveBeenCalledExactlyOnceWith(
+        DONOR,
+        "Jack T",
+        dbDonor.email,
+        false,
+        undefined,
+      );
     });
 
     it("stores a missing newsletter as null, like REST", async () => {
       await profileDonor().minside.updateProfile({ donorId: DONOR, name: "Jack" });
-      expect(update.firstCall.args[3]).to.equal(null);
+      expect(update.mock.calls[0][3]).toBe(null);
     });
 
     it("answers NOT_FOUND for a missing donor and fails when nothing was updated", async () => {
-      getDonor.resolves(null);
+      getDonor.mockResolvedValue(null);
       await expectTrpcError(
         profileDonor().minside.updateProfile({ donorId: DONOR, name: "J" }),
         "NOT_FOUND",
       );
-      expect(update.called).to.be.false;
-      getDonor.resolves(dbDonor);
-      update.resolves(false);
+      expect(update).not.toHaveBeenCalled();
+      getDonor.mockResolvedValue(dbDonor);
+      update.mockResolvedValue(false);
       await expectTrpcError(
         profileDonor().minside.updateProfile({ donorId: DONOR, name: "J" }),
         "INTERNAL_SERVER_ERROR",
@@ -208,11 +212,11 @@ describe("tRPC minside mutations", () => {
   });
 
   describe("createTaxUnit", () => {
-    let create: sinon.SinonStub;
+    let create: MockInstance;
     beforeEach(() => {
-      create = sinon
-        .stub(donorService, "createTaxUnitForDonor")
-        .resolves({ ...ownTaxUnit, id: 9, registered: new Date() } as any);
+      create = vi
+        .spyOn(donorService, "createTaxUnitForDonor")
+        .mockResolvedValue({ ...ownTaxUnit, id: 9, registered: new Date() } as any);
     });
 
     authMatrix(
@@ -243,8 +247,8 @@ describe("tRPC minside mutations", () => {
         name: "Firma AS",
         ssn: "910000004",
       });
-      expect(create.calledOnceWithExactly(DONOR, "910000004", "Firma AS", "NO")).to.be.true;
-      expect(unit).to.deep.equal({
+      expect(create).toHaveBeenCalledExactlyOnceWith(DONOR, "910000004", "Firma AS", "NO");
+      expect(unit).toStrictEqual({
         id: 9,
         donorId: DONOR,
         name: "Jack",
@@ -260,14 +264,14 @@ describe("tRPC minside mutations", () => {
         ssn: "19900101-1234",
         locale: "SV",
       });
-      expect(create.firstCall.args[3]).to.equal("SV");
+      expect(create.mock.calls[0][3]).toBe("SV");
     });
   });
 
   describe("updateTaxUnit", () => {
-    let update: sinon.SinonStub;
+    let update: MockInstance;
     beforeEach(() => {
-      update = sinon.stub(DAO.tax, "updateTaxUnit").resolves(1);
+      update = vi.spyOn(DAO.tax, "updateTaxUnit").mockResolvedValue(1);
     });
 
     authMatrix(
@@ -301,9 +305,14 @@ describe("tRPC minside mutations", () => {
         name: "Jack T",
         ssn: "15868520008",
       });
-      expect(update.calledOnceWithExactly(3, { ...ownTaxUnit, name: "Jack T", ssn: "15868520008" }))
-        .to.be.true;
-      expect(unit).to.deep.include({ id: 3, donorId: DONOR, name: "Jack T", ssn: "15868520008" });
+      expect(update).toHaveBeenCalledExactlyOnceWith(3, {
+        ...ownTaxUnit,
+        name: "Jack T",
+        ssn: "15868520008",
+      });
+      expect(unit).toEqual(
+        expect.objectContaining({ id: 3, donorId: DONOR, name: "Jack T", ssn: "15868520008" }),
+      );
     });
 
     it("answers NOT_FOUND for another donor's or a missing unit, without writing", async () => {
@@ -318,14 +327,14 @@ describe("tRPC minside mutations", () => {
           "NOT_FOUND",
         );
       }
-      expect(update.called).to.be.false;
+      expect(update).not.toHaveBeenCalled();
     });
   });
 
   describe("deleteTaxUnit", () => {
-    let archive: sinon.SinonStub;
+    let archive: MockInstance;
     beforeEach(() => {
-      archive = sinon.stub(donorService, "archiveTaxUnit").resolves(1);
+      archive = vi.spyOn(donorService, "archiveTaxUnit").mockResolvedValue(1);
     });
 
     authMatrix(
@@ -340,10 +349,10 @@ describe("tRPC minside mutations", () => {
     );
 
     it("archives with the same service call as REST", async () => {
-      expect(await profileDonor().minside.deleteTaxUnit({ donorId: DONOR, taxUnitId: 3 })).to.equal(
+      expect(await profileDonor().minside.deleteTaxUnit({ donorId: DONOR, taxUnitId: 3 })).toBe(
         true,
       );
-      expect(archive.calledOnceWithExactly(DONOR, 3, undefined)).to.be.true;
+      expect(archive).toHaveBeenCalledExactlyOnceWith(DONOR, 3, undefined);
     });
 
     it("only transfers to one of the donor's own units", async () => {
@@ -355,7 +364,7 @@ describe("tRPC minside mutations", () => {
         }),
         "NOT_FOUND",
       );
-      expect(archive.called).to.be.false;
+      expect(archive).not.toHaveBeenCalled();
     });
 
     it("does not move the donations to the unit being deleted", async () => {
@@ -367,11 +376,11 @@ describe("tRPC minside mutations", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(archive.called).to.be.false;
+      expect(archive).not.toHaveBeenCalled();
     });
 
     it("maps the service's NOT_FOUND (another donor's unit)", async () => {
-      archive.rejects(
+      archive.mockRejectedValue(
         new donorService.DonorServiceError("NOT_FOUND", "No tax unit found with ID 4"),
       );
       await expectTrpcError(
@@ -382,19 +391,19 @@ describe("tRPC minside mutations", () => {
   });
 
   describe("Vipps agreements", () => {
-    let cancel: sinon.SinonStub;
-    let price: sinon.SinonStub;
-    let chargeDay: sinon.SinonStub;
-    let distribution: sinon.SinonStub;
+    let cancel: MockInstance;
+    let price: MockInstance;
+    let chargeDay: MockInstance;
+    let distribution: MockInstance;
     const vippsWrites = () => [cancel, price, chargeDay, distribution];
 
     beforeEach(() => {
-      cancel = sinon.stub(vippsService, "cancelAgreement").resolves(true);
-      price = sinon.stub(vippsService, "updateAgreementPrice").resolves(true);
-      chargeDay = sinon.stub(vippsService, "updateAgreementChargeDay").resolves(1 as any);
-      distribution = sinon
-        .stub(vippsService, "updateAgreementDistribution")
-        .resolves({ ok: true, KID: "123" });
+      cancel = vi.spyOn(vippsService, "cancelAgreement").mockResolvedValue(true);
+      price = vi.spyOn(vippsService, "updateAgreementPrice").mockResolvedValue(true);
+      chargeDay = vi.spyOn(vippsService, "updateAgreementChargeDay").mockResolvedValue(1 as any);
+      distribution = vi
+        .spyOn(vippsService, "updateAgreementDistribution")
+        .mockResolvedValue({ ok: true, KID: "123" });
     });
 
     authMatrix(
@@ -482,20 +491,20 @@ describe("tRPC minside mutations", () => {
         agreementId: "agr_own",
         amount: 300,
       });
-      expect(price.calledOnceWithExactly("agr_own", 30000)).to.be.true;
+      expect(price).toHaveBeenCalledExactlyOnceWith("agr_own", 30000);
       await donor.minside.updateVippsAgreementChargeDay({
         donorId: DONOR,
         agreementId: "agr_own",
         chargeDay: 0,
       });
-      expect(chargeDay.calledOnceWithExactly("agr_own", 0)).to.be.true;
+      expect(chargeDay).toHaveBeenCalledExactlyOnceWith("agr_own", 0);
       await donor.minside.cancelVippsAgreement({ donorId: DONOR, agreementId: "agr_own" });
-      expect(cancel.calledOnceWithExactly("agr_own")).to.be.true;
+      expect(cancel).toHaveBeenCalledExactlyOnceWith("agr_own");
     });
 
     it("fails when Vipps refuses the price change or cancellation, as REST answers 500", async () => {
-      price.resolves(false);
-      cancel.resolves(false);
+      price.mockResolvedValue(false);
+      cancel.mockResolvedValue(false);
       const donor = agreementDonor();
       await expectTrpcError(
         donor.minside.updateVippsAgreementPrice({
@@ -517,13 +526,15 @@ describe("tRPC minside mutations", () => {
         agreementId: "agr_own",
         distribution: split(),
       });
-      expect(result).to.deep.equal({ KID: "123" });
-      expect(distribution.calledOnceWithExactly("agr_own", { donorId: DONOR, ...split() })).to.be
-        .true;
+      expect(result).toStrictEqual({ KID: "123" });
+      expect(distribution).toHaveBeenCalledExactlyOnceWith("agr_own", {
+        donorId: DONOR,
+        ...split(),
+      });
     });
 
     it("maps the service's validation errors to BAD_REQUEST", async () => {
-      distribution.resolves({ ok: false, status: 400, message: "do not sum to 100" });
+      distribution.mockResolvedValue({ ok: false, status: 400, message: "do not sum to 100" });
       await expectTrpcError(
         agreementDonor().minside.updateVippsAgreementDistribution({
           donorId: DONOR,
@@ -562,7 +573,7 @@ describe("tRPC minside mutations", () => {
           "NOT_FOUND",
         );
       }
-      vippsWrites().forEach((stub) => expect(stub.called).to.be.false);
+      vippsWrites().forEach((stub) => expect(stub).not.toHaveBeenCalled());
     });
 
     it("refuses another donor's tax unit in the distribution", async () => {
@@ -574,7 +585,7 @@ describe("tRPC minside mutations", () => {
         }),
         "NOT_FOUND",
       );
-      expect(distribution.called).to.be.false;
+      expect(distribution).not.toHaveBeenCalled();
     });
 
     it("lets an admin change the donor's agreement, not another donor's under this donor id", async () => {
@@ -584,23 +595,25 @@ describe("tRPC minside mutations", () => {
         admin.minside.cancelVippsAgreement({ donorId: DONOR, agreementId: "agr_other" }),
         "NOT_FOUND",
       );
-      expect(cancel.calledOnce).to.be.true;
-      expect(getVippsAgreement.called).to.be.true;
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(getVippsAgreement).toHaveBeenCalled();
     });
   });
 
   describe("AvtaleGiro agreements", () => {
-    let amount: sinon.SinonStub;
-    let paymentDate: sinon.SinonStub;
-    let replace: sinon.SinonStub;
-    let status: sinon.SinonStub;
+    let amount: MockInstance;
+    let paymentDate: MockInstance;
+    let replace: MockInstance;
+    let status: MockInstance;
     const avtaleGiroWrites = () => [amount, paymentDate, replace, status];
 
     beforeEach(() => {
-      amount = sinon.stub(avtalegiro, "updateAvtaleGiroAmount").resolves(true as any);
-      paymentDate = sinon.stub(avtalegiro, "updateAvtaleGiroPaymentDate").resolves(true as any);
-      replace = sinon.stub(avtalegiro, "replaceAvtaleGiroDistribution").resolves();
-      status = sinon.stub(avtalegiro, "setAvtaleGiroStatus").resolves(true as any);
+      amount = vi.spyOn(avtalegiro, "updateAvtaleGiroAmount").mockResolvedValue(true as any);
+      paymentDate = vi
+        .spyOn(avtalegiro, "updateAvtaleGiroPaymentDate")
+        .mockResolvedValue(true as any);
+      replace = vi.spyOn(avtalegiro, "replaceAvtaleGiroDistribution").mockResolvedValue(undefined);
+      status = vi.spyOn(avtalegiro, "setAvtaleGiroStatus").mockResolvedValue(true as any);
     });
 
     const badKids = ["", "12a", "1".repeat(33), "1.5"];
@@ -663,11 +676,11 @@ describe("tRPC minside mutations", () => {
     it("calls the same AvtaleGiro functions as REST: amount in øre, payment date, cancel", async () => {
       const donor = agreementDonor();
       await donor.minside.updateAvtaleGiroAmount({ donorId: DONOR, KID, amount: 750 });
-      expect(amount.calledOnceWithExactly(KID, 75000)).to.be.true;
+      expect(amount).toHaveBeenCalledExactlyOnceWith(KID, 75000);
       await donor.minside.updateAvtaleGiroPaymentDate({ donorId: DONOR, KID, paymentDate: 0 });
-      expect(paymentDate.calledOnceWithExactly(KID, 0)).to.be.true;
+      expect(paymentDate).toHaveBeenCalledExactlyOnceWith(KID, 0);
       await donor.minside.cancelAvtaleGiroAgreement({ donorId: DONOR, KID });
-      expect(status.calledOnceWithExactly(KID, 0)).to.be.true;
+      expect(status).toHaveBeenCalledExactlyOnceWith(KID, 0);
     });
 
     it("replaces the distribution with the donor's id, after validating it like REST", async () => {
@@ -676,9 +689,11 @@ describe("tRPC minside mutations", () => {
         KID,
         distribution: split(null),
       });
-      expect(replace.calledOnce).to.be.true;
-      expect(replace.firstCall.args[0]).to.equal(KID);
-      expect(replace.firstCall.args[1]).to.deep.include({ donorId: DONOR, taxUnitId: null });
+      expect(replace).toHaveBeenCalledOnce();
+      expect(replace.mock.calls[0][0]).toBe(KID);
+      expect(replace.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ donorId: DONOR, taxUnitId: null }),
+      );
     });
 
     it("refuses shares that don't sum to 100, as validateDistribution does for REST", async () => {
@@ -692,7 +707,7 @@ describe("tRPC minside mutations", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(replace.called).to.be.false;
+      expect(replace).not.toHaveBeenCalled();
     });
 
     it("answers NOT_FOUND for another donor's KID, an unknown KID or no agreement", async () => {
@@ -719,13 +734,13 @@ describe("tRPC minside mutations", () => {
           "NOT_FOUND",
         );
       }
-      getAvtaleGiroByKID.resolves(null);
+      getAvtaleGiroByKID.mockResolvedValue(null);
       await expectTrpcError(
         donor.minside.cancelAvtaleGiroAgreement({ donorId: DONOR, KID }),
         "NOT_FOUND",
       );
-      avtaleGiroWrites().forEach((stub) => expect(stub.called).to.be.false);
-      expect(getDonorByKID.called).to.be.true;
+      avtaleGiroWrites().forEach((stub) => expect(stub).not.toHaveBeenCalled());
+      expect(getDonorByKID).toHaveBeenCalled();
     });
 
     it("refuses another donor's tax unit in the distribution", async () => {
@@ -737,8 +752,8 @@ describe("tRPC minside mutations", () => {
         }),
         "NOT_FOUND",
       );
-      expect(replace.called).to.be.false;
-      expect(getTaxUnit.calledWith(4)).to.be.true;
+      expect(replace).not.toHaveBeenCalled();
+      expect(getTaxUnit).toHaveBeenCalledWith(4);
     });
   });
 });

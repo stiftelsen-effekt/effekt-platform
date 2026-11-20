@@ -1,6 +1,5 @@
-import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
-import sinon from "sinon";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, beforeEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { replaceAvtaleGiroDistribution } from "../custom_modules/avtalegiro";
@@ -34,31 +33,38 @@ const taxUnits: Record<number, { id: number; donorId: number; archived: string |
 };
 
 describe("distribution ownership", () => {
-  let replaceAvtaleGiroStub: sinon.SinonStub;
-  let addDistributionStub: sinon.SinonStub;
+  let replaceAvtaleGiroStub: MockInstance;
+  let addDistributionStub: MockInstance;
 
   beforeAll(() => {
-    sinon.stub(DAO.tax, "getById").callsFake(async (id: number) => (taxUnits[id] as any) ?? null);
-    sinon
-      .stub(DAO.distributions, "getSplitByKID")
-      .resolves({ kid: "1234567", donorId: OWNER, taxUnitId: 70, causeAreas } as any);
-    replaceAvtaleGiroStub = sinon.stub(DAO.avtalegiroagreements, "replaceDistribution").resolves();
-    sinon.stub(donationHelpers, "createAvtaleGiroKID").resolves("99999999");
-    sinon.stub(donationHelpers, "createKID").resolves("88888888");
-    sinon.stub(DAO.vipps, "getAgreement").resolves({ ID: "agr_1", donorID: OWNER } as any);
-    sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null as any);
-    addDistributionStub = sinon.stub(DAO.distributions, "add").resolves();
-    sinon.stub(DAO.vipps, "updateAgreementKID").resolves(true as any);
-    sinon.stub(mail, "sendAvtaleGiroChange").resolves(true);
-    sinon.stub(mail, "sendVippsAgreementChange").resolves(true);
+    vi.spyOn(DAO.tax, "getById").mockImplementation(
+      async (id: number) => (taxUnits[id] as any) ?? null,
+    );
+    vi.spyOn(DAO.distributions, "getSplitByKID").mockResolvedValue({
+      kid: "1234567",
+      donorId: OWNER,
+      taxUnitId: 70,
+      causeAreas,
+    } as any);
+    replaceAvtaleGiroStub = vi
+      .spyOn(DAO.avtalegiroagreements, "replaceDistribution")
+      .mockResolvedValue(undefined as any);
+    vi.spyOn(donationHelpers, "createAvtaleGiroKID").mockResolvedValue("99999999");
+    vi.spyOn(donationHelpers, "createKID").mockResolvedValue("88888888");
+    vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue({ ID: "agr_1", donorID: OWNER } as any);
+    vi.spyOn(DAO.distributions, "getKIDbySplit").mockResolvedValue(null as any);
+    addDistributionStub = vi.spyOn(DAO.distributions, "add").mockResolvedValue(undefined as any);
+    vi.spyOn(DAO.vipps, "updateAgreementKID").mockResolvedValue(true as any);
+    vi.spyOn(mail, "sendAvtaleGiroChange").mockResolvedValue(true);
+    vi.spyOn(mail, "sendVippsAgreementChange").mockResolvedValue(true);
   });
 
   afterAll(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   beforeEach(() => {
-    sinon.resetHistory();
+    vi.clearAllMocks();
   });
 
   describe("assertDistributionOwnedBy", () => {
@@ -80,7 +86,7 @@ describe("distribution ownership", () => {
         } catch (ex) {
           error = ex;
         }
-        expect(error).to.be.instanceOf(DistributionOwnershipError);
+        expect(error).toBeInstanceOf(DistributionOwnershipError);
       });
     }
   });
@@ -95,8 +101,8 @@ describe("distribution ownership", () => {
         await replaceAvtaleGiroDistribution("1234567", { ...input, causeAreas } as any).catch(
           (ex) => (avtaleGiroError = ex),
         );
-        expect(avtaleGiroError).to.be.instanceOf(DistributionOwnershipError);
-        expect(replaceAvtaleGiroStub.called).to.be.false;
+        expect(avtaleGiroError).toBeInstanceOf(DistributionOwnershipError);
+        expect(replaceAvtaleGiroStub).not.toHaveBeenCalled();
       });
     }
 
@@ -106,7 +112,7 @@ describe("distribution ownership", () => {
         taxUnitId: 70,
         causeAreas,
       } as any);
-      expect(replaceAvtaleGiroStub.calledOnce).to.be.true;
+      expect(replaceAvtaleGiroStub).toHaveBeenCalledOnce();
     });
   });
 
@@ -117,8 +123,8 @@ describe("distribution ownership", () => {
         taxUnitId: 80,
         causeAreas,
       } as any);
-      expect(result.ok).to.be.false;
-      expect(addDistributionStub.called).to.be.false;
+      expect(result.ok).toBe(false);
+      expect(addDistributionStub).not.toHaveBeenCalled();
     });
 
     it("accepts the owner's own tax unit", async () => {
@@ -127,7 +133,7 @@ describe("distribution ownership", () => {
         taxUnitId: 70,
         causeAreas,
       } as any);
-      expect(result.ok).to.be.true;
+      expect(result.ok).toBe(true);
     });
   });
 });

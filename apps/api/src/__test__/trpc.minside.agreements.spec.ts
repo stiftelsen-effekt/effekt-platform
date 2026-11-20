@@ -1,8 +1,7 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express, { type Request, type Response } from "express";
 import request from "supertest";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { getYearlyTaxReports } from "../custom_modules/taxReports";
 import { RequestLocale } from "../middleware/locale";
@@ -34,9 +33,9 @@ type Caller = ReturnType<typeof callerWith>;
 const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
+    expect(err.code).toBe(code);
   }
 };
 
@@ -94,32 +93,30 @@ const dbDonation = (id: number, sum: string, taxUnitId: number | null, paymentMe
 
 /** Stubs the DAO calls of the tax report builder; returns the first one (the tax units) */
 const stubTaxReportData = () => {
-  const taxUnits = sinon.stub(DAO.tax, "getByDonorId").resolves([dbTaxUnit] as any);
-  sinon
-    .stub(DAO.donations, "getByDonorId")
-    .resolves([
-      dbDonation(101, "1000.00", 3, "Bank"),
-      dbDonation(102, "300.00", null, "Crypto"),
-    ] as any);
-  sinon.stub(DAO.donations, "getEAFundsDonations").resolves([]);
+  const taxUnits = vi.spyOn(DAO.tax, "getByDonorId").mockResolvedValue([dbTaxUnit] as any);
+  vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([
+    dbDonation(101, "1000.00", 3, "Bank"),
+    dbDonation(102, "300.00", null, "Crypto"),
+  ] as any);
+  vi.spyOn(DAO.donations, "getEAFundsDonations").mockResolvedValue([]);
   return taxUnits;
 };
 
 describe("tRPC minside agreements and tax reports", () => {
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   /** Each procedure: the REST route's permission, its DAO stub and what it returns */
   const procedures: {
     name: string;
-    stub: () => sinon.SinonStub;
+    stub: () => MockInstance;
     call: (caller: Caller, input: any) => Promise<unknown>;
     expected?: unknown;
   }[] = [
     {
       name: "vippsAgreements",
-      stub: () => sinon.stub(DAO.vipps, "getAgreementsByDonorId").resolves([dbVipps] as any),
+      stub: () => vi.spyOn(DAO.vipps, "getAgreementsByDonorId").mockResolvedValue([dbVipps] as any),
       call: (caller, input) => caller.minside.vippsAgreements(input),
       // agreement_url_code and the fields Min Side doesn't read are not declared
       expected: [
@@ -136,7 +133,7 @@ describe("tRPC minside agreements and tax reports", () => {
     {
       name: "avtaleGiroAgreements",
       stub: () =>
-        sinon.stub(DAO.avtalegiroagreements, "getByDonorId").resolves([dbAvtaleGiro] as any),
+        vi.spyOn(DAO.avtalegiroagreements, "getByDonorId").mockResolvedValue([dbAvtaleGiro] as any),
       call: (caller, input) => caller.minside.avtaleGiroAgreements(input),
       expected: [
         {
@@ -160,7 +157,7 @@ describe("tRPC minside agreements and tax reports", () => {
 
   for (const procedure of procedures) {
     describe(procedure.name, () => {
-      let stub: sinon.SinonStub;
+      let stub: MockInstance;
       const donor = (donorId = 7) => callerWith({ permissions: ["read:donations"], donorId });
 
       beforeEach(() => {
@@ -169,12 +166,12 @@ describe("tRPC minside agreements and tax reports", () => {
 
       it("rejects anonymous callers", async () => {
         await expectTrpcError(procedure.call(callerWith(), { donorId: 7 }), "UNAUTHORIZED");
-        expect(stub.called).to.be.false;
+        expect(stub).not.toHaveBeenCalled();
       });
 
       it("rejects another donor", async () => {
         await expectTrpcError(procedure.call(donor(), { donorId: 8 }), "FORBIDDEN");
-        expect(stub.called).to.be.false;
+        expect(stub).not.toHaveBeenCalled();
       });
 
       it("rejects the donor without the read:donations permission", async () => {
@@ -184,7 +181,7 @@ describe("tRPC minside agreements and tax reports", () => {
           }),
           "FORBIDDEN",
         );
-        expect(stub.called).to.be.false;
+        expect(stub).not.toHaveBeenCalled();
       });
 
       it("rejects ids that are not positive integers, and unknown fields", async () => {
@@ -198,16 +195,16 @@ describe("tRPC minside agreements and tax reports", () => {
         ]) {
           await expectTrpcError(procedure.call(donor(), input), "BAD_REQUEST");
         }
-        expect(stub.called).to.be.false;
+        expect(stub).not.toHaveBeenCalled();
       });
 
       it("returns the donor's data with only the declared fields", async () => {
         const result = await procedure.call(donor(), { donorId: 7 });
         if (procedure.expected !== undefined) {
-          expect(result).to.deep.equal(procedure.expected);
+          expect(result).toStrictEqual(procedure.expected);
         }
-        expect(stub.calledOnce).to.be.true;
-        expect(stub.firstCall.args[0]).to.equal(7);
+        expect(stub).toHaveBeenCalledOnce();
+        expect(stub.mock.calls[0][0]).toBe(7);
       });
 
       it("returns any donor's data to an admin", async () => {
@@ -215,15 +212,15 @@ describe("tRPC minside agreements and tax reports", () => {
           callerWith({ permissions: ["read:donations", "admin"] }),
           { donorId: 7 },
         );
-        expect(stub.firstCall.args[0]).to.equal(7);
+        expect(stub.mock.calls[0][0]).toBe(7);
         if (procedure.expected !== undefined) {
-          expect(result).to.deep.equal(procedure.expected);
+          expect(result).toStrictEqual(procedure.expected);
         }
       });
 
       if (procedure.name !== "taxReports") {
         it("fails as an internal error when the data doesn't match the output schema", async () => {
-          stub.resolves([{ unexpected: true }]);
+          stub.mockResolvedValue([{ unexpected: true }]);
           await expectTrpcError(procedure.call(donor(), { donorId: 7 }), "INTERNAL_SERVER_ERROR");
         });
       }
@@ -238,45 +235,47 @@ describe("tRPC minside agreements and tax reports", () => {
       const rest = await getYearlyTaxReports(7, RequestLocale.NO);
       const reports = await caller().minside.taxReports({ donorId: 7 });
 
-      expect(reports).to.deep.equal(rest);
+      expect(reports).toStrictEqual(rest);
       // The previous year down to 2022
       const lastYear = new Date().getFullYear() - 1;
-      expect(reports.map((r) => r.year)).to.deep.equal(
+      expect(reports.map((r) => r.year)).toStrictEqual(
         Array.from({ length: lastYear - 2021 }, (_, i) => lastYear - i),
       );
 
       const report2024 = reports.find((r) => r.year === 2024)!;
-      expect(report2024.units).to.have.length(1);
-      expect(report2024.units[0]).to.include({
-        id: 3,
-        name: "Jack Torrence",
-        ssn: "12345678901",
-        sumDonations: 1000,
-      });
-      expect(report2024.units[0].channels).to.deep.equal([
+      expect(report2024.units).toHaveLength(1);
+      expect(report2024.units[0]).toEqual(
+        expect.objectContaining({
+          id: 3,
+          name: "Jack Torrence",
+          ssn: "12345678901",
+          sumDonations: 1000,
+        }),
+      );
+      expect(report2024.units[0].channels).toStrictEqual([
         { channel: "Gi Effektivt", sumDonations: 1000 },
       ]);
-      expect(report2024.sumDonationsWithoutTaxUnit.sumDonations).to.equal(300);
-      expect(report2024.sumNonDeductibleDonationsByType).to.deep.equal([
+      expect(report2024.sumDonationsWithoutTaxUnit.sumDonations).toBe(300);
+      expect(report2024.sumNonDeductibleDonationsByType).toStrictEqual([
         { type: "Crypto", sumNonDeductibleDonations: 300 },
       ]);
     });
 
     it("leaves archived tax units out", async () => {
-      stubTaxReportData().resolves([
+      stubTaxReportData().mockResolvedValue([
         dbTaxUnit,
         { ...dbTaxUnit, id: 4, archived: new Date("2023-01-01T00:00:00.000Z") },
       ] as any);
       const reports = await caller().minside.taxReports({ donorId: 7 });
-      expect(reports.every((r) => r.units.length === 1 && r.units[0].id === 3)).to.be.true;
+      expect(reports.every((r) => r.units.length === 1 && r.units[0].id === 3)).toBe(true);
     });
 
     it("uses the NO locale by default and passes SV on", async () => {
       const taxUnits = stubTaxReportData();
       await caller().minside.taxReports({ donorId: 7 });
       await caller().minside.taxReports({ donorId: 7, locale: "SV" });
-      expect(taxUnits.firstCall.args).to.deep.equal([7, "NO"]);
-      expect(taxUnits.secondCall.args).to.deep.equal([7, "SV"]);
+      expect(taxUnits.mock.calls[0]).toStrictEqual([7, "NO"]);
+      expect(taxUnits.mock.calls[1]).toStrictEqual([7, "SV"]);
       await expectTrpcError(
         caller().minside.taxReports({ donorId: 7, locale: "DK" } as any),
         "BAD_REQUEST",
@@ -306,8 +305,8 @@ describe("tRPC minside agreements and tax reports", () => {
       encodeURIComponent(JSON.stringify(Object.fromEntries(inputs.map((v, i) => [i, v]))));
 
     it("answers the agreements page's lists in one batch", async () => {
-      sinon.stub(DAO.vipps, "getAgreementsByDonorId").resolves([dbVipps] as any);
-      sinon.stub(DAO.avtalegiroagreements, "getByDonorId").resolves([dbAvtaleGiro] as any);
+      vi.spyOn(DAO.vipps, "getAgreementsByDonorId").mockResolvedValue([dbVipps] as any);
+      vi.spyOn(DAO.avtalegiroagreements, "getByDonorId").mockResolvedValue([dbAvtaleGiro] as any);
 
       const res = await request(app)
         .get(
@@ -318,15 +317,15 @@ describe("tRPC minside agreements and tax reports", () => {
         )
         .expect(200);
 
-      expect(res.body.map((r: any) => r.result.data[0].KID)).to.deep.equal([
+      expect(res.body.map((r: any) => r.result.data[0].KID)).toStrictEqual([
         dbVipps.KID,
         dbAvtaleGiro.KID,
       ]);
-      expect(res.body[0].result.data[0]).to.not.have.property("agreement_url_code");
+      expect(res.body[0].result.data[0]).not.toHaveProperty("agreement_url_code");
     });
 
     it("checks each procedure of a batch against its own donor id", async () => {
-      const vipps = sinon.stub(DAO.vipps, "getAgreementsByDonorId").resolves([]);
+      const vipps = vi.spyOn(DAO.vipps, "getAgreementsByDonorId").mockResolvedValue([]);
       const taxUnits = stubTaxReportData();
 
       const res = await request(app)
@@ -338,10 +337,11 @@ describe("tRPC minside agreements and tax reports", () => {
         )
         .expect(207);
 
-      expect(res.body[0].error.data.code).to.equal("FORBIDDEN");
-      expect(res.body[1].result.data).to.be.an("array").that.is.not.empty;
-      expect(vipps.called).to.be.false;
-      expect(taxUnits.calledOnceWith(7, RequestLocale.NO)).to.be.true;
+      expect(res.body[0].error.data.code).toBe("FORBIDDEN");
+      expect(res.body[1].result.data).toBeInstanceOf(Array);
+      expect(res.body[1].result.data).not.toHaveLength(0);
+      expect(vipps).not.toHaveBeenCalled();
+      expect(taxUnits).toHaveBeenCalledExactlyOnceWith(7, RequestLocale.NO);
     });
   });
 });

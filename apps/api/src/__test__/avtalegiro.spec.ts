@@ -1,7 +1,5 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
+import { describe, it, beforeAll, afterAll, expect, vi } from "vitest";
 import { DAO } from "../custom_modules/DAO";
-import sinon from "sinon";
-import { expect } from "chai";
 import { DateTime } from "luxon";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
@@ -9,7 +7,6 @@ const avtalegiro = require("../custom_modules/avtalegiro");
 const config = require("../config");
 
 describe("AvtaleGiro file generation", () => {
-  let donorStub;
   let file;
   let getLines;
   let getSubString;
@@ -42,17 +39,14 @@ describe("AvtaleGiro file generation", () => {
   ];
 
   beforeAll(function () {
-    donorStub = sinon.stub(DAO.donors, "getByKID");
-
-    donorStub.withArgs("002556289731589").resolves({
-      name: "Maria Brækkelie",
-    });
-    donorStub.withArgs("000638723319577").resolves({
-      name: "Kristian Jørgensen",
-    });
-    donorStub.withArgs("000675978627833").resolves({
-      name: "Håkon Harnes",
-    });
+    const donorsByKID = new Map<unknown, any>([
+      ["002556289731589", { name: "Maria Brækkelie" }],
+      ["000638723319577", { name: "Kristian Jørgensen" }],
+      ["000675978627833", { name: "Håkon Harnes" }],
+    ]);
+    vi.spyOn(DAO.donors, "getByKID").mockImplementation((KID: string) =>
+      donorsByKID.has(KID) ? Promise.resolve(donorsByKID.get(KID)) : (undefined as any),
+    );
 
     config.giro_customer_id = "00230456";
 
@@ -77,30 +71,30 @@ describe("AvtaleGiro file generation", () => {
       DateTime.fromJSDate(new Date("2021-10-10 10:00")),
     );
 
-    expect(getLines().length).to.be.equal(14);
+    expect(getLines().length).toBe(14);
 
     /**
      * Start record
      */
-    expect(getSubString(1, 1, 2)).to.be.equal("NY");
-    expect(getSubString(1, 3, 2)).to.be.equal("00");
-    expect(getSubString(1, 5, 2)).to.be.equal("00");
-    expect(getSubString(1, 7, 2)).to.be.equal("10");
-    expect(getSubString(1, 9, 8)).to.be.equal("00230456");
-    expect(getSubString(1, 17, 7)).to.be.equal("0000042");
-    expect(getSubString(1, 24, 8)).to.be.equal("00008080");
+    expect(getSubString(1, 1, 2)).toBe("NY");
+    expect(getSubString(1, 3, 2)).toBe("00");
+    expect(getSubString(1, 5, 2)).toBe("00");
+    expect(getSubString(1, 7, 2)).toBe("10");
+    expect(getSubString(1, 9, 8)).toBe("00230456");
+    expect(getSubString(1, 17, 7)).toBe("0000042");
+    expect(getSubString(1, 24, 8)).toBe("00008080");
 
     /**
      * End record
      */
-    expect(getSubString(14, 1, 2)).to.be.equal("NY");
-    expect(getSubString(14, 3, 2)).to.be.equal("00");
-    expect(getSubString(14, 5, 2)).to.be.equal("00");
-    expect(getSubString(14, 7, 2)).to.be.equal("89");
-    expect(getSubString(14, 9, 8)).to.be.equal("00000003");
-    expect(getSubString(14, 17, 8)).to.be.equal("00000014");
-    expect(getSubString(14, 25, 17)).to.be.equal("00000000005390000");
-    expect(getSubString(14, 42, 6)).to.be.equal("101021");
+    expect(getSubString(14, 1, 2)).toBe("NY");
+    expect(getSubString(14, 3, 2)).toBe("00");
+    expect(getSubString(14, 5, 2)).toBe("00");
+    expect(getSubString(14, 7, 2)).toBe("89");
+    expect(getSubString(14, 9, 8)).toBe("00000003");
+    expect(getSubString(14, 17, 8)).toBe("00000014");
+    expect(getSubString(14, 25, 17)).toBe("00000000005390000");
+    expect(getSubString(14, 42, 6)).toBe("101021");
   });
 
   it("Has correct number of assignments", async () => {
@@ -111,16 +105,16 @@ describe("AvtaleGiro file generation", () => {
     );
 
     // Assignment 1
-    expect(getSubString(2, 1, 8)).to.be.equal("NY210020");
-    expect(getSubString(5, 1, 8)).to.be.equal("NY210088");
+    expect(getSubString(2, 1, 8)).toBe("NY210020");
+    expect(getSubString(5, 1, 8)).toBe("NY210088");
 
     // Assignment 2
-    expect(getSubString(6, 1, 8)).to.be.equal("NY210020");
-    expect(getSubString(9, 1, 8)).to.be.equal("NY210088");
+    expect(getSubString(6, 1, 8)).toBe("NY210020");
+    expect(getSubString(9, 1, 8)).toBe("NY210088");
 
     // Assignment 3
-    expect(getSubString(10, 1, 8)).to.be.equal("NY210020");
-    expect(getSubString(13, 1, 8)).to.be.equal("NY210088");
+    expect(getSubString(10, 1, 8)).toBe("NY210020");
+    expect(getSubString(13, 1, 8)).toBe("NY210088");
   });
 
   it("Has correct structure on assignment wrappers", async () => {
@@ -128,47 +122,47 @@ describe("AvtaleGiro file generation", () => {
 
     // Start record assignment
     // Assignment nr.
-    expect(getSubString(6, 18, 7)).to.be.equal(`0420001`);
+    expect(getSubString(6, 18, 7)).toBe(`0420001`);
     // Our bank account nr.
-    expect(getSubString(6, 25, 11)).to.be.equal("15062995960");
+    expect(getSubString(6, 25, 11)).toBe("15062995960");
 
     // End record assignment
     // No. of transactions, expected to just be one
-    expect(getSubString(9, 9, 8)).to.be.equal("00000001");
+    expect(getSubString(9, 9, 8)).toBe("00000001");
     // No. of records in assignment, expected to be four
-    expect(getSubString(9, 17, 8)).to.be.equal("00000004");
+    expect(getSubString(9, 17, 8)).toBe("00000004");
     // Total sum of transactions
-    expect(getSubString(9, 25, 17)).to.be.equal("00000000000340000");
+    expect(getSubString(9, 25, 17)).toBe("00000000000340000");
     // First due date of transactions
-    expect(getSubString(9, 42, 6)).to.be.equal("101021");
+    expect(getSubString(9, 42, 6)).toBe("101021");
     // Last due date of transactions
-    expect(getSubString(9, 48, 6)).to.be.equal("101021");
+    expect(getSubString(9, 48, 6)).toBe("101021");
   });
 
   it("Has correct structure on payment claim in assignment", async () => {
     // Testing assignment 3
 
     // Line 1
-    expect(getSubString(11, 1, 8)).to.be.equal("NY210230");
+    expect(getSubString(11, 1, 8)).toBe("NY210230");
     // Transaction number
-    expect(getSubString(11, 9, 7)).to.be.equal("0000001");
+    expect(getSubString(11, 9, 7)).toBe("0000001");
     // Due date
-    expect(getSubString(11, 16, 6)).to.be.equal("101021");
+    expect(getSubString(11, 16, 6)).toBe("101021");
     // Sum
-    expect(getSubString(11, 33, 17)).to.be.equal("00000000005000000");
+    expect(getSubString(11, 33, 17)).toBe("00000000005000000");
     // KID
-    expect(getSubString(11, 50, 25)).to.be.equal("          000675978627833");
+    expect(getSubString(11, 50, 25)).toBe("          000675978627833");
     // Filler
-    expect(getSubString(11, 75, 6)).to.be.equal("000000");
+    expect(getSubString(11, 75, 6)).toBe("000000");
 
     // Line 2
-    expect(getSubString(12, 1, 8)).to.be.equal("NY210231");
+    expect(getSubString(12, 1, 8)).toBe("NY210231");
     // Transaction number
-    expect(getSubString(12, 9, 7)).to.be.equal("0000001");
+    expect(getSubString(12, 9, 7)).toBe("0000001");
     // Short name
-    expect(getSubString(12, 16, 10)).to.be.equal(" HÅKONHARN");
+    expect(getSubString(12, 16, 10)).toBe(" HÅKONHARN");
     // Filler
-    expect(getSubString(12, 76, 5)).to.be.equal("00000");
+    expect(getSubString(12, 76, 5)).toBe("00000");
   });
 });
 
@@ -178,8 +172,8 @@ describe("AvtaleGiro claim due date calculation", () => {
     const date = DateTime.fromJSDate(new Date("2023-05-08 10:00"));
     const dueDates = avtalegiro.getDueDates(date);
 
-    expect(dueDates.length).to.be.equal(1);
-    expect(dueDates[0].toISODate()).to.be.equal("2023-05-12");
+    expect(dueDates.length).toBe(1);
+    expect(dueDates[0].toISODate()).toBe("2023-05-12");
   });
 
   it("Calculates correct due dates for a week with a holiday", () => {
@@ -187,7 +181,7 @@ describe("AvtaleGiro claim due date calculation", () => {
     const date = DateTime.fromJSDate(new Date("2023-05-01 10:00"));
     const dueDates = avtalegiro.getDueDates(date);
 
-    expect(dueDates.length).to.be.equal(0);
+    expect(dueDates.length).toBe(0);
   });
 
   it("Calculates correct due dates for a week with a holiday and a weekend", () => {
@@ -195,8 +189,8 @@ describe("AvtaleGiro claim due date calculation", () => {
     const date = DateTime.fromJSDate(new Date("2023-04-28 10:00"));
     const dueDates = avtalegiro.getDueDates(date);
 
-    expect(dueDates.length).to.be.equal(1);
-    expect(dueDates[0].toISODate()).to.be.equal("2023-05-05");
+    expect(dueDates.length).toBe(1);
+    expect(dueDates[0].toISODate()).toBe("2023-05-05");
   });
 
   it("Returns due dates for all the days in a period of april / may 2023", () => {
@@ -210,11 +204,11 @@ describe("AvtaleGiro claim due date calculation", () => {
     }
     dueDates.sort((a, b) => a.toMillis() - b.toMillis());
 
-    expect(dueDates.length).to.be.equal(26);
+    expect(dueDates.length).toBe(26);
     // Expect the due dates to be unique in the list
-    expect(dueDates).to.be.deep.equal([...new Set(dueDates)]);
+    expect(dueDates).toStrictEqual([...new Set(dueDates)]);
     // Expect all the dates from 05.05.2023 to 30.05.2023 to be in the list
-    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).to.be.deep.equal([
+    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).toStrictEqual([
       "05.05.2023",
       "06.05.2023",
       "07.05.2023",
@@ -255,11 +249,11 @@ describe("AvtaleGiro claim due date calculation", () => {
     }
     dueDates.sort((a, b) => a.toMillis() - b.toMillis());
 
-    expect(dueDates.length).to.be.equal(33);
+    expect(dueDates.length).toBe(33);
     // Expect the due dates to be unique in the list
-    expect(dueDates).to.be.deep.equal([...new Set(dueDates)]);
+    expect(dueDates).toStrictEqual([...new Set(dueDates)]);
     // Expect all the dates from 15.12.2023 to 15.01.2024 to be in the list
-    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).to.be.deep.equal([
+    expect(dueDates.map((d) => d.toFormat("dd.MM.yyyy"))).toStrictEqual([
       "15.12.2023",
       "16.12.2023",
       "17.12.2023",
@@ -297,7 +291,7 @@ describe("AvtaleGiro claim due date calculation", () => {
   });
 
   afterAll(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 });
 
@@ -305,23 +299,22 @@ describe("AvtaleGiro KID generation", () => {
   let getAgreementsWithKIDStartingWithStub;
 
   beforeAll(() => {
-    getAgreementsWithKIDStartingWithStub = sinon.stub(
-      DAO.avtalegiroagreements,
-      "getAgreementsWithKIDStartingWith",
-    );
+    getAgreementsWithKIDStartingWithStub = vi
+      .spyOn(DAO.avtalegiroagreements, "getAgreementsWithKIDStartingWith")
+      .mockReturnValue(undefined as any);
   });
 
   it("Generates a valid KID starting with the number 9", async () => {
-    getAgreementsWithKIDStartingWithStub.resolves([]);
+    getAgreementsWithKIDStartingWithStub.mockResolvedValue([]);
 
     const KID = await donationHelpers.createAvtaleGiroKID();
 
-    expect(KID.length).to.be.equal(15);
-    expect(KID.startsWith("9")).to.be.true;
+    expect(KID.length).toBe(15);
+    expect(KID.startsWith("9")).toBe(true);
   });
 
   it("Should retry if there are agreements starting with the same 6 digits", async () => {
-    getAgreementsWithKIDStartingWithStub.onCall(0).resolves([
+    getAgreementsWithKIDStartingWithStub.mockResolvedValueOnce([
       {
         id: 1,
         KID: "900000000000000",
@@ -330,16 +323,16 @@ describe("AvtaleGiro KID generation", () => {
         notice: false,
       },
     ]);
-    getAgreementsWithKIDStartingWithStub.onCall(1).resolves([]);
+    getAgreementsWithKIDStartingWithStub.mockResolvedValueOnce([]);
 
     const KID = await donationHelpers.createAvtaleGiroKID();
 
-    expect(KID.length).to.be.equal(15);
-    expect(KID.startsWith("9")).to.be.true;
-    expect(getAgreementsWithKIDStartingWithStub.calledTwice).to.be.true;
+    expect(KID.length).toBe(15);
+    expect(KID.startsWith("9")).toBe(true);
+    expect(getAgreementsWithKIDStartingWithStub).toHaveBeenCalledTimes(2);
   });
 
   afterAll(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 });

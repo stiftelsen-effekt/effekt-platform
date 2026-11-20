@@ -1,8 +1,7 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express, { type Request, type Response } from "express";
 import request from "supertest";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { mountTrpc } from "../trpc/express";
 import { appRouter } from "../trpc/router";
@@ -18,41 +17,41 @@ const callerWith = (permissions?: string[]) =>
   });
 
 describe("tRPC procedures", () => {
-  let ownersStub: sinon.SinonStub;
+  let ownersStub: MockInstance;
 
   beforeEach(() => {
-    ownersStub = sinon
-      .stub(DAO.meta, "getDataOwners")
-      .resolves([{ id: 1, name: "Effekt", default: true }]);
+    ownersStub = vi
+      .spyOn(DAO.meta, "getDataOwners")
+      .mockResolvedValue([{ id: 1, name: "Effekt", default: true }]);
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   it("rejects anonymous callers on admin procedures", async () => {
     try {
       await callerWith().meta.owners();
-      expect.fail("expected UNAUTHORIZED");
+      expect.unreachable("expected UNAUTHORIZED");
     } catch (err: any) {
-      expect(err.code).to.equal("UNAUTHORIZED");
+      expect(err.code).toBe("UNAUTHORIZED");
     }
-    expect(ownersStub.called).to.be.false;
+    expect(ownersStub).not.toHaveBeenCalled();
   });
 
   it("rejects authenticated callers without the admin permission", async () => {
     try {
       await callerWith(["read:profile"]).meta.owners();
-      expect.fail("expected FORBIDDEN");
+      expect.unreachable("expected FORBIDDEN");
     } catch (err: any) {
-      expect(err.code).to.equal("FORBIDDEN");
+      expect(err.code).toBe("FORBIDDEN");
     }
-    expect(ownersStub.called).to.be.false;
+    expect(ownersStub).not.toHaveBeenCalled();
   });
 
   it("returns data owners to admins", async () => {
     const owners = await callerWith(["admin"]).meta.owners();
-    expect(owners).to.deep.equal([{ id: 1, name: "Effekt", default: true }]);
+    expect(owners).toStrictEqual([{ id: 1, name: "Effekt", default: true }]);
   });
 });
 
@@ -62,7 +61,7 @@ describe("tRPC over HTTP", () => {
   mountTrpc(app);
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   it("answers CORS preflights with 204", async () => {
@@ -71,7 +70,7 @@ describe("tRPC over HTTP", () => {
 
   it("rejects anonymous requests to admin procedures with 401", async () => {
     const res = await request(app).get("/trpc/meta.owners").expect(401);
-    expect(res.body.error.data.code).to.equal("UNAUTHORIZED");
+    expect(res.body.error.data.code).toBe("UNAUTHORIZED");
   });
 
   it("rejects invalid bearer tokens with 401", async () => {
@@ -79,11 +78,11 @@ describe("tRPC over HTTP", () => {
       .get("/trpc/meta.owners")
       .set("Authorization", "Bearer not.a.token")
       .expect(401);
-    expect(res.body.error.data.code).to.equal("UNAUTHORIZED");
+    expect(res.body.error.data.code).toBe("UNAUTHORIZED");
   });
 
   it("does not include stack traces outside development", async () => {
     const res = await request(app).get("/trpc/meta.owners");
-    expect(res.body.error.data.stack).to.be.undefined;
+    expect(res.body.error.data.stack).toBeUndefined();
   });
 });
