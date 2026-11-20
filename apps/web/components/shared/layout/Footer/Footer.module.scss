@@ -49,12 +49,6 @@
   margin: 0;
 }
 
-.logo__bottom figure img {
-  width: 240px;
-  height: auto;
-  display: block;
-}
-
 .logo__bottom figure p {
   line-height: 240px;
   font-size: 300px;
@@ -124,11 +118,6 @@
     grid-row: auto;
     grid-column: 1;
     padding-top: 2rem;
-  }
-
-  .logo__bottom figure img {
-    width: 140px;
-    margin: 0 auto;
   }
 
   .logo__bottom figure p {
