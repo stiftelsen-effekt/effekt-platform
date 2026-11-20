@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { SanityImageObject } from "@sanity/image-url";
 import type { GiftcardGift } from "@effekt/api/giftcard";
@@ -92,7 +92,7 @@ const formatGivenAt = (iso: string) =>
 /**
  * The recipient's page (pages/[state]/gave/[code].page.tsx), in the site's own language: black
  * and white, large type, square corners, numbers as charts. Told as full-screen slides that snap
- * into place, with a progress bar on top: an envelope to open, the greeting, the gift counted up
+ * into place: an envelope to open, the greeting, the gift counted up
  * as a unit chart, the product's story (pictures, big numbers and bar charts that animate in),
  * who does the work, and a monthly donation to the same organization. Texts and pictures come
  * from the gift card product in Sanity (Recipient page); names and greeting from the purchase.
@@ -151,10 +151,6 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
           ]
         : [];
 
-  // greeting, impact, chapters, organization, closing
-  const slideCount = 2 + story.length + (recipient?.organization ? 1 : 0) + 1;
-  const { active, register } = useActiveSlide();
-
   useEffect(() => {
     if (!opened || noMotion) return;
     const root = document.documentElement;
@@ -172,22 +168,13 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
     );
   };
 
-  let slide = 0;
-  const next = () => slide++;
-
   return (
     <>
-      {opened && (
-        <div className={styles.progress} aria-hidden>
-          {Array.from({ length: slideCount }, (_, i) => (
-            <span key={i} data-done={active !== null && i <= active} />
-          ))}
-        </div>
-      )}
-
       <section className={`${styles.slide} ${styles.hero}`} data-opened={opened}>
         <span className="detailheader">Til {gift.recipientName}</span>
-        <h1 className={styles.heroTitle}>{gift.senderName} har gitt deg en gave</h1>
+        <h1 className={`${styles.display} ${styles.heroTitle}`}>
+          {gift.senderName} har gitt deg en gave
+        </h1>
 
         <button
           type="button"
@@ -215,120 +202,69 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
 
       {opened && (
         <>
-          <Slide
-            index={next()}
-            register={register}
-            className={styles.greeting}
-            innerRef={greetingRef}
-          >
+          <Slide className={styles.greeting} innerRef={greetingRef}>
             <div className={styles.card}>
               <span className="detailheader">{formatGivenAt(gift.givenAt)}</span>
-              <h3 className={styles.cardTo}>Kjære {gift.recipientName},</h3>
-              <p className={`inngress ${styles.cardMessage}`}>
+              <p className={styles.cardTo}>Kjære {gift.recipientName},</p>
+              <p className={styles.cardMessage}>
                 {gift.message ||
                   "Jeg har gitt en gave til både deg og noen av dem som trenger det mest."}
               </p>
-              <p className={`inngress ${styles.cardFrom}`}>Hilsen {gift.senderName}</p>
+              <p className={styles.cardFrom}>Hilsen {gift.senderName}</p>
             </div>
             <span className={`detailheader ${styles.scrollHint}`}>Se hva gaven gjør ↓</span>
           </Slide>
 
-          <Impact
-            index={next()}
-            register={register}
-            units={gift.units}
-            unit={unit}
-            unitSingular={gift.unitSingular}
-            impact={impact}
-          />
+          <Impact units={gift.units} unit={unit} unitSingular={gift.unitSingular} impact={impact} />
 
           {story.map((chapter, i) => (
-            <StoryChapter
-              key={chapter._key}
-              index={next()}
-              register={register}
-              chapter={chapter}
-              number={i + 1}
-              dark={i % 2 === 1}
-            />
+            <StoryChapter key={chapter._key} chapter={chapter} number={i + 1} dark={i % 2 === 1} />
           ))}
 
           {recipient?.organization && (
-            <Slide index={next()} register={register} className={styles.organization}>
-              <span className="detailheader">Arbeidet gjøres av</span>
-              {recipient.organization.logo?.asset ? (
-                <div className={styles.logo}>
-                  <ResponsiveImage
-                    image={recipient.organization.logo}
-                    alt={recipient.organization.name}
-                    layout="responsive"
-                  />
+            <Slide className={styles.organization}>
+              <div className={styles.split}>
+                <div>
+                  <span className="detailheader">Arbeidet gjøres av</span>
+                  {recipient.organization.logo?.asset ? (
+                    <div className={styles.logo}>
+                      <ResponsiveImage
+                        image={recipient.organization.logo}
+                        alt={recipient.organization.name}
+                        layout="responsive"
+                      />
+                    </div>
+                  ) : (
+                    <h2>{recipient.organization.name}</h2>
+                  )}
                 </div>
-              ) : (
-                <h2>{recipient.organization.name}</h2>
-              )}
-              {(recipient.organization.subtitle || recipient.organization.oneliner) && (
-                <p className="inngress">
-                  {recipient.organization.subtitle || recipient.organization.oneliner}
-                </p>
-              )}
+                {(recipient.organization.subtitle || recipient.organization.oneliner) && (
+                  <p className={styles.lead}>
+                    {recipient.organization.subtitle || recipient.organization.oneliner}
+                  </p>
+                )}
+              </div>
             </Slide>
           )}
 
-          <Closing index={next()} register={register} gift={gift} product={product} />
+          <Closing gift={gift} product={product} />
         </>
       )}
     </>
   );
 };
 
-type Register = (index: number) => (el: HTMLElement | null) => void;
-
-/** Which slide fills most of the screen, for the progress bar */
-function useActiveSlide() {
-  const [active, setActive] = useState<number | null>(null);
-  const observer = useRef<IntersectionObserver | null>(null);
-  const elements = useRef(new Map<Element, number>());
-
-  useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
-    observer.current = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActive(elements.current.get(entry.target) ?? null);
-        }
-      },
-      { threshold: 0.55 },
-    );
-    elements.current.forEach((_, el) => observer.current?.observe(el));
-    return () => observer.current?.disconnect();
-  }, []);
-
-  const register = useCallback<Register>(
-    (index) => (el) => {
-      if (!el) return;
-      elements.current.set(el, index);
-      observer.current?.observe(el);
-    },
-    [],
-  );
-  return { active, register };
-}
-
 /** One full-screen slide that fades in when it is reached */
 const Slide: React.FC<{
-  index: number;
-  register: Register;
   className?: string;
   dark?: boolean;
   innerRef?: React.MutableRefObject<HTMLElement | null>;
   children: React.ReactNode | ((visible: boolean) => React.ReactNode);
-}> = ({ index, register, className, dark, innerRef, children }) => {
+}> = ({ className, dark, innerRef, children }) => {
   const [revealRef, visible] = useReveal<HTMLElement>(0.35);
   const setRef = (el: HTMLElement | null) => {
     revealRef.current = el;
     if (innerRef) innerRef.current = el;
-    register(index)(el);
   };
   return (
     <section
@@ -343,37 +279,39 @@ const Slide: React.FC<{
 };
 
 const Impact: React.FC<{
-  index: number;
-  register: Register;
   units: number;
   unit: string;
   unitSingular: string;
   impact: string;
-}> = ({ index, register, units, unit, unitSingular, impact }) => {
+}> = ({ units, unit, unitSingular, impact }) => {
   const perSquare = Math.max(1, Math.ceil(units / MAX_SQUARES));
   const squares = Math.ceil(units / perSquare);
   return (
-    <Slide index={index} register={register} className={styles.impact} dark>
+    <Slide className={styles.impact} dark>
       {(visible: boolean) => (
-        <>
-          <span className="detailheader">Gaven din</span>
-          <Counter to={units} start={visible} unit={unit} />
-          <div className={styles.chart} aria-hidden>
-            <div className={styles.squares}>
-              {Array.from({ length: squares }, (_, i) => (
-                <span
-                  key={i}
-                  className={styles.square}
-                  style={{ animationDelay: `${300 + Math.min(i, 40) * 60}ms` }}
-                />
-              ))}
-            </div>
-            <span className="caption">
-              1 rute = {perSquare === 1 ? `1 ${unitSingular}` : `${perSquare} ${unit}`}
-            </span>
+        <div className={styles.split}>
+          <div>
+            <span className="detailheader">Gaven din</span>
+            <Counter to={units} start={visible} unit={unit} />
           </div>
-          <p className={`inngress ${styles.impactText}`}>Gaven {impact}.</p>
-        </>
+          <div>
+            <div className={styles.chart} aria-hidden>
+              <div className={styles.squares}>
+                {Array.from({ length: squares }, (_, i) => (
+                  <span
+                    key={i}
+                    className={styles.square}
+                    style={{ animationDelay: `${300 + Math.min(i, 40) * 60}ms` }}
+                  />
+                ))}
+              </div>
+              <span className="caption">
+                1 rute = {perSquare === 1 ? `1 ${unitSingular}` : `${perSquare} ${unit}`}
+              </span>
+            </div>
+            <p className={styles.lead}>Gaven {impact}.</p>
+          </div>
+        </div>
       )}
     </Slide>
   );
@@ -390,15 +328,11 @@ const Counter: React.FC<{ to: number; start: boolean; unit: string }> = ({ to, s
 };
 
 const StoryChapter: React.FC<{
-  index: number;
-  register: Register;
   chapter: Chapter;
   number: number;
   dark: boolean;
-}> = ({ index, register, chapter, number, dark }) => (
+}> = ({ chapter, number, dark }) => (
   <Slide
-    index={index}
-    register={register}
     className={[
       styles.chapter,
       chapter.image?.asset ? styles.withImage : "",
@@ -423,7 +357,7 @@ const StoryChapter: React.FC<{
             {String(number).padStart(2, "0")}
             {chapter.kicker ? ` — ${chapter.kicker}` : ""}
           </span>
-          {chapter.heading && <h2>{chapter.heading}</h2>}
+          {chapter.heading && <h2 className={styles.chapterTitle}>{chapter.heading}</h2>}
           {chapter.stat?.value && (
             <Stat value={chapter.stat.value} label={chapter.stat.label} start={visible} />
           )}
@@ -496,43 +430,45 @@ const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start
 
 /** Next steps: give to the same organization every month (the donation widget), or read more */
 const Closing: React.FC<{
-  index: number;
-  register: Register;
   gift: GiftcardGift;
   product: GiftPageProduct | null;
-}> = ({ index, register, gift, product }) => {
+}> = ({ gift, product }) => {
   const [, setWidgetContext] = useContext(WidgetContext);
   const recipient = product?.recipient;
   const organizationPage = recipient?.organization?.page;
   return (
-    <Slide index={index} register={register} className={styles.closing} dark>
-      <h2>{recipient?.cta_heading || "Vil du gjøre enda mer?"}</h2>
-      {recipient?.cta_text && <p className="inngress">{recipient.cta_text}</p>}
-      <div className={styles.buttons}>
-        <EffektButton
-          variant={EffektButtonVariant.SECONDARY}
-          onClick={() =>
-            setWidgetContext({
-              open: true,
-              prefilled: [
-                {
-                  causeAreaId: gift.causeAreaId,
-                  share: 100,
-                  organizations: [{ organizationId: gift.organizationId, share: 100 }],
-                },
-              ],
-              prefilledSum: null,
-              prefilledRecurring: RecurringDonation.RECURRING,
-            })
-          }
-        >
-          {recipient?.recurring_label || "Sett opp fast donasjon"}
-        </EffektButton>
-        {organizationPage && (
-          <Link className={styles.textLink} href={`/${organizationPage}`}>
-            {recipient?.organization_label || "Les mer om organisasjonen"} →
-          </Link>
-        )}
+    <Slide className={styles.closing} dark>
+      <div className={styles.split}>
+        <h2 className={styles.display}>{recipient?.cta_heading || "Vil du gjøre enda mer?"}</h2>
+        <div>
+          {recipient?.cta_text && <p className={styles.lead}>{recipient.cta_text}</p>}
+          <div className={styles.buttons}>
+            <EffektButton
+              variant={EffektButtonVariant.SECONDARY}
+              onClick={() =>
+                setWidgetContext({
+                  open: true,
+                  prefilled: [
+                    {
+                      causeAreaId: gift.causeAreaId,
+                      share: 100,
+                      organizations: [{ organizationId: gift.organizationId, share: 100 }],
+                    },
+                  ],
+                  prefilledSum: null,
+                  prefilledRecurring: RecurringDonation.RECURRING,
+                })
+              }
+            >
+              {recipient?.recurring_label || "Sett opp fast donasjon"}
+            </EffektButton>
+            {organizationPage && (
+              <Link className={styles.textLink} href={`/${organizationPage}`}>
+                {recipient?.organization_label || "Les mer om organisasjonen"} →
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
     </Slide>
   );

@@ -1,10 +1,70 @@
-// The recipient's page (GiftPage.tsx), in the site's own language: black and white, the global
-// heading sizes (styles/globals.css), 1px lines, square corners, numbers drawn as charts. The
-// story is full-screen slides that snap into place while <html> has .gift-snap. Every animation
-// (and the snapping) is off with prefers-reduced-motion.
+// The recipient's page (GiftPage.tsx), in the site's own language: black and white, the site's
+// typeface, 1px lines, square corners, numbers drawn as charts. The story is full-screen slides
+// that snap into place while <html> has .gift-snap. Every animation (and the snapping) is off
+// with prefers-reduced-motion.
+//
+// Type is sized for slides rather than pages: each size scales with the smaller of the screen's
+// width and height (min(vw, vh)), so a slide fills one screen on a 14" MacBook (about
+// 1512 × 860), a phone, a tall tablet or a 27" monitor alike, between a floor and a ceiling.
+// Headings balance their lines (text-wrap: balance) so no word is left alone on the last line.
 
 $ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-$gutter: clamp(1.25rem, 5vw, 4rem);
+$gutter: clamp(1.25rem, 5vw, 5rem);
+$max: 1360px;
+$wide: 1100px; // two columns from here
+
+.page {
+  // Display: the hero, the closing question
+  --type-display: clamp(44px, min(7.2vw, 11.5vh), 128px);
+  // Chapter headings
+  --type-title: clamp(34px, min(4.2vw, 7.4vh), 80px);
+  // The gift's number
+  --type-number: clamp(120px, min(21vw, 34vh), 340px);
+  // Big numbers in chapters
+  --type-stat: clamp(52px, min(6.4vw, 11vh), 120px);
+  // Greeting, impact sentence, closing text
+  --type-lead: clamp(21px, min(2vw, 3.4vh), 34px);
+  // Body text in chapters
+  --type-body: clamp(17px, min(1.25vw, 2.3vh), 21px);
+
+  // Portrait screens (phones, tablets) are limited by their width, so let the type use more
+  // of it; the ceilings and the low-screen floors below still apply
+  @media (orientation: portrait) {
+    --type-display: clamp(44px, min(10.5vw, 11.5vh), 128px);
+    --type-title: clamp(34px, min(6.4vw, 7.4vh), 80px);
+    --type-number: clamp(120px, min(30vw, 34vh), 340px);
+    --type-stat: clamp(52px, min(9.5vw, 11vh), 120px);
+    --type-lead: clamp(21px, min(3.2vw, 3.4vh), 34px);
+    --type-body: clamp(17px, min(2.2vw, 2.3vh), 21px);
+  }
+
+  // Low screens (small phones, landscape): smaller floors so each slide still fits
+  @media (max-height: 700px) {
+    --type-title: clamp(28px, min(4.2vw, 7.4vh), 80px);
+    --type-number: clamp(88px, min(21vw, 34vh), 340px);
+    --type-stat: clamp(40px, min(6.4vw, 11vh), 120px);
+    --type-lead: clamp(18px, min(2vw, 3.4vh), 34px);
+    --type-body: 15px;
+  }
+
+  width: 100%;
+  overflow-x: clip;
+  color: var(--primary);
+  background: var(--secondary);
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    hyphens: manual;
+    overflow-wrap: break-word;
+    font-weight: 300;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
 
 :global(html.gift-snap) {
   scroll-snap-type: y mandatory;
@@ -22,23 +82,16 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   scroll-snap-align: end;
 }
 
-.page {
-  width: 100%;
-  overflow-x: clip;
-  color: var(--primary);
-  background: var(--secondary);
-}
-
 .header {
   position: absolute;
   top: 0;
   left: 0;
   z-index: 10;
-  padding: 1.5rem $gutter;
+  padding: clamp(1rem, 3vh, 2rem) $gutter;
 
   img {
     display: block;
-    height: 24px;
+    height: clamp(20px, 3vh, 28px);
     width: auto;
   }
 }
@@ -51,30 +104,27 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   justify-content: center;
 }
 
-// ----- Progress bar (like stories): one segment per slide ----------------------------------
+// ----- Type ----------------------------------------------------------------------------------
 
-.progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  display: flex;
-  gap: 4px;
-  padding: 8px $gutter 0;
-  pointer-events: none;
-  mix-blend-mode: difference;
+.display {
+  font-size: var(--type-display);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
 
-  span {
-    flex: 1;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.35);
-    transition: background 400ms ease;
+.chapterTitle {
+  font-size: var(--type-title);
+  line-height: 1.08;
+  margin: 0.75rem 0 clamp(1rem, 3vh, 2rem);
+  max-width: 18ch;
+}
 
-    &[data-done="true"] {
-      background: white;
-    }
-  }
+.lead {
+  font-size: var(--type-lead);
+  line-height: 1.35;
+  margin: 0;
+  max-width: 30ch;
 }
 
 // ----- Slides ------------------------------------------------------------------------------
@@ -88,7 +138,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 5rem $gutter 4rem;
+  padding: clamp(3.5rem, 9vh, 6rem) $gutter clamp(2rem, 6vh, 4rem);
   box-sizing: border-box;
 
   &[data-dark="true"] {
@@ -97,7 +147,24 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   }
 }
 
-.reveal > * {
+// Two columns on wide screens, centred on a shared max width; stacked below
+.split {
+  width: 100%;
+  max-width: $max;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(2rem, 5vh, 3.5rem);
+  align-items: center;
+
+  @media (min-width: $wide) {
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(3rem, 6vw, 7rem);
+  }
+}
+
+.reveal > *,
+.reveal .split > * {
   opacity: 0;
   transform: translateY(40px);
   transition:
@@ -105,13 +172,14 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
     transform 800ms $ease-out;
 }
 
-.reveal[data-visible="true"] > * {
+.reveal[data-visible="true"] > *,
+.reveal[data-visible="true"] .split > * {
   opacity: 1;
   transform: none;
 
   @for $i from 1 through 6 {
     &:nth-child(#{$i}) {
-      transition-delay: #{($i - 1) * 120}ms;
+      transition-delay: #{($i - 1) * 140}ms;
     }
   }
 }
@@ -121,6 +189,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 .hero {
   align-items: center;
   text-align: center;
+  padding-bottom: clamp(2rem, 6vh, 4rem);
 
   :global(.detailheader) {
     animation: rise 700ms $ease-out both;
@@ -128,15 +197,17 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 }
 
 .heroTitle {
-  max-width: 12ch;
-  margin: 1rem 0 clamp(7.5rem, 17vh, 9rem);
+  max-width: 11ch;
+  margin: clamp(0.5rem, 2vh, 1rem) 0 0;
   animation: rise 900ms 80ms $ease-out both;
 }
 
+// The envelope scales with the screen's height, and leaves room above it for the flap to open
 .envelope {
   position: relative;
-  width: min(78vw, 360px);
+  width: clamp(220px, min(62vw, 34vh * 1.5), 380px);
   aspect-ratio: 3 / 2;
+  margin-top: clamp(5.5rem, 17vh, 10rem);
   border: none;
   padding: 0;
   background: none;
@@ -248,7 +319,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 }
 
 .openButton {
-  margin-top: 2.5rem;
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
   animation: rise 900ms 400ms $ease-out both;
 
   // Keeps its space after opening, so the envelope doesn't jump
@@ -268,7 +339,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 
 .piece {
   position: absolute;
-  top: 60%;
+  top: 65%;
   background: var(--primary);
   animation: burst 2.2s cubic-bezier(0.2, 0.7, 0.4, 1) both;
 
@@ -299,18 +370,26 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 }
 
 .card {
-  width: min(100%, 44rem);
+  width: min(100%, 52rem);
   box-sizing: border-box;
   border: 1px solid var(--primary);
-  padding: clamp(1.75rem, 5vw, 3.5rem);
+  padding: clamp(1.75rem, min(5vw, 7vh), 4.5rem);
 }
 
 .cardTo {
-  margin: 1.5rem 0;
+  font-size: var(--type-title);
+  line-height: 1.1;
+  margin: clamp(1rem, 3vh, 2rem) 0 clamp(1rem, 2.5vh, 1.75rem);
+}
+
+.cardMessage,
+.cardFrom {
+  font-size: var(--type-lead);
+  line-height: 1.4;
 }
 
 .cardMessage {
-  margin: 0 0 1.5rem;
+  margin: 0 0 clamp(1rem, 2.5vh, 1.75rem);
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
@@ -320,20 +399,21 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 }
 
 .scrollHint {
-  margin-top: 3rem;
+  margin-top: clamp(1.5rem, 4vh, 3rem);
   animation: nudge 2.4s 2.4s ease-in-out infinite;
 }
 
-// ----- Impact: the number and a unit chart -------------------------------------------------
+// ----- Impact: the number, a unit chart and what it means ----------------------------------
 
 .counter {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 0 0.25em;
-  margin: 1rem 0 2.5rem;
-  font-size: clamp(96px, 24vw, 280px);
-  line-height: 0.9;
+  gap: 0 0.2em;
+  margin: 0.5rem 0 0;
+  font-size: var(--type-number);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
 }
 
 .counterNumber {
@@ -341,14 +421,14 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 }
 
 .counterUnit {
-  font-size: 0.35em;
+  font-size: 0.3em;
+  letter-spacing: 0;
 }
 
 .chart {
   border-top: 1px solid currentColor;
   padding-top: 1.25rem;
-  margin-bottom: 2.5rem;
-  max-width: 44rem;
+  margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
 
   :global(.caption) {
     display: block;
@@ -361,6 +441,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 6px;
+  max-width: 34rem;
 }
 
 .square {
@@ -371,11 +452,6 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   .impact[data-visible="true"] & {
     animation: pop 450ms $ease-out both;
   }
-}
-
-.impactText {
-  max-width: 44rem;
-  margin: 0;
 }
 
 @keyframes pop {
@@ -389,29 +465,19 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 
 // ----- Story chapters ----------------------------------------------------------------------
 
-.chapter {
-  h2 {
-    margin: 1rem 0 2rem;
-    max-width: 16ch;
-    hyphens: auto;
-    overflow-wrap: break-word;
+.chapter:not(.withImage) .chapterText {
+  width: 100%;
+  max-width: $max;
+  margin: 0 auto;
+}
 
-    // One slide per screen on phones: a size down from the global h2
-    @media (max-width: 1180px) {
-      font-size: 40px;
-      line-height: 46px;
-      margin-bottom: 1.5rem;
-    }
-  }
+// Picture on top on phones and tall tablets; half the screen side by side when wide
+.withImage {
+  padding: 0;
+  justify-content: flex-start;
 
-  // Picture on top on phones, half the screen side by side on large screens
-  &.withImage {
-    padding: 0;
-    justify-content: flex-start;
-
-    @media (min-width: 1181px) {
-      flex-direction: row;
-    }
+  @media (min-width: $wide) {
+    flex-direction: row;
   }
 }
 
@@ -420,15 +486,19 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   flex: 0 0 34svh;
   overflow: hidden;
 
-  // A chart needs the room on phones; the picture shows on large screens only
-  .withChart & {
-    @media (max-width: 1180px) {
-      display: none;
-    }
+  @media (max-height: 700px) {
+    flex-basis: 24svh;
   }
 
-  @media (min-width: 1181px) {
-    flex: 1 1 50%;
+  @media (min-width: $wide) {
+    flex: 0 0 50%;
+  }
+
+  // A chart needs the room on narrow screens; the picture shows when there is space beside it
+  .withChart & {
+    @media (max-width: ($wide - 1px)) {
+      display: none;
+    }
   }
 
   img {
@@ -449,32 +519,34 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 }
 
 .withImage .chapterText {
-  padding: 2rem $gutter 3rem;
+  padding: clamp(1.25rem, 3.5vh, 2.5rem) $gutter clamp(2rem, 6vh, 4rem);
 
-  @media (min-width: 1181px) {
-    flex: 1 1 50%;
+  @media (min-width: $wide) {
+    flex: 0 0 50%;
     align-self: center;
-    padding: 4rem $gutter;
+    padding: clamp(3.5rem, 9vh, 6rem) clamp(2rem, 4.5vw, 5rem) clamp(2rem, 6vh, 4rem);
   }
 }
 
-// With the picture hidden on phones, the chart slide is centred like the others
+// With the picture hidden on narrow screens, the chart slide is centred like the others
 .withChart.withImage {
-  @media (max-width: 1180px) {
-    padding: 5rem 0 4rem;
+  @media (max-width: ($wide - 1px)) {
+    padding-top: clamp(3.5rem, 9vh, 6rem);
     justify-content: center;
   }
 }
 
 .chapterBody {
   margin: 0;
-  max-width: 36rem;
+  max-width: 38rem;
+  font-size: var(--type-body);
+  line-height: 1.55;
   white-space: pre-line;
 }
 
 .stat {
-  margin: 0 0 2rem;
-  max-width: 36rem;
+  margin: 0 0 clamp(1.25rem, 3.5vh, 2rem);
+  max-width: 34rem;
 
   :global(.caption) {
     display: block;
@@ -484,8 +556,10 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 
 .statValue {
   display: block;
-  font-size: clamp(48px, 11vw, 140px);
+  font-size: var(--type-stat);
   line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
   margin-bottom: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
@@ -507,7 +581,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 // ----- Bar chart ---------------------------------------------------------------------------
 
 .barChart {
-  margin: 0 0 2rem;
+  margin: 0 0 clamp(1.25rem, 3.5vh, 2rem);
   max-width: 40rem;
 
   figcaption {
@@ -521,7 +595,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 4px;
-  height: clamp(140px, 24svh, 260px);
+  height: clamp(110px, 24vh, 280px);
   border-bottom: 1px solid currentColor;
 }
 
@@ -568,7 +642,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
+  gap: 0.25rem 1.5rem;
   margin-top: 2rem;
   opacity: 0.8;
 }
@@ -583,33 +657,31 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
 
 // ----- Organization and closing ------------------------------------------------------------
 
-.organization p {
-  max-width: 44rem;
-  margin: 0;
-}
-
 .logo {
-  width: min(60%, 16rem);
-  margin: 1.5rem 0 2rem;
+  width: clamp(10rem, 30vh, 20rem);
+  margin-top: clamp(1rem, 3vh, 2rem);
 }
 
-.closing {
-  h2 {
-    max-width: 14ch;
-    margin: 0 0 2rem;
+// The question gets the wider column, and a size that keeps it to two lines there
+.closing .split {
+  @media (min-width: $wide) {
+    grid-template-columns: 1.25fr 1fr;
   }
+}
 
-  p {
-    max-width: 40rem;
-    margin: 0 0 3rem;
-  }
+.closing .display {
+  font-size: min(var(--type-display), clamp(44px, 5.4vw, 112px));
+}
+
+.closing .lead {
+  margin-bottom: clamp(1.5rem, 4vh, 3rem);
 }
 
 .buttons {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1.5rem 2.5rem;
+  gap: 1.25rem 2.5rem;
 }
 
 .textLink {
@@ -660,6 +732,7 @@ $gutter: clamp(1.25rem, 5vw, 4rem);
   }
 
   .reveal > *,
+  .reveal .split > *,
   .square,
   .statRule,
   .bar {
