@@ -49,11 +49,11 @@ describe("GatewayAPI SMS provider", () => {
     const provider = createGatewayApiProvider({
       token: "tok",
       sender: "GiEffektivt",
-      baseUrl: "https://messaging.gatewayapi.eu/",
+      baseUrl: "https://messaging.gatewayapi.com/",
       fetchImpl: impl,
     });
     await provider.send("+4791234567", "Hei!");
-    expect(calls[0].url).toBe("https://messaging.gatewayapi.eu/mobile/single");
+    expect(calls[0].url).toBe("https://messaging.gatewayapi.com/mobile/single");
   });
 
   it("throws with the status and body on an error response, without the token", async () => {

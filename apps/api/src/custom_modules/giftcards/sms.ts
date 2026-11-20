@@ -30,10 +30,10 @@ const logProvider: SmsProvider = {
 };
 
 /**
- * GatewayAPI's Google Cloud (EU region) platform. Accounts on their EU-owned platform use
- * https://messaging.gatewayapi.eu instead (GATEWAYAPI_BASE_URL); a token only works on its own.
+ * GatewayAPI's EU-owned setup, where our account is. Accounts on their Google Cloud setup use
+ * https://messaging.gatewayapi.com instead (GATEWAYAPI_BASE_URL); a token only works on its own.
  */
-export const GATEWAYAPI_BASE_URL = "https://messaging.gatewayapi.com";
+export const GATEWAYAPI_BASE_URL = "https://messaging.gatewayapi.eu";
 
 /** An error from the SMS provider. Never carries the API token. */
 export class SmsProviderError extends Error {
