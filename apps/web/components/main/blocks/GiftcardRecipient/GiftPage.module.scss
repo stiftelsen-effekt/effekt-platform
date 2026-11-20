@@ -135,6 +135,9 @@ $wide: 1100px; // two columns from here
 // ----- Slides ------------------------------------------------------------------------------
 
 .slide {
+  // The slide's own background, for things that must cover what is behind them
+  --slide-bg: var(--secondary);
+
   position: relative;
   min-height: 100vh;
   min-height: 100svh;
@@ -148,6 +151,8 @@ $wide: 1100px; // two columns from here
   box-sizing: border-box;
 
   &[data-dark="true"] {
+    --slide-bg: var(--primary);
+
     background: var(--primary);
     color: var(--secondary);
   }
@@ -214,6 +219,13 @@ $wide: 1100px; // two columns from here
   max-width: 11ch;
   margin: clamp(0.5rem, 2vh, 1rem) 0 0;
   animation: rise 900ms 80ms $ease-out both;
+}
+
+// The giver's name under the heading: long names ("Teamet på jobben") never unbalance it
+.heroFrom {
+  max-width: 24ch;
+  margin: clamp(0.5rem, 1.5vh, 1rem) 0 0;
+  animation: rise 900ms 160ms $ease-out both;
 }
 
 // The envelope scales with the screen's height, and leaves room above it for the flap to open
@@ -422,7 +434,9 @@ $wide: 1100px; // two columns from here
 .counter {
   display: flex;
   align-items: baseline;
-  flex-wrap: wrap;
+  // The number and its unit on one line ("5 myggnett")
+  flex-wrap: nowrap;
+  white-space: nowrap;
   gap: 0 0.2em;
   margin: 0.5rem 0 0;
   font-size: var(--type-number);
@@ -547,45 +561,6 @@ $wide: 1100px; // two columns from here
   }
 }
 
-// A panorama goes across the top on wide screens too, with the text below
-.withPanorama {
-  @media (min-width: $wide) {
-    flex-direction: column;
-
-    .chapterImage {
-      flex: 0 0 46svh;
-    }
-
-    .chapterText {
-      flex: 1 1 auto;
-      align-self: stretch;
-      width: 100%;
-      max-width: $max;
-      margin: 0 auto;
-      padding: clamp(2rem, 5vh, 3.5rem) $gutter clamp(2rem, 6vh, 4rem);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      column-gap: clamp(3rem, 6vw, 7rem);
-      align-content: start;
-
-      // Heading and big number on the left, the text on the right
-      > .chapterTitle {
-        grid-column: 1;
-      }
-
-      > .stat {
-        grid-column: 1;
-      }
-
-      > .chapterBody {
-        grid-column: 2;
-        grid-row: 1 / span 2;
-        align-self: end;
-      }
-    }
-  }
-}
-
 // With the picture hidden on narrow screens, the chart slide is centred like the others
 .withChart.withImage {
   @media (max-width: ($wide - 1px)) {
@@ -651,13 +626,17 @@ $wide: 1100px; // two columns from here
 .bars {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  // A few bars stay bar-shaped instead of filling the width
+  grid-auto-columns: minmax(0, 7rem);
   gap: 4px;
   height: clamp(110px, 24vh, 280px);
   border-bottom: 1px solid currentColor;
 }
 
+// Bars in front of the axis lines
 .barColumn {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -673,18 +652,15 @@ $wide: 1100px; // two columns from here
 // What would have been: outlined and hatched, on top of the bar, growing in after it
 .barExtra {
   display: block;
+  flex: 1 1 0;
+  min-height: 0;
   width: 100%;
   box-sizing: border-box;
   border: 1px solid currentColor;
   border-bottom: none;
-  background: repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 7px);
-  transform: scaleY(0);
-  transform-origin: bottom;
-  transition: transform 700ms $ease-out;
-
-  .barChart[data-visible="true"] & {
-    transform: scaleY(1);
-  }
+  // Solid underneath, so the axis lines don't show through the stripes
+  background:
+    repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 7px), var(--slide-bg);
 }
 
 // Many bars (a series of years): thinner gaps, labels only where given
@@ -778,21 +754,28 @@ $wide: 1100px; // two columns from here
   }
 }
 
-.bar {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid currentColor;
+.barStack {
+  display: flex;
+  flex-direction: column;
   transform: scaleY(0);
   transform-origin: bottom;
   transition: transform 900ms $ease-out;
 
-  &[data-highlight="true"] {
-    background: currentColor;
-  }
-
   .barChart[data-visible="true"] & {
     transform: scaleY(1);
+  }
+}
+
+.bar {
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+
+  &[data-highlight="true"] {
+    background: currentColor;
   }
 }
 
@@ -810,7 +793,7 @@ $wide: 1100px; // two columns from here
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 1.5rem;
-  margin-top: 2rem;
+  margin-top: clamp(1rem, 3vh, 2rem);
   opacity: 0.8;
 }
 
@@ -822,11 +805,68 @@ $wide: 1100px; // two columns from here
   margin-right: 0.25rem;
 }
 
+// ----- Horizontal bars ---------------------------------------------------------------------
+
+.hbars {
+  display: grid;
+  gap: clamp(0.75rem, 2vh, 1.25rem);
+  max-width: 36rem;
+}
+
+.hbarRow {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hbarLabel {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.hbarTrack {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: clamp(2rem, 5vh, 3rem);
+}
+
+.hbar {
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 900ms $ease-out;
+
+  &[data-highlight="true"] {
+    background: currentColor;
+  }
+
+  .barChart[data-visible="true"] & {
+    transform: scaleX(1);
+  }
+}
+
+.hbarValue {
+  font-size: clamp(20px, 2.4vw, 32px);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 // ----- Organization and closing ------------------------------------------------------------
 
 .logo {
   width: clamp(12rem, 34vh, 24rem);
   margin-top: clamp(1rem, 3vh, 2rem);
+
+  // Upright and square logos are limited by height, wide ones by width
+  img {
+    max-height: clamp(7rem, 24vh, 13rem);
+    width: auto !important;
+    max-width: 100%;
+  }
 }
 
 // The question gets the wider column, and a size that keeps it to two lines there
@@ -902,8 +942,8 @@ $wide: 1100px; // two columns from here
   .reveal .split > *,
   .square,
   .statRule,
-  .bar,
-  .barExtra {
+  .barStack,
+  .hbar {
     opacity: 1;
     transform: none;
   }
@@ -943,7 +983,7 @@ $wide: 1100px; // two columns from here
   grid-template-columns: repeat(10, 1fr);
   gap: clamp(3px, 0.5vw, 6px);
   // Square, and never taller than the room a slide has
-  width: min(100%, 42vh, 34rem);
+  width: min(100%, 38vh, 34rem);
 }
 
 .waffleSquare {

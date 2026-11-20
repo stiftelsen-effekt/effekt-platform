@@ -462,10 +462,11 @@ export default defineType({
                       type: "string",
                     }),
                     defineField({
-                      name: "axis",
-                      title: "Show a y-axis",
+                      name: "horizontal",
+                      title: "Horizontal bars",
                       type: "boolean",
-                      description: 'A few round values left of the chart, e.g. "1 mill"',
+                      description:
+                        "Bars lying down with their values at the end, for comparing a few",
                     }),
                     defineField({
                       name: "axis",

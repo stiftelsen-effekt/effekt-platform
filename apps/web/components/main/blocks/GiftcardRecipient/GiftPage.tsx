@@ -35,6 +35,8 @@ type ChartData = {
   }> | null;
   highlight_label?: string | null;
   extra_label?: string | null;
+  /** Bars lying down, label on the left and value at the end: for a few bars compared */
+  horizontal?: boolean | null;
   /** A y-axis with a few round values (short format, e.g. "1,5 mill"), left of the chart */
   axis?: boolean | null;
   /** Big numbers beside the chart, counted up after the bars, e.g. "+99 %" */
@@ -91,6 +93,10 @@ const SNAP_CLASS = "gift-snap";
 
 export const fillImpact = (template: string, units: number, unit: string) =>
   template.replace(/\{units\}/g, String(units)).replace(/\{unit\}/g, unit);
+
+/** Words with a hyphen ("A-vitamin") never break at it: a non-breaking hyphen between letters */
+export const keepHyphenated = (text: string) =>
+  text.replace(/([A-Za-zÀ-ÿ])-([A-Za-zÀ-ÿ])/g, "$1\u2011$2");
 
 /** "Over 400 000" → ["Over ", 400000, ""], so the number part can count up; null without one */
 export const splitNumber = (text: string): [string, number, string] | null => {
@@ -213,9 +219,8 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
     <>
       <section className={`${styles.slide} ${styles.hero}`} data-opened={opened}>
         <span className="detailheader">Til {gift.recipientName}</span>
-        <h1 className={`${styles.display} ${styles.heroTitle}`}>
-          {gift.senderName} har gitt deg en gave
-        </h1>
+        <h1 className={`${styles.display} ${styles.heroTitle}`}>Du har fått en gave</h1>
+        <p className={`${styles.lead} ${styles.heroFrom}`}>fra {gift.senderName}</p>
 
         <button
           type="button"
@@ -379,11 +384,6 @@ const StoryChapter: React.FC<{
   dark: boolean;
 }> = ({ chapter, dark }) => {
   const hasImage = !!chapter.image?.asset;
-  // A panorama (wider than 1.8:1) loses too much in a half-screen frame: it goes across the top
-  const dims = (
-    chapter.image?.asset as { metadata?: { dimensions?: { width: number; height: number } } }
-  )?.metadata?.dimensions;
-  const panorama = !!dims && dims.width / dims.height > 1.8;
   const hasChart = !!chapter.chart?.bars?.length;
   // Without a picture, a square chart or map sits beside the text, or else a big number does:
   // two columns on wide screens, stacked on narrow ones
@@ -395,13 +395,14 @@ const StoryChapter: React.FC<{
       className={[
         styles.chapter,
         hasImage ? styles.withImage : "",
-        panorama ? styles.withPanorama : "",
         hasChart ? styles.withChart : "",
       ].join(" ")}
       dark={dark}
     >
       {(visible: boolean) => {
-        const title = chapter.heading && <h2 className={styles.chapterTitle}>{chapter.heading}</h2>;
+        const title = chapter.heading && (
+          <h2 className={styles.chapterTitle}>{keepHyphenated(chapter.heading)}</h2>
+        );
         const body = chapter.text && <p className={styles.chapterBody}>{chapter.text}</p>;
         const stat = chapter.stat?.value && (
           <Stat
@@ -507,18 +508,64 @@ const Stat: React.FC<{
 
 /**
  * Bars that grow from the axis one after another; highlighted bars are filled. A bar's `extra`
- * stacks on top, outlined and hatched, and grows in after all the bars have: what would have
- * been. Callouts (big numbers) count up beside the chart once the bars are done.
+ * stacks on top, outlined and hatched (what would have been), and grows with it. Callouts (big
+ * numbers) count up beside the chart once the bars are done.
  */
-const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start }) => {
+const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start }) =>
+  chart.horizontal ? (
+    <HorizontalBars chart={chart} start={start} />
+  ) : (
+    <ColumnChart chart={chart} start={start} />
+  );
+
+/** A few bars lying down, each growing from the left with its value counting up at its end */
+const HorizontalBars: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start }) => {
+  const bars = (chart.bars ?? []).filter((b) => typeof b.value === "number");
+  const max = Math.max(...bars.map((b) => b.value ?? 0), 1);
+  return (
+    <figure className={styles.barChart} data-visible={start}>
+      {chart.title && <figcaption className="caption">{chart.title}</figcaption>}
+      <div className={styles.hbars} role="img" aria-label={chart.title ?? undefined}>
+        {bars.map((bar, i) => (
+          <div key={bar._key} className={styles.hbarRow}>
+            <span className={styles.hbarLabel}>{bar.label}</span>
+            <div className={styles.hbarTrack}>
+              <span
+                className={styles.hbar}
+                data-highlight={bar.highlight ?? false}
+                style={{
+                  width: `${((bar.value ?? 0) / max) * 100}%`,
+                  transitionDelay: `${200 + i * 250}ms`,
+                }}
+              />
+              <HBarValue value={bar.value ?? 0} start={start} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {chart.caption && (
+        <div className={styles.legend}>
+          <span className="caption">{chart.caption}</span>
+        </div>
+      )}
+    </figure>
+  );
+};
+
+const HBarValue: React.FC<{ value: number; start: boolean }> = ({ value, start }) => {
+  const count = useCountUp(value, start, 1100);
+  return <span className={styles.hbarValue}>{formatNumber(count)} %</span>;
+};
+
+const ColumnChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start }) => {
   const bars = (chart.bars ?? []).filter((b) => typeof b.value === "number");
   const max = Math.max(...bars.map((b) => (b.value ?? 0) + (b.extra ?? 0)), 1);
   const stacked = bars.some((b) => (b.extra ?? 0) > 0);
   const step = Math.min(70, 1200 / Math.max(bars.length, 1));
-  const extrasAt = 300 + bars.length * step;
+  const barsDone = 150 + bars.length * step + 900;
   const callouts = (chart.callouts ?? []).filter((c) => c.value);
   const ticks = chart.axis ? axisTicks(max) : [];
-  const calloutsStart = useDelayed(start, extrasAt + 900);
+  const calloutsStart = useDelayed(start, barsDone);
   return (
     <figure
       className={`${styles.barChart} ${callouts.length ? styles.withCallouts : ""}`}
@@ -539,23 +586,24 @@ const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start
           {bars.map((bar, i) => (
             <div key={bar._key} className={styles.barColumn}>
               <div className={styles.barTrack}>
-                {(bar.extra ?? 0) > 0 && (
-                  <span
-                    className={styles.barExtra}
-                    style={{
-                      height: `${((bar.extra ?? 0) / max) * 100}%`,
-                      transitionDelay: `${extrasAt + i * step}ms`,
-                    }}
-                  />
-                )}
-                <span
-                  className={styles.bar}
-                  data-highlight={bar.highlight ?? stacked}
+                {/* One stack per bar, grown from the axis as a whole: the bar and what is
+                    stacked on it rise together */}
+                <div
+                  className={styles.barStack}
                   style={{
-                    height: `${((bar.value ?? 0) / max) * 100}%`,
+                    height: `${(((bar.value ?? 0) + (bar.extra ?? 0)) / max) * 100}%`,
                     transitionDelay: `${150 + i * step}ms`,
                   }}
-                />
+                >
+                  {(bar.extra ?? 0) > 0 && (
+                    <span className={styles.barExtra} style={{ flexGrow: bar.extra ?? 0 }} />
+                  )}
+                  <span
+                    className={styles.bar}
+                    data-highlight={bar.highlight ?? stacked}
+                    style={{ flexGrow: bar.value ?? 0 }}
+                  />
+                </div>
               </div>
               <span className={styles.barLabel}>{bar.label}</span>
             </div>
