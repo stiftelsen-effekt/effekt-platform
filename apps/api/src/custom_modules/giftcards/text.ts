@@ -86,3 +86,15 @@ export function renderGiftcardSms(template: string, values: GiftcardSmsValues): 
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+/**
+ * A phone number for lists: the country code and first two digits, then the last two
+ * (+4791234567 → +4791****67). Short numbers are fully masked.
+ */
+export function maskPhone(phone: string | null): string | null {
+  if (!phone) return null;
+  const compact = phone.replace(/\s/g, "");
+  if (compact.length < 9) return "*".repeat(compact.length);
+  const head = compact.startsWith("+") ? 5 : 2;
+  return `${compact.slice(0, head)}${"*".repeat(compact.length - head - 2)}${compact.slice(-2)}`;
+}

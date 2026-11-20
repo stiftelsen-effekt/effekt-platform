@@ -240,7 +240,7 @@ export function fakeOrgNumber(rng: Rng): string {
   }
 }
 
-function luhnCheckDigit(partial: string): number {
+export function luhnCheckDigit(partial: string): number {
   // Same as KID.luhn_caclulate in src/custom_modules/KID.ts
   const code = partial + "0";
   const parity = code.length % 2;

@@ -26,10 +26,12 @@ import mysql from "mysql2/promise";
 import { config } from "./config";
 import { firstOfMonth, isoDate, parts, todayInNorway, toDay } from "./calendar";
 import { Dataset, GENERATED_TABLES, generate, Row, TableName } from "./generate";
+import { luhnCheckDigit } from "./people";
 import {
   CAUSE_AREAS,
   DATA_OWNERS,
   ORGANIZATIONS,
+  PAYMENT,
   PAYMENT_METHODS,
   REFERRAL_TYPES,
   STOP_REASONS,
@@ -381,6 +383,193 @@ async function seedGiftcardProducts(conn: mysql.Connection) {
   }
 }
 
+/**
+ * A few gift cards in every status, so the admin's gift card page has something to show. Each is
+ * on its own KID (the donor's id, then 0000000 and a digit: generated KIDs never have a 0 there)
+ * for one of the first donors, with a Vipps donation when it was paid. Send times are relative to
+ * when they are added. Added once per KID, so re-running (every top-up) changes nothing.
+ * Synthetic names only.
+ */
+const DEV_GIFTCARDS: {
+  product: string;
+  units: number;
+  delivery: "sms" | "pdf";
+  status: "pending" | "paid" | "sent" | "failed" | "cancelled";
+  /** Days from now for Send_at (SMS only) */
+  sendInDays?: number;
+  recipient: string;
+  sender: string;
+  message: string | null;
+  phone?: string;
+  attempts?: number;
+  error?: string;
+}[] = [
+  {
+    product: "malaria",
+    units: 3,
+    delivery: "sms",
+    status: "paid",
+    sendInDays: 30,
+    recipient: "Mia",
+    sender: "Mormor",
+    message: "God jul, vennen! Klem fra mormor",
+    phone: "+4791234567",
+  },
+  {
+    product: "myggnett",
+    units: 2,
+    delivery: "sms",
+    status: "failed",
+    sendInDays: -2,
+    recipient: "Jonas",
+    sender: "Kollegaene",
+    message: "Gratulerer med dagen!",
+    phone: "+4740000001",
+    attempts: 3,
+    error: "SMS provider answered 503 Service Unavailable",
+  },
+  {
+    product: "vaksine",
+    units: 1,
+    delivery: "sms",
+    status: "sent",
+    sendInDays: -10,
+    recipient: "Nora",
+    sender: "Emil",
+    message: "Takk for alt i år",
+    phone: "+4798765432",
+  },
+  {
+    product: "a-vitamin",
+    units: 10,
+    delivery: "pdf",
+    status: "paid",
+    recipient: "Familien Berg",
+    sender: "Sara",
+    message: null,
+  },
+  {
+    product: "malaria",
+    units: 1,
+    delivery: "sms",
+    status: "pending",
+    sendInDays: 20,
+    recipient: "Oskar",
+    sender: "Ingrid",
+    message: "Til deg!",
+    phone: "+4790000002",
+  },
+  {
+    product: "myggnett",
+    units: 5,
+    delivery: "sms",
+    status: "cancelled",
+    sendInDays: 14,
+    recipient: "Linnea",
+    sender: "Teamet",
+    message: null,
+    phone: "+4790000003",
+  },
+  {
+    product: "vaksine",
+    units: 2,
+    delivery: "sms",
+    status: "sent",
+    sendInDays: -40,
+    recipient: "Henrik",
+    sender: "Pappa",
+    message: null,
+    phone: "+4741111111",
+  },
+];
+
+/** UTC "YYYY-MM-DD HH:MM:SS" (the app writes gift card times in UTC) */
+const utcSql = (date: Date) => date.toISOString().slice(0, 19).replace("T", " ");
+
+async function seedGiftcards(conn: mysql.Connection) {
+  const [donors] = await conn.query<mysql.RowDataPacket[]>(
+    `SELECT ID FROM Donors WHERE trash IS NULL OR trash = 0 ORDER BY ID LIMIT ?`,
+    [DEV_GIFTCARDS.length],
+  );
+  if (donors.length < DEV_GIFTCARDS.length) return;
+  const hour = new Date();
+  hour.setUTCMinutes(0, 0, 0);
+  for (const [i, g] of DEV_GIFTCARDS.entries()) {
+    const donorId = Number(donors[i].ID);
+    const partial = String(donorId).padStart(6, "0") + "0000000" + String(i + 1);
+    const KID = partial + luhnCheckDigit(partial);
+    const [[existing]] = await conn.query<mysql.RowDataPacket[]>(
+      `SELECT COUNT(*) AS n FROM Distributions WHERE KID = ?`,
+      [KID],
+    );
+    if (Number(existing.n) > 0) continue;
+    const [[product]] = await conn.query<mysql.RowDataPacket[]>(
+      `SELECT P.ID, P.Unit_price, P.Organization_ID, O.cause_area_ID
+       FROM Giftcard_products P INNER JOIN Organizations O ON O.ID = P.Organization_ID
+       WHERE P.Slug = ?`,
+      [g.product],
+    );
+    if (!product) continue;
+    const amount = (Number(product.Unit_price) * g.units).toFixed(2);
+    const created = new Date(hour.getTime() - (45 - i * 5) * 24 * 3600 * 1000);
+    const sendAt =
+      g.sendInDays !== undefined
+        ? new Date(hour.getTime() + g.sendInDays * 24 * 3600 * 1000)
+        : null;
+    const paid = g.status !== "pending";
+    const paidAt = paid ? new Date(created.getTime() + 5 * 60 * 1000) : null;
+
+    await conn.query(
+      `INSERT INTO Distributions (KID, Donor_ID, Tax_unit_ID, Meta_owner_ID, Replaced_old_organizations, inserted, last_updated)
+       VALUES (?, ?, NULL, 3, 0, ?, ?)`,
+      [KID, donorId, utcSql(created), utcSql(created)],
+    );
+    const [ca] = await conn.query<mysql.ResultSetHeader>(
+      `INSERT INTO Distribution_cause_areas (Distribution_KID, Cause_area_ID, Percentage_share, Standard_split)
+       VALUES (?, ?, '100', 0)`,
+      [KID, product.cause_area_ID],
+    );
+    await conn.query(
+      `INSERT INTO Distribution_cause_area_organizations (Distribution_cause_area_ID, Organization_ID, Percentage_share)
+       VALUES (?, ?, '100')`,
+      [ca.insertId, product.Organization_ID],
+    );
+    await conn.query(
+      `INSERT INTO Giftcards
+         (KID, Code, Product_ID, Units, Amount, Delivery, Recipient_name, Sender_name, Message,
+          Recipient_phone, Send_at, Status, Paid_at, Sent_at, Send_attempts, Last_error, Created)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        KID,
+        `dvgftcrdb${"bcdfghjkmn"[i]}`,
+        product.ID,
+        g.units,
+        amount,
+        g.delivery,
+        g.recipient,
+        g.sender,
+        g.message,
+        g.phone ?? null,
+        sendAt && utcSql(sendAt),
+        g.status,
+        paidAt && utcSql(paidAt),
+        g.status === "sent" && sendAt ? utcSql(sendAt) : null,
+        g.attempts ?? (g.status === "sent" ? 1 : 0),
+        g.error ?? null,
+        utcSql(created),
+      ],
+    );
+    if (paidAt) {
+      await conn.query(
+        `INSERT INTO Donations (Donor_ID, Payment_ID, sum_confirmed, timestamp_confirmed,
+           transaction_cost, KID_fordeling, Meta_owner_ID, inserted, last_updated)
+         VALUES (?, ?, ?, ?, 0, ?, 3, ?, ?)`,
+        [donorId, PAYMENT.VIPPS, amount, utcSql(paidAt), KID, utcSql(paidAt), utcSql(paidAt)],
+      );
+    }
+  }
+}
+
 function mapId(segments: Segment[] | undefined, genId: number): number {
   for (const s of segments ?? []) if (genId >= s.from && genId <= s.to) return genId + s.offset;
   return genId;
@@ -522,6 +711,7 @@ export async function seed(conn: mysql.Connection, settings: Settings) {
     await upsertReference(conn);
     const { meta, inserted } = await apply(conn, settings, null, dataset);
     await writeMeta(conn, meta);
+    await seedGiftcards(conn);
     await conn.commit();
     console.log(`Inserted ${inserted} rows in ${((Date.now() - started) / 1000).toFixed(1)} s`);
   } catch (e) {
@@ -548,6 +738,7 @@ export async function topUp(conn: mysql.Connection, end: number): Promise<TopUpR
   await linkImpactCharities(conn);
   await seedExchangeRates(conn);
   await seedGiftcardProducts(conn);
+  await seedGiftcards(conn);
   const previousEnd = toDay(meta.end);
   if (end <= previousEnd) {
     console.log(`Dev data is up to date (generated through ${meta.end}).`);

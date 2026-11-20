@@ -19,7 +19,7 @@ const config = require("../../config.js");
 
 /** An SMS may be scheduled from a few minutes ago (clock skew, slow form) up to a year ahead */
 const SEND_AT_PAST_TOLERANCE_MS = 10 * 60 * 1000;
-const SEND_AT_MAX_AHEAD_MS = 366 * 24 * 60 * 60 * 1000;
+export const SEND_AT_MAX_AHEAD_MS = 366 * 24 * 60 * 60 * 1000;
 
 /** Attempts before a gift card's SMS is given up (status failed, alerting is by admin list) */
 export const MAX_SEND_ATTEMPTS = 3;

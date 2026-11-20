@@ -44,6 +44,8 @@ import { Route as AppDonorsIndexRouteImport } from './routes/_app/donors/index'
 import { Route as AppDonorsIdRouteImport } from './routes/_app/donors/$id'
 import { Route as AppFundraisersIndexRouteImport } from './routes/_app/fundraisers/index'
 import { Route as AppFundraisersIdRouteImport } from './routes/_app/fundraisers/$id'
+import { Route as AppGiftcardsIndexRouteImport } from './routes/_app/giftcards/index'
+import { Route as AppGiftcardsIdRouteImport } from './routes/_app/giftcards/$id'
 import { Route as AppImpactAgfRouteImport } from './routes/_app/impact/agf'
 import { Route as AppImpactAgfSummaryRouteImport } from './routes/_app/impact/agf-summary'
 import { Route as AppImpactChangesRouteImport } from './routes/_app/impact/changes'
@@ -251,6 +253,16 @@ const AppFundraisersIndexRoute = AppFundraisersIndexRouteImport.update({
 const AppFundraisersIdRoute = AppFundraisersIdRouteImport.update({
   id: '/fundraisers/$id',
   path: '/fundraisers/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGiftcardsIndexRoute = AppGiftcardsIndexRouteImport.update({
+  id: '/giftcards/',
+  path: '/giftcards/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGiftcardsIdRoute = AppGiftcardsIdRouteImport.update({
+  id: '/giftcards/$id',
+  path: '/giftcards/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppImpactAgfRoute = AppImpactAgfRouteImport.update({
@@ -461,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/giftcards/$id': typeof AppGiftcardsIdRoute
   '/impact/agf': typeof AppImpactAgfRoute
   '/impact/agf-summary': typeof AppImpactAgfSummaryRoute
   '/impact/changes': typeof AppImpactChangesRoute
@@ -479,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/donations/': typeof AppDonationsIndexRoute
   '/donors/': typeof AppDonorsIndexRoute
   '/fundraisers/': typeof AppFundraisersIndexRoute
+  '/giftcards/': typeof AppGiftcardsIndexRoute
   '/import/': typeof AppImportIndexRoute
   '/intents/': typeof AppIntentsIndexRoute
   '/logs/': typeof AppLogsIndexRoute
@@ -529,6 +543,7 @@ export interface FileRoutesByTo {
   '/donations/register': typeof AppDonationsRegisterRoute
   '/donors/$id': typeof AppDonorsIdRoute
   '/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/giftcards/$id': typeof AppGiftcardsIdRoute
   '/impact/agf': typeof AppImpactAgfRoute
   '/impact/agf-summary': typeof AppImpactAgfSummaryRoute
   '/impact/changes': typeof AppImpactChangesRoute
@@ -547,6 +562,7 @@ export interface FileRoutesByTo {
   '/donations': typeof AppDonationsIndexRoute
   '/donors': typeof AppDonorsIndexRoute
   '/fundraisers': typeof AppFundraisersIndexRoute
+  '/giftcards': typeof AppGiftcardsIndexRoute
   '/import': typeof AppImportIndexRoute
   '/intents': typeof AppIntentsIndexRoute
   '/logs': typeof AppLogsIndexRoute
@@ -601,6 +617,7 @@ export interface FileRoutesById {
   '/_app/donations/register': typeof AppDonationsRegisterRoute
   '/_app/donors/$id': typeof AppDonorsIdRoute
   '/_app/fundraisers/$id': typeof AppFundraisersIdRoute
+  '/_app/giftcards/$id': typeof AppGiftcardsIdRoute
   '/_app/impact/agf': typeof AppImpactAgfRoute
   '/_app/impact/agf-summary': typeof AppImpactAgfSummaryRoute
   '/_app/impact/changes': typeof AppImpactChangesRoute
@@ -619,6 +636,7 @@ export interface FileRoutesById {
   '/_app/donations/': typeof AppDonationsIndexRoute
   '/_app/donors/': typeof AppDonorsIndexRoute
   '/_app/fundraisers/': typeof AppFundraisersIndexRoute
+  '/_app/giftcards/': typeof AppGiftcardsIndexRoute
   '/_app/import/': typeof AppImportIndexRoute
   '/_app/intents/': typeof AppIntentsIndexRoute
   '/_app/logs/': typeof AppLogsIndexRoute
@@ -673,6 +691,7 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/giftcards/$id'
     | '/impact/agf'
     | '/impact/agf-summary'
     | '/impact/changes'
@@ -691,6 +710,7 @@ export interface FileRouteTypes {
     | '/donations/'
     | '/donors/'
     | '/fundraisers/'
+    | '/giftcards/'
     | '/import/'
     | '/intents/'
     | '/logs/'
@@ -741,6 +761,7 @@ export interface FileRouteTypes {
     | '/donations/register'
     | '/donors/$id'
     | '/fundraisers/$id'
+    | '/giftcards/$id'
     | '/impact/agf'
     | '/impact/agf-summary'
     | '/impact/changes'
@@ -759,6 +780,7 @@ export interface FileRouteTypes {
     | '/donations'
     | '/donors'
     | '/fundraisers'
+    | '/giftcards'
     | '/import'
     | '/intents'
     | '/logs'
@@ -812,6 +834,7 @@ export interface FileRouteTypes {
     | '/_app/donations/register'
     | '/_app/donors/$id'
     | '/_app/fundraisers/$id'
+    | '/_app/giftcards/$id'
     | '/_app/impact/agf'
     | '/_app/impact/agf-summary'
     | '/_app/impact/changes'
@@ -830,6 +853,7 @@ export interface FileRouteTypes {
     | '/_app/donations/'
     | '/_app/donors/'
     | '/_app/fundraisers/'
+    | '/_app/giftcards/'
     | '/_app/import/'
     | '/_app/intents/'
     | '/_app/logs/'
@@ -1106,6 +1130,20 @@ declare module '@tanstack/react-router' {
       path: '/fundraisers/$id'
       fullPath: '/fundraisers/$id'
       preLoaderRoute: typeof AppFundraisersIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/giftcards/': {
+      id: '/_app/giftcards/'
+      path: '/giftcards'
+      fullPath: '/giftcards/'
+      preLoaderRoute: typeof AppGiftcardsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/giftcards/$id': {
+      id: '/_app/giftcards/$id'
+      path: '/giftcards/$id'
+      fullPath: '/giftcards/$id'
+      preLoaderRoute: typeof AppGiftcardsIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/impact/agf': {
@@ -1398,6 +1436,7 @@ interface AppRouteChildren {
   AppDonationsRegisterRoute: typeof AppDonationsRegisterRoute
   AppDonorsIdRoute: typeof AppDonorsIdRoute
   AppFundraisersIdRoute: typeof AppFundraisersIdRoute
+  AppGiftcardsIdRoute: typeof AppGiftcardsIdRoute
   AppImpactAgfRoute: typeof AppImpactAgfRoute
   AppImpactAgfSummaryRoute: typeof AppImpactAgfSummaryRoute
   AppImpactChangesRoute: typeof AppImpactChangesRoute
@@ -1410,6 +1449,7 @@ interface AppRouteChildren {
   AppDonationsIndexRoute: typeof AppDonationsIndexRoute
   AppDonorsIndexRoute: typeof AppDonorsIndexRoute
   AppFundraisersIndexRoute: typeof AppFundraisersIndexRoute
+  AppGiftcardsIndexRoute: typeof AppGiftcardsIndexRoute
   AppImportIndexRoute: typeof AppImportIndexRoute
   AppIntentsIndexRoute: typeof AppIntentsIndexRoute
   AppLogsIndexRoute: typeof AppLogsIndexRoute
@@ -1445,6 +1485,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonationsRegisterRoute: AppDonationsRegisterRoute,
   AppDonorsIdRoute: AppDonorsIdRoute,
   AppFundraisersIdRoute: AppFundraisersIdRoute,
+  AppGiftcardsIdRoute: AppGiftcardsIdRoute,
   AppImpactAgfRoute: AppImpactAgfRoute,
   AppImpactAgfSummaryRoute: AppImpactAgfSummaryRoute,
   AppImpactChangesRoute: AppImpactChangesRoute,
@@ -1457,6 +1498,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDonationsIndexRoute: AppDonationsIndexRoute,
   AppDonorsIndexRoute: AppDonorsIndexRoute,
   AppFundraisersIndexRoute: AppFundraisersIndexRoute,
+  AppGiftcardsIndexRoute: AppGiftcardsIndexRoute,
   AppImportIndexRoute: AppImportIndexRoute,
   AppIntentsIndexRoute: AppIntentsIndexRoute,
   AppLogsIndexRoute: AppLogsIndexRoute,

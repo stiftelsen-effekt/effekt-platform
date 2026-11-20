@@ -43,6 +43,7 @@ import {
   type LucideIcon,
   ListChecksIcon,
   FileTextIcon,
+  GiftIcon,
   ReceiptTextIcon,
   SendIcon,
 } from "lucide-react";
@@ -111,6 +112,12 @@ const allNavGroups: NavGroup[] = [
         label: "Intents",
         icon: HourglassIcon,
         keywords: ["intent", "intensjon", "awaiting", "first payment", "unpaid", "follow-up"],
+      },
+      {
+        to: "/giftcards",
+        label: "Gift cards",
+        icon: GiftIcon,
+        keywords: ["gavekort", "gift card", "sms", "present", "gave"],
       },
       {
         to: "/import",

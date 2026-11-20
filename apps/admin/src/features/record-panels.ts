@@ -32,6 +32,12 @@ export const recordPanels: PanelRoute[] = [
       `${provider === "avtalegiro" ? "AvtaleGiro" : "Vipps"} agreement ${id}`,
   },
   {
+    kind: "giftcard",
+    routeId: "/_app/giftcards/$id",
+    path: "/giftcards/$id",
+    label: ([id]) => `Gift card #${id}`,
+  },
+  {
     kind: "fundraiser",
     routeId: "/_app/fundraisers/$id",
     path: "/fundraisers/$id",
