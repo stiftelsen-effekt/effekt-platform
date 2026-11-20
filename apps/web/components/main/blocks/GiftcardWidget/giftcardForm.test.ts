@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  addDays,
+  calendarDays,
+  monthTitle,
+  SEND_TIMES,
   clampMessage,
   countMessage,
   defaultSendDate,
@@ -131,5 +135,29 @@ describe("validateStep", () => {
       now,
     );
     expect(Object.keys(errors).sort()).toEqual(["recipientPhone", "sendAt"]);
+  });
+});
+
+describe("calendar helpers", () => {
+  it("starts weeks on Monday", () => {
+    // 1 December 2026 is a Tuesday
+    const days = calendarDays("2026-12");
+    expect(days.slice(0, 2)).toEqual([null, "2026-12-01"]);
+    expect(days.filter(Boolean)).toHaveLength(31);
+  });
+
+  it("names the month in Norwegian", () => {
+    expect(monthTitle("2026-12")).toBe("Desember 2026");
+  });
+
+  it("moves days across months", () => {
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+
+  it("offers half hours from 08:00 to 22:00", () => {
+    expect(SEND_TIMES[0]).toBe("08:00");
+    expect(SEND_TIMES).toContain("16:00");
+    expect(SEND_TIMES.at(-1)).toBe("22:00");
   });
 });

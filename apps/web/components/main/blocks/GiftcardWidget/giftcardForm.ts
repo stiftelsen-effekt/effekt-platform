@@ -51,6 +51,38 @@ export const DEFAULT_SEND_TIME = "16:00";
 export const osloToday = (now: Date = new Date()): string =>
   DateTime.fromJSDate(now).setZone(OSLO_ZONE).toISODate()!;
 
+/** A YYYY-MM-DD date `days` later (or earlier) */
+export const addDays = (date: string, days: number): string =>
+  DateTime.fromISO(date, { zone: "UTC" }).plus({ days }).toISODate()!;
+
+/** "Desember 2026" for a YYYY-MM month */
+export const monthTitle = (month: string): string => {
+  const title = DateTime.fromISO(`${month}-01`, { zone: "UTC" })
+    .setLocale("nb")
+    .toFormat("LLLL yyyy");
+  return title.charAt(0).toUpperCase() + title.slice(1);
+};
+
+/** A YYYY-MM month's days as YYYY-MM-DD, with null before the 1st so weeks start on Monday */
+export const calendarDays = (month: string): (string | null)[] => {
+  const first = DateTime.fromISO(`${month}-01`, { zone: "UTC" });
+  const blanks: null[] = Array(first.weekday - 1).fill(null);
+  const days = Array.from({ length: first.daysInMonth! }, (_, i) =>
+    first.plus({ days: i }).toISODate()!,
+  );
+  return [...blanks, ...days];
+};
+
+/** Times the SMS can be sent at: every half hour from 08:00 to 22:00 */
+export const SEND_TIMES: string[] = Array.from({ length: 29 }, (_, i) => {
+  const minutes = 8 * 60 + i * 30;
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${minutes % 60 === 0 ? "00" : "30"}`;
+});
+
+/** The latest send date the calendar offers (the API allows a year ahead) */
+export const lastSendDate = (now: Date = new Date()): string =>
+  DateTime.fromJSDate(now).setZone(OSLO_ZONE).plus({ months: 11 }).endOf("month").toISODate()!;
+
 /** Whether the picked time is still ahead (with a minute of slack) */
 export const isSendTimeAhead = (iso: string | null, now: Date = new Date()): boolean =>
   iso !== null && DateTime.fromISO(iso).toMillis() > now.getTime() - 60_000;

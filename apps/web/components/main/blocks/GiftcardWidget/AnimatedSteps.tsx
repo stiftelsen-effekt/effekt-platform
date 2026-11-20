@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./GiftcardWidget.module.scss";
 
 export type StepDirection = "forward" | "backward";
@@ -17,11 +17,36 @@ export const AnimatedSteps: React.FC<{
 }> = ({ stepKey, direction, header, children }) => {
   const innerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | null>(null);
+  // Overflow is only hidden while a step changes, so dropdowns can open past the panel
+  const [animating, setAnimating] = useState(false);
+  const firstStep = useRef(true);
+
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const animate = () => {
+    setAnimating(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setAnimating(false), 350);
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    animate();
+  }, [stepKey]);
 
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
-    const measure = () => setHeight(inner.offsetHeight);
+    let previous: number | null = null;
+    const measure = () => {
+      const next = inner.offsetHeight;
+      if (previous !== null && previous !== next) animate();
+      previous = next;
+      setHeight(next);
+    };
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
@@ -30,7 +55,10 @@ export const AnimatedSteps: React.FC<{
   }, []);
 
   return (
-    <div className={styles.steps} style={height === null ? undefined : { height }}>
+    <div
+      className={`${styles.steps} ${animating ? styles.stepsanimating : ""}`}
+      style={height === null ? undefined : { height }}
+    >
       <div ref={innerRef} className={styles.stepsinner}>
         {header}
         <div key={stepKey} className={styles[`enter${direction}`]}>

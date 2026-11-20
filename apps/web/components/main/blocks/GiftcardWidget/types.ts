@@ -35,6 +35,8 @@ export type GiftcardPaymentConfiguration = {
   newsletter?: { label?: string | null } | null;
   privacy_policy?: {
     text?: string | null;
+    require_checkbox?: boolean | null;
+    required_error_text?: string | null;
     privacy_policy_url?: NavLink | null;
   } | null;
   bank_account_details?: {

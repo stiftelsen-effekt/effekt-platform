@@ -121,9 +121,20 @@
   }
 }
 
+// No spin buttons on number fields
+.field input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
 .input,
 .field input,
-.field select,
 .textarea textarea {
   width: 100%;
   padding: 0.6rem;
@@ -136,19 +147,6 @@
   min-height: 2.75rem;
 }
 
-.field select {
-  appearance: none;
-  background-image:
-    linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position:
-    calc(100% - 1.25rem) 50%,
-    calc(100% - 0.85rem) 50%;
-  background-size: 0.4rem 0.4rem;
-  background-repeat: no-repeat;
-  padding-right: 2.5rem;
-}
-
 .textarea {
   position: relative;
 
@@ -156,16 +154,21 @@
     min-height: 7rem;
     resize: vertical;
     display: block;
+    // Room for the character counter in the bottom right corner
+    padding-bottom: 2.25rem;
   }
 }
 
+// The fundraiser's character counter, inside the greeting box
 .counter,
 .counterwarn {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.6rem;
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.35rem;
-  min-height: 1.25rem;
   font-size: 0.85rem;
+  pointer-events: none;
 }
 
 .counterwarn {
@@ -222,12 +225,6 @@
   border-top: 1px solid var(--primary);
   padding-top: 1rem;
   margin-top: 1rem;
-}
-
-.datetime {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  gap: 1rem;
 }
 
 .summary {
@@ -345,12 +342,15 @@
 
 // Step animation (AnimatedSteps.tsx), as the fundraiser widget's panes
 .steps {
-  overflow: hidden;
   transition: height 0.3s ease;
   will-change: height;
   // Room for focus outlines at the edges while overflow is hidden
   margin: 0 -4px;
   padding: 0 4px;
+}
+
+.stepsanimating {
+  overflow: hidden;
 }
 
 // Contains the children's margins, so the measured height is the height they take up

@@ -20,9 +20,11 @@ import {
   formatKroner,
   formatOsloDateTime,
   giftcardTotal,
+  lastSendDate,
   osloDateTimeToIso,
   osloToday,
   presetLabel,
+  SEND_TIMES,
   validateStep,
   type GiftcardDelivery,
   type GiftcardFormState,
@@ -30,6 +32,8 @@ import {
 import { giftcardSessionKey, type GiftcardDocument, type GiftcardSession } from "./types";
 import styles from "./GiftcardWidget.module.scss";
 import { AnimatedSteps, type StepDirection } from "./AnimatedSteps";
+import { GiftcardCalendar } from "./GiftcardCalendar";
+import { EffektSelect } from "../../../shared/components/EffektSelect/EffektSelect";
 
 type Product = RouterOutputs["giftcard"]["products"][number];
 type Step = "product" | "amount" | "message" | "delivery" | "summary" | "bank";
@@ -92,8 +96,17 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
     newsletter: false,
     method: (paymentMethods[0]?._type as "vipps" | "bank") ?? "vipps",
   }));
-  const update = <K extends keyof GiftcardFormState>(key: K, value: GiftcardFormState[K]) =>
+  const update = <K extends keyof GiftcardFormState>(key: K, value: GiftcardFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // A field's error goes away as soon as it is changed (the send time is checked on both)
+    const cleared = key === "sendDate" || key === "sendTime" ? "sendAt" : key;
+    setErrors((prev) => {
+      if (!(cleared in prev)) return prev;
+      const { [cleared]: _removed, ...rest } = prev;
+      return rest;
+    });
+  };
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const steps: Step[] = [
     "product",
@@ -156,6 +169,10 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
     if (inFlight.current || !product) return;
     const problems: Record<string, string> = {};
     if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) problems.email = "Skriv inn e-postadressen din";
+    if (pay?.privacy_policy?.require_checkbox && !privacyAccepted) {
+      problems.privacy =
+        pay.privacy_policy.required_error_text || "Du må godta personvernerklæringen";
+    }
     if (form.taxDeduction) {
       const ssn = form.ssn.trim();
       const valid =
@@ -282,19 +299,24 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
           <div className={styles.step} data-cy="giftcard-step-product">
             {page.description && <p className={styles.description}>{page.description}</p>}
             {allowSms && allowPdf && (
-              <label className={styles.field}>
-                <span>{page.delivery?.question || "Hvordan vil du gi gavekortet?"}</span>
-                <select
+              <div className={styles.field}>
+                <span id="giftcard-delivery-label">
+                  {page.delivery?.question || "Hvordan vil du gi gavekortet?"}
+                </span>
+                <EffektSelect<GiftcardDelivery>
+                  label={page.delivery?.question || "Hvordan vil du gi gavekortet?"}
                   value={form.delivery}
-                  onChange={(e) => update("delivery", e.target.value as GiftcardDelivery)}
-                  data-cy="giftcard-delivery-select"
-                >
-                  <option value="sms">{page.delivery?.sms_label || "Gavekort på SMS"}</option>
-                  <option value="pdf">
-                    {page.delivery?.pdf_label || "Gavebevis til utskrift"}
-                  </option>
-                </select>
-              </label>
+                  onChange={(value) => update("delivery", value)}
+                  options={[
+                    { value: "sms", label: page.delivery?.sms_label || "Gavekort på SMS" },
+                    {
+                      value: "pdf",
+                      label: page.delivery?.pdf_label || "Gavebevis til utskrift",
+                    },
+                  ]}
+                  dataCy="giftcard-delivery-select"
+                />
+              </div>
             )}
             <button
               type="button"
@@ -447,28 +469,21 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
             <p className={styles.label}>
               {page.delivery_step?.when_label || "Når skal SMS-en leveres?"}
             </p>
-            <div className={styles.datetime}>
-              <label className={styles.field}>
-                <span>{page.delivery_step?.date_label || "Dato"}</span>
-                <input
-                  type="date"
-                  min={osloToday()}
-                  value={form.sendDate}
-                  onChange={(e) => update("sendDate", e.target.value)}
-                  data-cy="giftcard-date"
-                />
-              </label>
-              <label className={styles.field}>
-                <span>{page.delivery_step?.time_label || "Klokka"}</span>
-                <input
-                  type="time"
-                  step={900}
-                  value={form.sendTime}
-                  onChange={(e) => update("sendTime", e.target.value)}
-                  data-cy="giftcard-time"
-                />
-              </label>
-            </div>
+            <GiftcardCalendar
+              label={page.delivery_step?.when_label || "Når skal SMS-en leveres?"}
+              value={form.sendDate}
+              min={osloToday()}
+              max={lastSendDate()}
+              onChange={(date) => update("sendDate", date)}
+            />
+            <EffektSelect
+              inlineLabel
+              label={page.delivery_step?.time_label || "Klokka"}
+              value={form.sendTime}
+              onChange={(time) => update("sendTime", time)}
+              options={SEND_TIMES.map((t) => ({ value: t, label: t }))}
+              dataCy="giftcard-time"
+            />
             {errors.sendAt && <p className={styles.error}>{errors.sendAt}</p>}
             <button type="submit" className={styles.button} data-cy="giftcard-next">
               {page.next_button_text || "Neste"}
@@ -577,14 +592,15 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
             {errors.email && <p className={styles.error}>{errors.email}</p>}
 
             {pay?.privacy_policy && (
-              <p className={styles.privacy}>
-                {pay.privacy_policy.text}
-                {pay.privacy_policy.privacy_policy_url?.slug && (
-                  <Link href={`/${pay.privacy_policy.privacy_policy_url.slug}`} target="_blank">
-                    {` ${pay.privacy_policy.privacy_policy_url.title ?? "personvernerklæring"} ↗`}
-                  </Link>
-                )}
-              </p>
+              <PrivacyPolicy
+                policy={pay.privacy_policy}
+                accepted={privacyAccepted}
+                onAccept={(accepted) => {
+                  setPrivacyAccepted(accepted);
+                  setErrors(({ privacy: _removed, ...rest }) => rest);
+                }}
+                error={errors.privacy}
+              />
             )}
 
             {paymentMethods.length > 1 && (
@@ -673,5 +689,53 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
         )}
       </AnimatedSteps>
     </div>
+  );
+};
+
+/** The privacy line (or checkbox, when the payment configuration requires one) */
+const PrivacyPolicy: React.FC<{
+  policy: NonNullable<NonNullable<GiftcardDocument["payment_configuration"]>["privacy_policy"]>;
+  accepted: boolean;
+  onAccept: (accepted: boolean) => void;
+  error?: string;
+}> = ({ policy, accepted, onAccept, error }) => {
+  const url = policy.privacy_policy_url?.slug ? `/${policy.privacy_policy_url.slug}` : null;
+  const title = policy.privacy_policy_url?.title;
+  // Without a link title the text itself is the link (it usually ends "... personvernerklæring")
+  const text =
+    url && !title ? (
+      <Link href={url} target="_blank">
+        {`${policy.text} ↗`}
+      </Link>
+    ) : (
+      policy.text
+    );
+  const link =
+    url && title ? (
+      <Link href={url} target="_blank">
+        {` ${title} ↗`}
+      </Link>
+    ) : null;
+
+  if (policy.require_checkbox) {
+    return (
+      <>
+        <div className={styles.checkbox}>
+          <EffektCheckbox checked={accepted} onChange={onAccept} dataCy="giftcard-privacy">
+            <>
+              {text}
+              {link}
+            </>
+          </EffektCheckbox>
+        </div>
+        {error && <p className={styles.error}>{error}</p>}
+      </>
+    );
+  }
+  return (
+    <p className={styles.privacy}>
+      {text}
+      {link}
+    </p>
   );
 };

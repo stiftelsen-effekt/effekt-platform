@@ -12,6 +12,8 @@
   min-width: 0;
 }
 
+// The large picture sets the height; the two small ones split it, so the collage's outer edges
+// line up into one rectangle
 .gallery {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
@@ -20,15 +22,16 @@
 }
 
 .galleryside {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.5rem;
+  min-height: 0;
 }
 
 .gallerysmall {
   position: relative;
   width: 100%;
-  aspect-ratio: 0.73;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -62,6 +65,7 @@
   }
 
   .galleryside {
+    display: flex;
     flex-direction: row-reverse;
     gap: 0.75rem;
   }
@@ -70,6 +74,8 @@
   .gallerysmall {
     flex: 0 0 62vw;
     width: 62vw;
+    height: auto;
+    aspect-ratio: 0.73;
     scroll-snap-align: start;
   }
 }
