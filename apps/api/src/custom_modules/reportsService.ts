@@ -6,7 +6,6 @@
  * REST contract (`content` of POST /reports/{ocr,vipps,bank/no,bank/se}).
  */
 import { DateTime } from "luxon";
-import type { Moment } from "moment";
 import { DAO } from "./DAO";
 import { VippsParsingRule } from "./DAO_modules/parsing";
 import { sendDonationReceipt } from "./mail";
@@ -136,7 +135,7 @@ export async function processVippsReport(
           transaction.KID,
           payment.vipps_KID,
           transaction.amount,
-          transaction.date.toDate(),
+          transaction.date.toJSDate(),
           transaction.transactionID,
           metaOwnerID,
         );
@@ -178,7 +177,7 @@ export async function processVippsReport(
           matchingRule.KID,
           payment.vipps_KID,
           transaction.amount,
-          transaction.date.toDate(),
+          transaction.date.toJSDate(),
           transaction.transactionID,
           metaOwnerID,
         );
@@ -237,7 +236,7 @@ function checkForMatchingParsingRule(transaction, rules: VippsParsingRule[]) {
 
 /** Transaction as produced by parsers/bank.ts */
 export type BankNoTransaction = {
-  date: Moment;
+  date: DateTime;
   message: string;
   amount: number;
   KID: number | null;
@@ -277,7 +276,7 @@ export async function processBankNoReport(
           transaction.KID,
           BANK_NO_KID_ID,
           transaction.amount,
-          transaction.date.toDate(),
+          transaction.date.toJSDate(),
           transaction.transactionID,
           metaOwnerID,
         );

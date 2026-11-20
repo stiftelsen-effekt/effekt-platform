@@ -1,4 +1,4 @@
-import moment from "moment";
+import { isIso8601 } from "./dates";
 
 module.exports = {
   /** A function that checks for the parameters formDate and toDate, and returns JS Date objects coresponding. Throws exception if errors.
@@ -16,10 +16,7 @@ module.exports = {
     var toDate = req.query.toDate || req.body.toDate;
 
     //Check if dates are valid ISO 8601
-    if (
-      !moment(fromDate, moment.ISO_8601, true).isValid() ||
-      !moment(toDate, moment.ISO_8601, true).isValid()
-    )
+    if (!isIso8601(fromDate) || !isIso8601(toDate))
       throw new Error("Dates must be in ISO 8601 format");
 
     return {

@@ -4,7 +4,6 @@
  * OCR import.
  */
 import { DateTime } from "luxon";
-import moment from "moment";
 import { DAO } from "./DAO";
 import type {
   NewReviewQueueItem,
@@ -34,14 +33,13 @@ export type ManualReviewTransaction = {
 
 export type ManualReviewItem = { reason: string; transaction: ManualReviewTransaction };
 
-type DateLike = Date | moment.Moment | DateTime | null | undefined;
+type DateLike = Date | DateTime | null | undefined;
 
 /** Same string the REST routes produce when JSON-serialising these dates */
 export const toIso = (date: DateLike): string | null => {
   if (date == null) return null;
   if (date instanceof Date) return isNaN(date.getTime()) ? null : date.toISOString();
-  if (DateTime.isDateTime(date)) return date.toISO();
-  return date.isValid() ? date.toISOString() : null;
+  return date.toISO();
 };
 
 /** An invalid transaction as the report processing functions return it */
