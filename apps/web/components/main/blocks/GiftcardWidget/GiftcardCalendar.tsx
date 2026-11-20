@@ -114,7 +114,7 @@ export const GiftcardCalendar: React.FC<{
               onClick={() => onChange(date)}
               data-cy={`giftcard-day-${date}`}
             >
-              {Number(date.slice(8))}
+              <span className={styles.daynumber}>{Number(date.slice(8))}</span>
             </button>
           ),
         )}
