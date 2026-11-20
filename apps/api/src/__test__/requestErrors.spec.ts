@@ -1,23 +1,24 @@
 import { describe, it } from "vitest";
 import { expect } from "chai";
-import { StatusCodeError } from "request-promise-native/errors";
+import { HttpStatusError } from "../custom_modules/http";
 import { loggableRequestError, redactForAlert } from "../custom_modules/requestErrors";
 
 describe("loggableRequestError", () => {
-  it("drops request options with credential headers", () => {
-    const ex = new StatusCodeError(
+  it("keeps status, body and the request's method and URL", () => {
+    const ex = new HttpStatusError(
       401,
       { error: "unauthorized" },
-      {
-        url: "https://apitest.vipps.no",
-        headers: { client_secret: "s3cret", "Ocp-Apim-Subscription-Key": "k3y" },
-      },
-      {} as any,
+      { method: "POST", url: "https://apitest.vipps.no/accesstoken/get" },
     );
-    const logged = JSON.stringify(loggableRequestError(ex));
-    expect(logged).to.not.include("s3cret");
-    expect(logged).to.not.include("k3y");
-    expect(logged).to.include("401");
+    const logged = loggableRequestError(ex) as Record<string, unknown>;
+    expect(logged).to.not.be.instanceOf(Error);
+    expect(logged).to.include({
+      statusCode: 401,
+      method: "POST",
+      url: "https://apitest.vipps.no/accesstoken/get",
+    });
+    expect(logged.error).to.deep.equal({ error: "unauthorized" });
+    expect(Object.keys(logged)).to.not.include("headers");
   });
 
   it("passes other errors through", () => {
@@ -27,19 +28,15 @@ describe("loggableRequestError", () => {
 });
 
 describe("redactForAlert", () => {
-  it("reduces request errors and drops their request options", () => {
-    const ex = new StatusCodeError(
+  it("reduces HTTP status errors and drops their stack", () => {
+    const ex = new HttpStatusError(
       400,
       { message: "bad due date" },
-      {
-        url: "https://api.vipps.no",
-        headers: { Authorization: "Bearer t0k", "Ocp-Apim-Subscription-Key": "k3y" },
-      },
-      { toJSON: () => ({ request: { headers: { Authorization: "Bearer t0k" } } }) } as any,
+      { method: "POST", url: "https://api.vipps.no/recurring/v3/agreements/agr_1/charges" },
     );
-    const out = JSON.stringify(redactForAlert(ex));
-    expect(out).to.not.include("t0k");
-    expect(out).to.not.include("k3y");
+    const reduced = redactForAlert(ex) as Record<string, unknown>;
+    expect(reduced).to.not.have.property("stack");
+    const out = JSON.stringify(reduced);
     expect(out).to.include("bad due date");
     expect(out).to.include("400");
   });

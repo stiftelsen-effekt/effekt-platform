@@ -1,12 +1,22 @@
+import { HttpStatusError } from "./http";
+
 /**
- * request-promise errors carry the full request options (including credential headers such as
- * client_secret and Ocp-Apim-Subscription-Key) and the raw request. Log this instead of the error.
+ * Reduces an HttpStatusError (see ./http) to plain loggable fields: status, response body and
+ * the request's method and URL. Request headers (Authorization, client_secret,
+ * Ocp-Apim-Subscription-Key, ...) are never part of it. Other errors are returned unchanged.
  */
 export const loggableRequestError = (ex: unknown) => {
-  if (!(ex instanceof Error) || !("options" in ex)) return ex;
-  const { name, message, stack } = ex;
-  const { statusCode, error } = ex as { statusCode?: number; error?: unknown };
-  return { name, message, statusCode, error, stack };
+  if (!(ex instanceof HttpStatusError)) return ex;
+  const { name, message, stack, statusCode, body, request } = ex;
+  return {
+    name,
+    message,
+    statusCode,
+    error: body,
+    method: request.method,
+    url: request.url,
+    stack,
+  };
 };
 
 /** Keys whose values never belong in an alert, at any depth. Compared case-insensitively. */
@@ -31,7 +41,7 @@ const REDACTED = "[redacted]";
 
 /**
  * Prepares arbitrary data (an exception, request payload, ...) for an alert email or log line:
- * request-promise errors are reduced with loggableRequestError, other errors to name/message,
+ * HTTP status errors are reduced with loggableRequestError, other errors to name/message,
  * credential-like keys are replaced at any depth, and cycles are cut.
  */
 export const redactForAlert = (value: unknown): unknown => {
