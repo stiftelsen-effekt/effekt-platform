@@ -39,7 +39,11 @@ module.exports = {
   // Gift cards (custom_modules/giftcards): SMS provider ("log" prints instead of sending; the
   // default outside production) and the MailerSend templates. Without a template the standard
   // donation receipt is sent and no "SMS sent" email goes out.
+  // SMS_PROVIDER: "gatewayapi" (production) or "log". GATEWAYAPI_TOKEN is a secret; SMS_SENDER
+  // is the alphanumeric sender shown to the recipient (max 11 characters, no æøå).
   sms_provider: process.env.SMS_PROVIDER,
+  gatewayapi_token: process.env.GATEWAYAPI_TOKEN,
+  sms_sender: process.env.SMS_SENDER,
   mailersend_giftcard_receipt_template_id: process.env.MAILERSEND_GIFTCARD_RECEIPT_TEMPLATE_ID,
   mailersend_giftcard_sms_sent_template_id: process.env.MAILERSEND_GIFTCARD_SMS_SENT_TEMPLATE_ID,
   revalidate_token: process.env.REVALIDATE_TOKEN,

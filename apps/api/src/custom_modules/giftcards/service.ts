@@ -236,7 +236,11 @@ export async function sendDueGiftcardSms(
         unitSingular: product.unitSingular,
         unitPlural: product.unitPlural,
       });
-      const { id: providerId } = await provider!.send(giftcard.recipientPhone, text);
+      const { id: providerId } = await provider!.send(
+        giftcard.recipientPhone,
+        text,
+        `giftcard-${id}`,
+      );
       await DAO.giftcards.markSent(id, providerId, new Date());
       summary.sent++;
     } catch (ex) {
