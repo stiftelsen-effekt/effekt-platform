@@ -10,6 +10,7 @@ import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
 import * as mail from "../custom_modules/mail";
 import * as reportsService from "../custom_modules/reportsService";
+import { donationHelpers } from "../custom_modules/donationHelpers";
 import { passMultipartBodyToTrpc, skipForTrpc } from "../trpc/reportsMultipart";
 import { appRouter } from "../trpc/router";
 import { createCallerFactory } from "../trpc/trpc";
@@ -697,6 +698,153 @@ describe("tRPC reports router", () => {
 
       await expectTrpcError(admin().fundraisers.create({ donorId: 42 }), "BAD_REQUEST");
       expect(create.called).to.be.false;
+    });
+
+    describe("moving a donation into or out of a fundraiser", () => {
+      const connection = { name: "transaction" } as any;
+      const donation = (fundraiserId: number | null) =>
+        ({ id: 10, KID: "11112222", donorId: 42, fundraiserId }) as any;
+      const split = {
+        kid: "11112222",
+        donorId: 42,
+        taxUnitId: 7,
+        causeAreas: [{ id: 1, percentageShare: "100", standardSplit: true, organizations: [] }],
+      } as any;
+      let commit: sinon.SinonStub;
+      let rollback: sinon.SinonStub;
+      let copy: sinon.SinonStub;
+      let move: sinon.SinonStub;
+
+      beforeEach(() => {
+        sinon.stub(DAO, "startTransaction").resolves(connection);
+        commit = sinon.stub(DAO, "commitTransaction").resolves();
+        rollback = sinon.stub(DAO, "rollbackTransaction").resolves();
+        sinon.stub(donationHelpers, "createKID").resolves("99998888");
+        copy = sinon.stub(DAO.distributions, "copyToNewKID").resolves();
+        move = sinon.stub(DAO.donations, "updateKIDById").resolves(true);
+      });
+
+      const attachInput = {
+        donationId: 10,
+        fundraiserId: 5,
+        message: " Lykke til! ",
+        messageSenderName: "Kari",
+        showName: true,
+      };
+
+      it("attach moves the donation to a new KID in a new transaction of the fundraiser", async () => {
+        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
+        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
+        const addTransaction = sinon
+          .stub(DAO.fundraisers, "addFundraiserTransaction")
+          .resolves(300);
+
+        const result = await admin().fundraisers.attachDonation(attachInput);
+
+        expect(result).to.deep.equal({ donationId: 10, fundraiserId: 5, kid: "99998888" });
+        expect(addTransaction.firstCall.args).to.deep.equal([
+          { fundraiserId: 5, message: "Lykke til!", messageSenderName: "Kari", showName: true },
+          connection,
+        ]);
+        expect(copy.firstCall.args).to.deep.equal(["11112222", "99998888", 300, connection]);
+        expect(move.firstCall.args).to.deep.equal([10, "99998888", connection]);
+        expect(commit.calledOnceWith(connection)).to.be.true;
+        expect(rollback.called).to.be.false;
+      });
+
+      it("attach hides the name when there is none to show", async () => {
+        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
+        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
+        const addTransaction = sinon
+          .stub(DAO.fundraisers, "addFundraiserTransaction")
+          .resolves(300);
+
+        await admin().fundraisers.attachDonation({
+          ...attachInput,
+          message: "",
+          messageSenderName: " ",
+        });
+
+        expect(addTransaction.firstCall.args[0]).to.deep.equal({
+          fundraiserId: 5,
+          message: "",
+          messageSenderName: null,
+          showName: false,
+        });
+      });
+
+      it("attach rolls back when a step fails", async () => {
+        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
+        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
+        sinon.stub(DAO.fundraisers, "addFundraiserTransaction").resolves(300);
+        copy.rejects(new Error("Distribution 11112222 not found"));
+
+        try {
+          await admin().fundraisers.attachDonation(attachInput);
+          expect.fail("expected an error");
+        } catch (err: any) {
+          expect(err.message).to.match(/not found/);
+        }
+        expect(rollback.calledOnceWith(connection)).to.be.true;
+        expect(commit.called).to.be.false;
+        expect(move.called).to.be.false;
+      });
+
+      it("attach refuses a donation that is already in a fundraiser", async () => {
+        sinon.stub(DAO.donations, "getByID").resolves(donation(8));
+        await expectTrpcError(
+          admin().fundraisers.attachDonation(attachInput),
+          "CONFLICT",
+          /fundraiser 8/,
+        );
+        expect(copy.called).to.be.false;
+      });
+
+      it("attach rejects unknown fundraisers and donations", async () => {
+        const getDonation = sinon.stub(DAO.donations, "getByID").resolves(donation(null));
+        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(null);
+        await expectTrpcError(admin().fundraisers.attachDonation(attachInput), "BAD_REQUEST");
+
+        getDonation.rejects(new Error("Could not find donation with ID 10"));
+        await expectTrpcError(admin().fundraisers.attachDonation(attachInput), "NOT_FOUND");
+        expect(copy.called).to.be.false;
+      });
+
+      it("detach reuses a KID with the same split outside fundraisers", async () => {
+        sinon.stub(DAO.donations, "getByID").resolves(donation(5));
+        sinon.stub(DAO.distributions, "getSplitByKID").resolves(split);
+        const bySplit = sinon.stub(DAO.distributions, "getKIDbySplit").resolves("55554444");
+
+        const result = await admin().fundraisers.detachDonation({ donationId: 10 });
+
+        expect(result).to.deep.equal({ donationId: 10, fundraiserId: 5, kid: "55554444" });
+        expect(bySplit.firstCall.args[0]).to.deep.equal({
+          donorId: 42,
+          taxUnitId: 7,
+          causeAreas: split.causeAreas,
+        });
+        expect(copy.called).to.be.false;
+        expect(move.firstCall.args).to.deep.equal([10, "55554444", connection]);
+        expect(commit.calledOnce).to.be.true;
+      });
+
+      it("detach copies the split to a new KID when there is none", async () => {
+        sinon.stub(DAO.donations, "getByID").resolves(donation(5));
+        sinon.stub(DAO.distributions, "getSplitByKID").resolves(split);
+        sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null);
+
+        const result = await admin().fundraisers.detachDonation({ donationId: 10 });
+
+        expect(result.kid).to.equal("99998888");
+        expect(copy.firstCall.args).to.deep.equal(["11112222", "99998888", null, connection]);
+        expect(move.firstCall.args).to.deep.equal([10, "99998888", connection]);
+      });
+
+      it("detach refuses a donation that is not in a fundraiser", async () => {
+        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
+        await expectTrpcError(admin().fundraisers.detachDonation({ donationId: 10 }), "CONFLICT");
+        expect(move.called).to.be.false;
+      });
     });
   });
 

@@ -1,4 +1,5 @@
 import { Donors, Fundraisers, Organizations } from "@prisma/client";
+import type { PoolConnection, ResultSetHeader } from "mysql2/promise";
 import { DAO, SqlResult } from "../DAO";
 import * as crypto from "crypto";
 import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
@@ -62,24 +63,29 @@ type PaginatedFundraiserList = {
 };
 
 export const fundraisers = {
-  addFundraiserTransaction: async function ({
-    fundraiserId,
-    message,
-    messageSenderName,
-    showName,
-  }: {
-    fundraiserId: Fundraisers["ID"];
-    message: string | null;
-    messageSenderName: string | null;
-    showName: boolean;
-  }): Promise<number> {
-    const [res] = await DAO.query(
-      `
+  addFundraiserTransaction: async function (
+    {
+      fundraiserId,
+      message,
+      messageSenderName,
+      showName,
+    }: {
+      fundraiserId: Fundraisers["ID"];
+      message: string | null;
+      messageSenderName: string | null;
+      showName: boolean;
+    },
+    /** Runs the insert in this transaction instead of on the pool */
+    connection?: PoolConnection,
+  ): Promise<number> {
+    const sql = `
         INSERT INTO Fundraiser_transactions (Fundraiser_ID, Message, Message_sender_name, Show_name)
         VALUES (?, ?, ?, ?);
-      `,
-      [fundraiserId, message, messageSenderName, showName ? 1 : 0],
-    );
+      `;
+    const params = [fundraiserId, message, messageSenderName, showName ? 1 : 0];
+    const [res] = connection
+      ? await connection.query<ResultSetHeader>(sql, params)
+      : await DAO.query(sql, params);
     if (res.affectedRows === 0) {
       throw new Error("Failed to add fundraiser transaction");
     } else {

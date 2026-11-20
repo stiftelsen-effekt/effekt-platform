@@ -8,7 +8,7 @@ import {
   Organizations,
   Prisma,
 } from "@prisma/client";
-import { ResultSetHeader } from "mysql2";
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 import sqlString from "sqlstring";
 import {
   Distribution,
@@ -781,6 +781,50 @@ async function add(
 //endregion
 
 //region modify
+/**
+ * Adds a copy of a distribution under a new KID: same donor, tax unit, data owner and the exact
+ * stored split (also for cause areas with standard split, which `add` would fill with today's
+ * standard shares). The copy belongs to `fundraiserTransactionId`, or to no fundraiser for null.
+ * Throws if the source KID does not exist.
+ */
+async function copyToNewKID(
+  sourceKID: string,
+  newKID: string,
+  fundraiserTransactionId: number | null,
+  connection: PoolConnection,
+): Promise<void> {
+  const [distribution] = await connection.query<ResultSetHeader>(
+    `INSERT INTO Distributions
+       (KID, Donor_ID, Tax_unit_ID, Fundraiser_transaction_ID, Meta_owner_ID, Replaced_old_organizations)
+     SELECT ?, Donor_ID, Tax_unit_ID, ?, Meta_owner_ID, Replaced_old_organizations
+     FROM Distributions WHERE KID = ?`,
+    [newKID, fundraiserTransactionId, sourceKID],
+  );
+  if (distribution.affectedRows !== 1) throw new Error(`Distribution ${sourceKID} not found`);
+
+  const [causeAreas] = await connection.query<RowDataPacket[]>(
+    `SELECT ID, Cause_area_ID, Percentage_share, Standard_split
+     FROM Distribution_cause_areas WHERE Distribution_KID = ? ORDER BY ID`,
+    [sourceKID],
+  );
+  for (const causeArea of causeAreas) {
+    const [inserted] = await connection.query<ResultSetHeader>(
+      `INSERT INTO Distribution_cause_areas
+         (Distribution_KID, Cause_area_ID, Percentage_share, Standard_split)
+       VALUES (?, ?, ?, ?)`,
+      [newKID, causeArea.Cause_area_ID, causeArea.Percentage_share, causeArea.Standard_split],
+    );
+    await connection.query(
+      `INSERT INTO Distribution_cause_area_organizations
+         (Distribution_cause_area_ID, Organization_ID, Percentage_share)
+       SELECT ?, Organization_ID, Percentage_share
+       FROM Distribution_cause_area_organizations WHERE Distribution_cause_area_ID = ?
+       ORDER BY ID`,
+      [inserted.insertId, causeArea.ID],
+    );
+  }
+}
+
 async function setTaxUnit(KID: string, taxUnitId: number) {
   const [donations] = await DAO.query(`SELECT * FROM Donations WHERE KID_fordeling = ?`, [KID]);
 
@@ -1011,6 +1055,7 @@ export const distributions = {
   getOrgSharesByKIDs,
   getKIDsByPrefix,
   add,
+  copyToNewKID,
   setTaxUnit,
   addTaxUnitToDistribution,
   setDistributionTaxUnit,

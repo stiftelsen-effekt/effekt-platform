@@ -27,6 +27,8 @@ import {
 import {
   bankSeUploadInput,
   fundraisersListInput,
+  fundraiserAttachDonationInput,
+  fundraiserDetachDonationInput,
   donorIdInput,
   idInput,
   ku65Input,
@@ -58,6 +60,10 @@ import type {
   ReviewQueueSource,
 } from "../../custom_modules/DAO_modules/reviewqueue";
 import { registerDonation } from "../donationRegistration";
+import {
+  attachDonationToFundraiser,
+  detachDonationFromFundraiser,
+} from "../../custom_modules/fundraiserDonations";
 import { adminIdentity } from "../identity";
 import { moneySchema } from "../schemas/common";
 import { paymentExternalRefSchema } from "../schemas/donations";
@@ -577,7 +583,64 @@ const fundraisersRouter = router({
     if (!fundraiser) throw new Error(`Created fundraiser ${fundraiserId} not found`);
     return fundraiser;
   }),
+
+  /**
+   * Counts a donation towards a fundraiser: moves it to a new KID with the same donor, tax unit
+   * and split, in a new transaction of the fundraiser. Only that donation moves, not others on
+   * its KID (an agreement's later charges stay where they are).
+   */
+  attachDonation: adminProcedure
+    .input(fundraiserAttachDonationInput)
+    .mutation(async ({ input }) => {
+      const donation = await getDonationOrThrow(input.donationId);
+      if (donation.fundraiserId != null) {
+        throw conflict(
+          `Donation ${donation.id} already counts towards fundraiser ${donation.fundraiserId}; remove it from that one first`,
+        );
+      }
+      const fundraiser = await DAO.fundraisers.getFundraiserWithSecret(input.fundraiserId);
+      if (!fundraiser) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Fundraiser ${input.fundraiserId} not found`,
+        });
+      }
+      const messageSenderName = input.messageSenderName || null;
+      const kid = await attachDonationToFundraiser(donation, fundraiser.id, {
+        message: input.message,
+        messageSenderName,
+        // Nothing to show without a name
+        showName: input.showName && messageSenderName !== null,
+      });
+      return { donationId: donation.id, fundraiserId: fundraiser.id, kid };
+    }),
+
+  /**
+   * Stops a donation counting towards its fundraiser: moves it to a KID with the same donor, tax
+   * unit and split that is not in a fundraiser (an existing one if there is one).
+   */
+  detachDonation: adminProcedure
+    .input(fundraiserDetachDonationInput)
+    .mutation(async ({ input }) => {
+      const donation = await getDonationOrThrow(input.donationId);
+      if (donation.fundraiserId == null) {
+        throw conflict(`Donation ${donation.id} is not in a fundraiser`);
+      }
+      const kid = await detachDonationFromFundraiser(donation);
+      return { donationId: donation.id, fundraiserId: donation.fundraiserId, kid };
+    }),
 });
+
+const getDonationOrThrow = async (id: number) => {
+  try {
+    return await DAO.donations.getByID(id);
+  } catch (ex) {
+    if (ex instanceof Error && ex.message.startsWith("Could not find donation")) {
+      throw new TRPCError({ code: "NOT_FOUND", message: `Donation ${id} not found` });
+    }
+    throw ex;
+  }
+};
 
 const getReviewItemOrThrow = async (id: number) => {
   const item = await DAO.reviewqueue.getById(id);

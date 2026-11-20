@@ -9,7 +9,7 @@ import { instantRangeClauses, type InstantRange } from "../osloDays";
 /** Escapes LIKE wildcards so free text matches literally */
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
 import { DateTime } from "luxon";
-import type { PoolConnection } from "mysql2/promise";
+import type { PoolConnection, ResultSetHeader } from "mysql2/promise";
 import { Donations, Prisma } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
 import { publishEvent } from "../daoEvents";
@@ -1408,15 +1408,17 @@ async function updateKIDBeforeTimestamp(originalKID: string, newKID: string, tim
   return true;
 }
 
-async function updateKIDById(donationId: number, newKID: string) {
-  const [res] = await DAO.query(
-    `
+/** Moves one donation to another KID, in `connection`'s transaction if given */
+async function updateKIDById(donationId: number, newKID: string, connection?: PoolConnection) {
+  const sql = `
     UPDATE Donations
     SET KID_fordeling = ?
     WHERE ID = ?
-  `,
-    [newKID, donationId],
-  );
+  `;
+  const params = [newKID, donationId];
+  const [res] = connection
+    ? await connection.query<ResultSetHeader>(sql, params)
+    : await DAO.query(sql, params);
 
   return res.affectedRows > 0;
 }
