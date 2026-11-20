@@ -491,6 +491,11 @@ $wide: 1100px; // two columns from here
     flex-basis: 24svh;
   }
 
+  // Tall portrait screens (tablets) have room for more of the picture
+  @media (orientation: portrait) and (min-height: 1000px) {
+    flex-basis: 44svh;
+  }
+
   @media (min-width: $wide) {
     flex: 0 0 50%;
   }
@@ -659,7 +664,7 @@ $wide: 1100px; // two columns from here
 // ----- Organization and closing ------------------------------------------------------------
 
 .logo {
-  width: clamp(10rem, 30vh, 20rem);
+  width: clamp(12rem, 34vh, 24rem);
   margin-top: clamp(1rem, 3vh, 2rem);
 }
 

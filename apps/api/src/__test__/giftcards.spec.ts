@@ -276,8 +276,6 @@ describe("getGiftForRecipient", () => {
     const gift = await getGiftForRecipient("kxbmtrwpzd", now);
     expect(gift).to.deep.equal({
       product: "malaria",
-      organizationId: 7,
-      causeAreaId: 1,
       units: 3,
       unitSingular: "barn",
       unitPlural: "barn",

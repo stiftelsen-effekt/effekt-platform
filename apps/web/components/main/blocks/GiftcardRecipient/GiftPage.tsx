@@ -109,7 +109,7 @@ const formatGivenAt = (iso: string) =>
  * and white, large type, square corners, numbers as charts. Told as full-screen slides that snap
  * into place: an envelope to open, the greeting, the gift counted up
  * as a unit chart, the product's story (pictures, big numbers and bar charts that animate in),
- * who does the work, and a monthly donation to the same organization. Texts and pictures come
+ * who does the work, and a monthly donation to Smart fordeling. Texts and pictures come
  * from the gift card product in Sanity (Recipient page); names and greeting from the purchase.
  * The site menu is not on top, only the logo; it comes after the story, before the footer, as on
  * the 404 page. With reduced motion nothing moves or snaps.
@@ -274,7 +274,7 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
             </Slide>
           )}
 
-          <Closing gift={gift} product={product} />
+          <Closing product={product} />
         </>
       )}
     </>
@@ -514,11 +514,8 @@ const BarChart: React.FC<{ chart: ChartData; start: boolean }> = ({ chart, start
   );
 };
 
-/** Next steps: give to the same organization every month (the donation widget), or read more */
-const Closing: React.FC<{
-  gift: GiftcardGift;
-  product: GiftPageProduct | null;
-}> = ({ gift, product }) => {
+/** Next steps: a monthly donation to Smart fordeling (the donation widget), or read about the organization */
+const Closing: React.FC<{ product: GiftPageProduct | null }> = ({ product }) => {
   const [, setWidgetContext] = useContext(WidgetContext);
   const recipient = product?.recipient;
   const organizationPage = recipient?.organization?.page;
@@ -532,15 +529,10 @@ const Closing: React.FC<{
             <EffektButton
               variant={EffektButtonVariant.SECONDARY}
               onClick={() =>
+                // No prefilled distribution: the site's default, Smart fordeling, given monthly
                 setWidgetContext({
                   open: true,
-                  prefilled: [
-                    {
-                      causeAreaId: gift.causeAreaId,
-                      share: 100,
-                      organizations: [{ organizationId: gift.organizationId, share: 100 }],
-                    },
-                  ],
+                  prefilled: null,
                   prefilledSum: null,
                   prefilledRecurring: RecurringDonation.RECURRING,
                 })
