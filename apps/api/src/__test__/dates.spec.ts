@@ -178,3 +178,18 @@ describe("report parser dates", () => {
     ]);
   });
 });
+
+describe("inputs moment accepted that are now rejected", () => {
+  it.each([20260101, ["2026-01-01"]])("isIso8601 rejects non-string %j", (value) => {
+    // moment turned these into dates; new Date() then read the number as epoch milliseconds
+    expect(isIso8601(value)).toBe(false);
+  });
+
+  it.each(["02.01.19", "02.01", "02012019", "02.01.019"])(
+    "parseNorwegianDate needs a four-digit year after day and month (%j)",
+    (value) => {
+      // moment read these as 2019, the current year, 2019 and year 19
+      expect(parseNorwegianDate(value).isValid).toBe(false);
+    },
+  );
+});

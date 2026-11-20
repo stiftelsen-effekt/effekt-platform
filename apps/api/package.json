@@ -54,7 +54,6 @@
     "ioredis": "^6.0.0",
     "luxon": "catalog:",
     "mailersend": "^3.7.0",
-    "moment": "^2.31.0",
     "morgan": "^1.12.1",
     "mysql2": "^3.24.6",
     "norwegian-workdays": "catalog:",

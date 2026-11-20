@@ -16,7 +16,7 @@ const fieldMapping = {
  * @property {string} message
  * @property {number} amount
  * @property {string} KID
- * @property {moment.Moment} date
+ * @property {DateTime} date (luxon, midnight UTC)
  * @property {string} externalRef
  */
 

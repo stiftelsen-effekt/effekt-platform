@@ -1,4 +1,4 @@
-import moment from "moment";
+import { DateTime } from "luxon";
 import { parseNorwegianDate } from "../dates";
 import { parse } from "csv-parse/sync";
 const parseUtil = require("./util");
@@ -100,7 +100,7 @@ export const parseReport = (report): ParsedVippsReport => {
 };
 
 export type VippsTransaction = {
-  date: moment.Moment;
+  date: DateTime;
   location: string;
   transactionID: string;
   amount: number;
@@ -166,10 +166,10 @@ const resolveDetailsColumns = (headerRow: string[]): DetailsColumns => {
 };
 
 const updateDateRange = (transaction: VippsTransaction, currentMinDate, currentMaxDate) => {
-  if (transaction.date.toDate() < currentMinDate || currentMinDate == null)
-    currentMinDate = transaction.date.toDate();
-  if (transaction.date.toDate() > currentMaxDate || currentMaxDate == null)
-    currentMaxDate = transaction.date.toDate();
+  if (transaction.date.toJSDate() < currentMinDate || currentMinDate == null)
+    currentMinDate = transaction.date.toJSDate();
+  if (transaction.date.toJSDate() > currentMaxDate || currentMaxDate == null)
+    currentMaxDate = transaction.date.toJSDate();
   return { currentMinDate, currentMaxDate };
 };
 
@@ -196,7 +196,7 @@ const buildTransactionFromDetailsRow = (
 
   const message = String(inputArray[columns.message] ?? "");
   const date = parseDetailsDate(inputArray[columns.bookingDate], inputArray[columns.time]);
-  if (!date || !date.isValid()) return false;
+  if (!date || !date.isValid) return false;
 
   const amount = parseAmount(inputArray[columns.amount]);
   if (!Number.isFinite(amount) || amount <= 0) return false;
@@ -212,23 +212,30 @@ const buildTransactionFromDetailsRow = (
   };
 };
 
-const parseDetailsDate = (bookingDate, time): moment.Moment | false => {
+/** Parses the first of the formats that matches all of value, at UTC */
+const parseUtcWithFormats = (value: string, formats: string[]): DateTime | false => {
+  for (const format of formats) {
+    const parsed = DateTime.fromFormat(value, format, { zone: "utc" });
+    if (parsed.isValid) return parsed;
+  }
+  return false;
+};
+
+const parseDetailsDate = (bookingDate, time): DateTime | false => {
   if (bookingDate) {
-    const parsedBookingDate = moment.utc(
-      String(bookingDate).trim(),
-      ["YYYY-MM-DD", "DD.MM.YYYY"],
-      true,
-    );
-    if (parsedBookingDate.isValid()) return parsedBookingDate;
+    const parsedBookingDate = parseUtcWithFormats(String(bookingDate).trim(), [
+      "yyyy-MM-dd",
+      "dd.MM.yyyy",
+    ]);
+    if (parsedBookingDate) return parsedBookingDate;
   }
 
   if (time) {
-    const parsedTime = moment.utc(
-      String(time).trim(),
-      ["YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss"],
-      true,
-    );
-    if (parsedTime.isValid()) return parsedTime.startOf("day");
+    const parsedTime = parseUtcWithFormats(String(time).trim(), [
+      "yyyy-MM-dd HH:mm:ss",
+      "yyyy-MM-dd'T'HH:mm:ss",
+    ]);
+    if (parsedTime) return parsedTime.startOf("day");
   }
 
   return false;
