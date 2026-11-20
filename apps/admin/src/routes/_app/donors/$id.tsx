@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, type LinkProps } from "@tanstack/react-router";
 import { useRecordParams, useRecordSearch } from "@/components/panels";
@@ -224,6 +225,7 @@ function Donor({ donorId }: { donorId: number }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [thisYear] = useState(() => new Date().getFullYear());
   const [{ tab = "donations" }, setSearch] = useRecordSearch(Route);
   const q = donorQueries(trpc, donorId);
 
@@ -303,7 +305,6 @@ function Donor({ donorId }: { donorId: number }) {
 
   const totals = aggregated.data ? donorTotals(aggregated.data) : null;
   const chart = aggregated.data ? yearlyChart(aggregated.data) : null;
-  const thisYear = new Date().getFullYear();
   const thisYearTotal = totals?.byYear.get(thisYear) ?? "0";
   const lastYearTotal = totals?.byYear.get(thisYear - 1);
   const lastYearNumber = moneyToNumber(lastYearTotal);

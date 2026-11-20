@@ -43,6 +43,11 @@ export function AllocationBar({
   );
 }
 
+function parsePercent(raw: string) {
+  const parsed = Number(raw.replace(/[\s  %]/g, "").replace(",", "."));
+  return raw.trim() === "" ? 0 : Number.isFinite(parsed) ? parsed : null;
+}
+
 /**
  * A percentage field: accepts "33,3" and "33.3", ↑/↓ step by 1 (Shift: 10), clamps to
  * 0–100. Commits on every valid keystroke so the bar and totals update live.
@@ -66,14 +71,11 @@ export function PercentInput({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes unless the text already says the value
     setText((current) =>
-      parse(current) === value ? current : formatNumber(value, { decimals: value % 1 ? 2 : 0 }),
+      parsePercent(current) === value
+        ? current
+        : formatNumber(value, { decimals: value % 1 ? 2 : 0 }),
     );
   }, [value]);
-
-  function parse(raw: string) {
-    const parsed = Number(raw.replace(/[\s  %]/g, "").replace(",", "."));
-    return raw.trim() === "" ? 0 : Number.isFinite(parsed) ? parsed : null;
-  }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
@@ -94,7 +96,7 @@ export function PercentInput({
         onFocus={(event) => event.currentTarget.select()}
         onChange={(event) => {
           setText(event.target.value);
-          const parsed = parse(event.target.value);
+          const parsed = parsePercent(event.target.value);
           if (parsed !== null) onChange(Math.min(100, Math.max(0, parsed)));
         }}
         onBlur={() => setText(formatNumber(value, { decimals: value % 1 ? 2 : 0 }))}
