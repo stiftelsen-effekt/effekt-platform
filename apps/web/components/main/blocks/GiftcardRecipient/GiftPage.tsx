@@ -389,6 +389,8 @@ const StoryChapter: React.FC<{
   // two columns on wide screens, stacked on narrow ones
   const visual = !hasImage && (chapter.waffle?.share != null || !!chapter.map?.countries?.length);
   const statBeside = !hasImage && !visual && !hasChart && !!chapter.stat?.value;
+  // A small chart (no big numbers of its own) sits beside the text the same way
+  const chartBeside = !hasImage && hasChart && !chapter.chart?.callouts?.length;
 
   return (
     <Slide
@@ -412,6 +414,21 @@ const StoryChapter: React.FC<{
             large={statBeside}
           />
         );
+
+        if (chartBeside) {
+          return (
+            <div className={styles.split}>
+              <div>
+                {title}
+                {body}
+              </div>
+              <div>
+                {stat}
+                <BarChart chart={chapter.chart!} start={visible} />
+              </div>
+            </div>
+          );
+        }
 
         if (visual || statBeside) {
           return (
