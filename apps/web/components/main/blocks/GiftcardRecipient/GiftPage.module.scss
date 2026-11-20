@@ -133,9 +133,9 @@ $wide: 1100px; // two columns from here
   position: relative;
   min-height: 100vh;
   min-height: 100svh;
-  // Native snapping only. No scroll-snap-stop: always, which makes the browser fight a
-  // trackpad's momentum at every slide and feels sluggish; a flick may pass a slide instead.
+  // Native snapping, stopping at every slide (a flick never skips one)
   scroll-snap-align: start;
+  scroll-snap-stop: always;
   display: flex;
   flex-direction: column;
   justify-content: center;
