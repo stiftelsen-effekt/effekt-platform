@@ -1,7 +1,5 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import express from "express";
-import sinon from "sinon";
 import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
@@ -9,13 +7,15 @@ import { DAO } from "../custom_modules/DAO";
 describe("request validation", () => {
   beforeEach(function () {
     // This must be stubbed before importing the routes
-    sinon.stub(authMiddleware, "auth").returns([]);
-    sinon.stub(authMiddleware, "checkAdminOrTheDonor").callsFake((_, req, res, next) => next());
-    sinon.stub(DAO, "query").rejects(new Error("unexpected query"));
+    vi.spyOn(authMiddleware, "auth").mockReturnValue([]);
+    vi.spyOn(authMiddleware, "checkAdminOrTheDonor").mockImplementation((_, req, res, next) =>
+      next(),
+    );
+    vi.spyOn(DAO, "query").mockRejectedValue(new Error("unexpected query"));
   });
 
   afterEach(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("donor ids", () => {
@@ -29,11 +29,11 @@ describe("request validation", () => {
 
     for (const id of ["1.2345e4", "0x10", "12abc", "-1"]) {
       it(`rejects ${id}`, async function () {
-        const getByID = sinon.stub(DAO.donors, "getByID").resolves(null);
+        const getByID = vi.spyOn(DAO.donors, "getByID").mockResolvedValue(null);
         await request(server).get(`/donors/${id}`).expect(400);
         await request(server).put(`/donors/${id}`).send({ email: "a@b.no" }).expect(400);
         await request(server).get(`/donors/${id}/donations`).expect(400);
-        expect(getByID.called).to.equal(false);
+        expect(getByID).not.toHaveBeenCalled();
       });
     }
 
@@ -42,7 +42,7 @@ describe("request validation", () => {
     });
 
     it("accepts a plain integer", async function () {
-      sinon.stub(DAO.donations, "getByDonorId").resolves([]);
+      vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([]);
       await request(server).get("/donors/12345/donations").expect(200);
     });
   });
@@ -82,11 +82,11 @@ describe("request validation", () => {
     ];
     for (const [name, change] of invalid) {
       it(`rejects ${name} before touching the database`, async function () {
-        const getIDbyEmail = sinon.stub(DAO.donors, "getIDbyEmail").resolves(null);
+        const getIDbyEmail = vi.spyOn(DAO.donors, "getIDbyEmail").mockResolvedValue(null);
         const body = valid();
         change(body);
         await request(server).post("/donations/register").send(body).expect(400);
-        expect(getIDbyEmail.called).to.equal(false);
+        expect(getIDbyEmail).not.toHaveBeenCalled();
       });
     }
 
@@ -95,8 +95,8 @@ describe("request validation", () => {
         ...valid(),
         fundraiser: { id: "12", message: "", messageSenderName: null, showName: false },
       });
-      expect(parsed.success).to.equal(true);
-      expect(parsed.data.fundraiser.id).to.equal(12);
+      expect(parsed.success).toBe(true);
+      expect(parsed.data.fundraiser.id).toBe(12);
     });
   });
 
@@ -110,22 +110,22 @@ describe("request validation", () => {
     });
 
     it("rejects a body without pagination", async function () {
-      const getList = sinon.stub(DAO.fundraisers, "getList");
+      const getList = vi.spyOn(DAO.fundraisers, "getList").mockReturnValue(undefined as any);
       await request(server).post("/fundraisers/list").send({}).expect(400);
       await request(server)
         .post("/fundraisers/list")
         .send({ pagination: { page: 0, limit: 10 }, filter: { donor: { a: 1 } } })
         .expect(400);
-      expect(getList.called).to.equal(false);
+      expect(getList).not.toHaveBeenCalled();
     });
 
     it("passes a valid body on", async function () {
-      const getList = sinon.stub(DAO.fundraisers, "getList").resolves({} as any);
+      const getList = vi.spyOn(DAO.fundraisers, "getList").mockResolvedValue({} as any);
       await request(server)
         .post("/fundraisers/list")
         .send({ pagination: { page: 0, limit: 10, sort: null }, filter: { donor: "a" } })
         .expect(200);
-      expect(getList.calledOnceWith(0, 10, { donor: "a" }, null)).to.equal(true);
+      expect(getList).toHaveBeenCalledExactlyOnceWith(0, 10, { donor: "a" }, null);
     });
   });
 
@@ -134,12 +134,12 @@ describe("request validation", () => {
       const server = express();
       server.use(express.json());
       server.use("/avtalegiro", require("../routes/avtalegiro"));
-      const add = sinon.stub(DAO.avtalegiroagreements, "add").resolves();
+      const add = vi.spyOn(DAO.avtalegiroagreements, "add").mockResolvedValue(undefined);
       await request(server)
         .post("/avtalegiro/draft")
         .send({ KID: "12345678", amount: 250, dueDay: 5 })
         .expect(404);
-      expect(add.called).to.equal(false);
+      expect(add).not.toHaveBeenCalled();
     });
   });
 });

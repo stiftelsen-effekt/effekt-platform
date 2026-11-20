@@ -7,6 +7,7 @@ import {
   sendSanitySecurityNotice,
 } from "../custom_modules/mail";
 import {
+  ANONYMOUS_DONOR_ID,
   noticeOptionsProblem,
   sendMissingTaxUnitNotices,
 } from "../custom_modules/missingTaxUnitNotices";
@@ -118,8 +119,12 @@ router.post("/mailersend/survey/response", verifySurveyWebhook, async (req, res,
 
     let DonorID = recipientEmail ? await DAO.donors.getIDbyEmail(recipientEmail) : null;
 
+    // Repeats are only detectable per donor. Answers that fall back to the shared anonymous
+    // donor may come from different people, so they are always kept.
+    const skipRecentDuplicate = !!DonorID;
+
     if (!DonorID) {
-      DonorID = 1464; // Anonymous donor
+      DonorID = ANONYMOUS_DONOR_ID;
     }
 
     if (answers.length === 0) {
@@ -141,14 +146,25 @@ router.post("/mailersend/survey/response", verifySurveyWebhook, async (req, res,
       return;
     }
 
+    let skipped = 0;
     for (const answer of answers) {
-      await DAO.mail.saveMailerSendSurveyResponse({
-        surveyID: answer.surveyID,
-        questionID: answer.questionID,
-        DonorID: DonorID,
-        answer: answer.answer,
-        answerID: answer.answerID,
-      });
+      const saved = await DAO.mail.saveMailerSendSurveyResponse(
+        {
+          surveyID: answer.surveyID,
+          questionID: answer.questionID,
+          DonorID: DonorID,
+          answer: answer.answer,
+          answerID: answer.answerID,
+        },
+        { skipRecentDuplicate },
+      );
+      if (!saved) skipped++;
+    }
+
+    if (skipped > 0) {
+      console.log(
+        `MailerSend survey webhook: skipped ${skipped} of ${answers.length} answer(s) already saved for this donor in the last day`,
+      );
     }
 
     res.json({

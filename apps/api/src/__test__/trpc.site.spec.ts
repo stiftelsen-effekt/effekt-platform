@@ -1,10 +1,8 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import express, { type Request, type Response } from "express";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import request from "supertest";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import * as exchangeRates from "../custom_modules/exchangeRates";
 import * as impactData from "../custom_modules/impact/data";
@@ -28,10 +26,10 @@ const anonymous = () =>
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
-    if (message) expect(err.message).to.equal(message);
+    expect(err.code).toBe(code);
+    if (message) expect(err.message).toBe(message);
   }
 };
 
@@ -143,58 +141,62 @@ const impactRows = (): ImpactRows => ({
 });
 
 const stubMonthlyOutputs = () => {
-  sinon.stub(DAO.results, "getMonthlyDonationsPerOrg").resolves(monthlySums);
-  sinon.stub(impactData, "getImpactData").resolves(buildImpactData(impactRows()));
+  vi.spyOn(DAO.results, "getMonthlyDonationsPerOrg").mockResolvedValue(monthlySums);
+  vi.spyOn(impactData, "getImpactData").mockResolvedValue(buildImpactData(impactRows()));
   // 10 NOK per USD
-  sinon
-    .stub(exchangeRates, "loadUsdRates")
-    .resolves({ currency: "NOK", dates: ["2023-01-02"], perUsd: [10] });
+  vi.spyOn(exchangeRates, "loadUsdRates").mockResolvedValue({
+    currency: "NOK",
+    dates: ["2023-01-02"],
+    perUsd: [10],
+  });
 };
 
 describe("tRPC site router", () => {
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("resultsHeadline", () => {
     it("returns the headline figures, like GET /results/headline", async () => {
-      sinon.stub(DAO.results, "getHeadlineFigures").resolves({
+      vi.spyOn(DAO.results, "getHeadlineFigures").mockResolvedValue({
         totalDonationsToRecommendedOrgs: "171484246.36" as any,
         numberOfDonors: 12259,
         lastUpdated: new Date("2026-10-30T05:00:47.000Z") as any,
       });
       const trpc = await anonymous().resultsHeadline();
-      expect(trpc).to.deep.equal({
+      expect(trpc).toStrictEqual({
         totalDonationsToRecommendedOrgs: "171484246.36",
         numberOfDonors: 12259,
         lastUpdated: "2026-10-30T05:00:47.000Z",
       });
       const rest = await request(restApp()).get("/results/headline").expect(200);
-      expect(trpc).to.deep.equal(rest.body.content);
+      expect(trpc).toStrictEqual(rest.body.content);
     });
 
     it("returns null without figures, like REST", async () => {
-      sinon.stub(DAO.results, "getHeadlineFigures").resolves(null);
-      expect(await anonymous().resultsHeadline()).to.equal(null);
+      vi.spyOn(DAO.results, "getHeadlineFigures").mockResolvedValue(null);
+      expect(await anonymous().resultsHeadline()).toBe(null);
     });
 
     it("answers null when the analysis database can't be read (the Swedish API)", async () => {
-      sinon.stub(console, "error");
-      const warn = sinon.stub(console, "warn");
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      const warn = vi.spyOn(console, "warn").mockReturnValue(undefined);
       const denied = Object.assign(
         new Error(
           "SELECT command denied to user 'geeffektivt_api'@'x' for table 'Only_rec_orgs_Donations'",
         ),
         { code: "ER_TABLEACCESS_DENIED_ERROR", errno: 1142 },
       );
-      sinon.stub(DAO, "query").rejects(denied);
-      expect(await anonymous().resultsHeadline()).to.equal(null);
-      expect(warn.calledOnce).to.equal(true);
+      vi.spyOn(DAO, "query").mockRejectedValue(denied);
+      expect(await anonymous().resultsHeadline()).toBe(null);
+      expect(warn).toHaveBeenCalledOnce();
     });
 
     it("still fails on other database errors", async () => {
-      sinon.stub(console, "error");
-      sinon.stub(DAO, "query").rejects(Object.assign(new Error("gone"), { code: "ECONNREFUSED" }));
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      vi.spyOn(DAO, "query").mockRejectedValue(
+        Object.assign(new Error("gone"), { code: "ECONNREFUSED" }),
+      );
       await expectTrpcError(anonymous().resultsHeadline(), "INTERNAL_SERVER_ERROR");
     });
 
@@ -204,24 +206,20 @@ describe("tRPC site router", () => {
         numberOfDonors: 1697,
         lastUpdated: "2026-10-30T20:13:15.243Z",
       };
-      expect(siteResultsHeadlineOutput.parse(dk)).to.deep.equal(dk);
+      expect(siteResultsHeadlineOutput.parse(dk)).toStrictEqual(dk);
     });
   });
 
   describe("without access to the analysis database (the Swedish API)", () => {
     const denyAnalysisDb = () => {
-      sinon.stub(console, "error");
-      sinon.stub(console, "warn");
-      sinon
-        .stub(DAO, "query")
-        .rejects(
-          Object.assign(
-            new Error(
-              "SELECT command denied to user 'geeffektivt_api'@'x' for table 'OP_ref_data'",
-            ),
-            { code: "ER_TABLEACCESS_DENIED_ERROR", errno: 1142 },
-          ),
-        );
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      vi.spyOn(console, "warn").mockReturnValue(undefined);
+      vi.spyOn(DAO, "query").mockRejectedValue(
+        Object.assign(
+          new Error("SELECT command denied to user 'geeffektivt_api'@'x' for table 'OP_ref_data'"),
+          { code: "ER_TABLEACCESS_DENIED_ERROR", errno: 1142 },
+        ),
+      );
     };
 
     for (const [procedure, path] of [
@@ -231,15 +229,17 @@ describe("tRPC site router", () => {
     ] as const) {
       it(`answers ${procedure} and GET ${path} with no rows`, async () => {
         denyAnalysisDb();
-        expect(await anonymous()[procedure]()).to.deep.equal([]);
+        expect(await anonymous()[procedure]()).toStrictEqual([]);
         const rest = await request(restApp()).get(path).expect(200);
-        expect(rest.body.content).to.deep.equal([]);
+        expect(rest.body.content).toStrictEqual([]);
       });
     }
 
     it("still fails on other database errors", async () => {
-      sinon.stub(console, "error");
-      sinon.stub(DAO, "query").rejects(Object.assign(new Error("gone"), { code: "ECONNREFUSED" }));
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      vi.spyOn(DAO, "query").mockRejectedValue(
+        Object.assign(new Error("gone"), { code: "ECONNREFUSED" }),
+      );
       await expectTrpcError(anonymous().referralSums(), "INTERNAL_SERVER_ERROR");
       await request(restApp()).get("/results/referrals/sums").expect(500);
     });
@@ -251,39 +251,43 @@ describe("tRPC site router", () => {
         { date: new Date("2016-04-25T00:00:00.000Z"), sum: "375.00" },
         { date: new Date("2016-05-03T00:00:00.000Z"), sum: "25.00" },
       ];
-      sinon.stub(DAO.results, "getDailyDonations").resolves(rows);
+      vi.spyOn(DAO.results, "getDailyDonations").mockResolvedValue(rows);
       const trpc = await anonymous().dailyDonations();
-      expect(trpc).to.deep.equal(asJson(rows));
+      expect(trpc).toStrictEqual(asJson(rows));
       const rest = await request(restApp()).get("/results/donations/daily").expect(200);
-      expect(trpc).to.deep.equal(rest.body.content);
+      expect(trpc).toStrictEqual(rest.body.content);
     });
 
     it("accepts the Danish backend's numbers", () => {
       const dk = [{ date: "2022-05-09T00:00:00.000Z", sum: 5 }];
-      expect(siteDailyDonationsOutput.parse(dk)).to.deep.equal(dk);
+      expect(siteDailyDonationsOutput.parse(dk)).toStrictEqual(dk);
     });
 
     it("fails on a sum that is not a number", async () => {
-      sinon.stub(DAO.results, "getDailyDonations").resolves([{ date: new Date(), sum: "<b>" }]);
+      vi.spyOn(DAO.results, "getDailyDonations").mockResolvedValue([
+        { date: new Date(), sum: "<b>" },
+      ]);
       await expectTrpcError(anonymous().dailyDonations(), "INTERNAL_SERVER_ERROR");
     });
   });
 
   describe("referralSums", () => {
     it("returns the yearly referral figures as REST does", async () => {
-      sinon.stub(DAO.results, "getReferralSums").resolves([referralSumsRow()]);
+      vi.spyOn(DAO.results, "getReferralSums").mockResolvedValue([referralSumsRow()]);
       const trpc = await anonymous().referralSums();
       const rest = await request(restApp()).get("/results/referrals/sums").expect(200);
-      expect(trpc).to.deep.equal(rest.body.content);
+      expect(trpc).toStrictEqual(rest.body.content);
     });
 
     it("drops columns the page doesn't chart", async () => {
-      sinon.stub(DAO.results, "getReferralSums").resolves([{ ...referralSumsRow(), Secret: 1 }]);
-      expect((await anonymous().referralSums())[0]).not.to.have.property("Secret");
+      vi.spyOn(DAO.results, "getReferralSums").mockResolvedValue([
+        { ...referralSumsRow(), Secret: 1 },
+      ]);
+      expect((await anonymous().referralSums())[0]).not.toHaveProperty("Secret");
     });
 
     it("accepts the Danish backend's (empty) answer", () => {
-      expect(siteReferralSumsOutput.parse([])).to.deep.equal([]);
+      expect(siteReferralSumsOutput.parse([])).toStrictEqual([]);
     });
   });
 
@@ -292,19 +296,21 @@ describe("tRPC site router", () => {
       stubMonthlyOutputs();
       const trpc = await anonymous().monthlyOutputs();
       const rest = await request(restApp()).get("/results/donations/monthly/outputs").expect(200);
-      expect(trpc).to.deep.equal(rest.body.content);
-      expect(trpc.map((output) => output.output)).to.deep.equal([
+      expect(trpc).toStrictEqual(rest.body.content);
+      expect(trpc.map((output) => output.output)).toStrictEqual([
         "Myggnett",
         "Operasjoner",
         "Vitamin A",
       ]);
       const nets = trpc[0];
       // 10000 + 5000 NOK direct at 10 NOK/USD and 200 cents per net, plus 60 % of 3000 NOK via TCF
-      expect(nets.total.organizations[0].amf.direct).to.deep.equal({
+      expect(nets.total.organizations[0].amf.direct).toStrictEqual({
         sum: 15000,
         numberOfOutputs: 750,
       });
-      expect(nets.total.organizations[0].amf.smartDistribution.sum).to.be.closeTo(1800, 1e-9);
+      expect(
+        Math.abs(nets.total.organizations[0].amf.smartDistribution.sum - 1800),
+      ).toBeLessThanOrEqual(1e-9);
     });
 
     it("accepts the Danish backend's outputs", () => {
@@ -326,35 +332,39 @@ describe("tRPC site router", () => {
           monthly: [],
         },
       ];
-      expect(siteMonthlyOutputsOutput.parse(dk)).to.deep.equal(dk);
+      expect(siteMonthlyOutputsOutput.parse(dk)).toStrictEqual(dk);
     });
   });
 
   describe("ltvEstimate", () => {
     it("returns the estimates with the median agreement sums, like GET /ltv/recentestimate", async () => {
-      sinon.stub(DAO.results, "getRecentLTV").resolves([
+      vi.spyOn(DAO.results, "getRecentLTV").mockResolvedValue([
         { Label: "AvtaleGiro", Expected_LTV: 86263 },
         { Label: "Vipps", Expected_LTV: 47640 },
       ]);
-      sinon
-        .stub(DAO.avtalegiroagreements, "getAgreementReport")
-        .resolves({ medianAgreementSum: "500.00" } as any);
-      sinon.stub(DAO.vipps, "getAgreementReport").resolves({ medianAgreementSum: "400" } as any);
+      vi.spyOn(DAO.avtalegiroagreements, "getAgreementReport").mockResolvedValue({
+        medianAgreementSum: "500.00",
+      } as any);
+      vi.spyOn(DAO.vipps, "getAgreementReport").mockResolvedValue({
+        medianAgreementSum: "400",
+      } as any);
 
       const trpc = await anonymous().ltvEstimate();
-      expect(trpc).to.deep.equal([
+      expect(trpc).toStrictEqual([
         { label: "AvtaleGiro", expectedLtv: 86263, median: 500 },
         { label: "Vipps", expectedLtv: 47640, median: 400 },
       ]);
       const rest = await request(restApp()).get("/ltv/recentestimate").expect(200);
-      expect(trpc).to.deep.equal(rest.body.content);
+      expect(trpc).toStrictEqual(rest.body.content);
     });
 
     it("gives no median when a report is missing", async () => {
-      sinon.stub(DAO.results, "getRecentLTV").resolves([{ Label: "Vipps", Expected_LTV: 1 }]);
-      sinon.stub(DAO.avtalegiroagreements, "getAgreementReport").resolves(false);
-      sinon.stub(DAO.vipps, "getAgreementReport").resolves(false);
-      expect(await anonymous().ltvEstimate()).to.deep.equal([
+      vi.spyOn(DAO.results, "getRecentLTV").mockResolvedValue([
+        { Label: "Vipps", Expected_LTV: 1 },
+      ]);
+      vi.spyOn(DAO.avtalegiroagreements, "getAgreementReport").mockResolvedValue(false);
+      vi.spyOn(DAO.vipps, "getAgreementReport").mockResolvedValue(false);
+      expect(await anonymous().ltvEstimate()).toStrictEqual([
         { label: "Vipps", expectedLtv: 1, median: null },
       ]);
     });
@@ -371,28 +381,36 @@ describe("tRPC site router", () => {
           message: "Lykke til!",
           amount: 1000,
           date: new Date("2025-12-01T10:00:00.000Z"),
+          recurring: true,
         },
-        { id: 1, name: null, message: null, amount: 500, date: new Date("2025-11-30T09:00:00Z") },
+        {
+          id: 1,
+          name: null,
+          message: null,
+          amount: 500,
+          date: new Date("2025-11-30T09:00:00Z"),
+          recurring: false,
+        },
       ],
     });
 
     it("returns the totals and gifts, like GET /fundraisers/:id", async () => {
-      const getFundraiserByID = sinon
-        .stub(DAO.fundraisers, "getFundraiserByID")
-        .resolves(fundraiser());
+      const getFundraiserByID = vi
+        .spyOn(DAO.fundraisers, "getFundraiserByID")
+        .mockResolvedValue(fundraiser());
       const trpc = await anonymous().fundraiser({ id: 11 });
-      expect(getFundraiserByID.firstCall.args).to.deep.equal([11]);
+      expect(getFundraiserByID.mock.calls[0]).toStrictEqual([11]);
       const rest = await request(restApp()).get("/fundraisers/11").expect(200);
-      expect(trpc).to.deep.equal(rest.body.content);
-      expect(trpc.transactions[0].date).to.equal("2025-12-01T10:00:00.000Z");
+      expect(trpc).toStrictEqual(rest.body.content);
+      expect(trpc.transactions[0].date).toBe("2025-12-01T10:00:00.000Z");
     });
 
     it("takes the id as a string of digits too, as Sanity stores some", async () => {
-      const getFundraiserByID = sinon
-        .stub(DAO.fundraisers, "getFundraiserByID")
-        .resolves(fundraiser());
+      const getFundraiserByID = vi
+        .spyOn(DAO.fundraisers, "getFundraiserByID")
+        .mockResolvedValue(fundraiser());
       await anonymous().fundraiser({ id: "37" });
-      expect(getFundraiserByID.firstCall.args).to.deep.equal([37]);
+      expect(getFundraiserByID.mock.calls[0]).toStrictEqual([37]);
     });
 
     it("accepts the Danish backend's fundraiser (UUID transaction ids)", () => {
@@ -409,11 +427,11 @@ describe("tRPC site router", () => {
           },
         ],
       };
-      expect(siteFundraiserOutput.parse(dk)).to.deep.equal(dk);
+      expect(siteFundraiserOutput.parse(dk)).toStrictEqual(dk);
     });
 
     it("answers NOT_FOUND for an unknown fundraiser", async () => {
-      sinon.stub(DAO.fundraisers, "getFundraiserByID").resolves(null);
+      vi.spyOn(DAO.fundraisers, "getFundraiserByID").mockResolvedValue(null);
       await expectTrpcError(
         anonymous().fundraiser({ id: 11 }),
         "NOT_FOUND",
@@ -423,9 +441,11 @@ describe("tRPC site router", () => {
 
     for (const id of [0, -1, 1.5, 2147483648, "", "1e3", "12abc", " 12", { $gt: 0 }, null]) {
       it(`refuses the id ${JSON.stringify(id)} without querying`, async () => {
-        const getFundraiserByID = sinon.stub(DAO.fundraisers, "getFundraiserByID").resolves(null);
+        const getFundraiserByID = vi
+          .spyOn(DAO.fundraisers, "getFundraiserByID")
+          .mockResolvedValue(null);
         await expectTrpcError(anonymous().fundraiser({ id } as any), "BAD_REQUEST");
-        expect(getFundraiserByID.called).to.equal(false);
+        expect(getFundraiserByID).not.toHaveBeenCalled();
       });
     }
 
@@ -443,29 +463,31 @@ describe("tRPC site router", () => {
     });
 
     it("answers anonymous GETs", async () => {
-      sinon.stub(DAO.results, "getHeadlineFigures").resolves(null);
+      vi.spyOn(DAO.results, "getHeadlineFigures").mockResolvedValue(null);
       const res = await request(app).get("/trpc/site.resultsHeadline").expect(200);
-      expect(res.body.result.data).to.equal(null);
+      expect(res.body.result.data).toBe(null);
     });
 
     it("answers 400 to a bad fundraiser id and 404 to an unknown one", async () => {
-      const getFundraiserByID = sinon.stub(DAO.fundraisers, "getFundraiserByID").resolves(null);
+      const getFundraiserByID = vi
+        .spyOn(DAO.fundraisers, "getFundraiserByID")
+        .mockResolvedValue(null);
       await request(app)
         .get(`/trpc/site.fundraiser?input=${encodeURIComponent('{"id":"1 OR 1=1"}')}`)
         .expect(400);
-      expect(getFundraiserByID.called).to.equal(false);
+      expect(getFundraiserByID).not.toHaveBeenCalled();
       await request(app)
         .get(`/trpc/site.fundraiser?input=${encodeURIComponent('{"id":11}')}`)
         .expect(404);
     });
 
     it("masks database errors", async () => {
-      sinon.stub(console, "error");
-      sinon
-        .stub(DAO.results, "getDailyDonations")
-        .rejects(new Error("ER_ACCESS_DENIED for user x"));
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      vi.spyOn(DAO.results, "getDailyDonations").mockRejectedValue(
+        new Error("ER_ACCESS_DENIED for user x"),
+      );
       const res = await request(app).get("/trpc/site.dailyDonations").expect(500);
-      expect(JSON.stringify(res.body)).not.to.contain("ER_ACCESS_DENIED");
+      expect(JSON.stringify(res.body)).not.toContain("ER_ACCESS_DENIED");
     });
   });
 
@@ -504,14 +526,14 @@ describe("tRPC site router", () => {
     ];
 
     it("returns every organization, inactive ones included, like GET /organizations/all", async () => {
-      sinon.stub(DAO.organizations, "getAll").resolves(rows as any);
+      vi.spyOn(DAO.organizations, "getAll").mockResolvedValue(rows as any);
       const trpc = await anonymous().organizations();
       const rest = await request(restApp()).get("/organizations/all").expect(200);
       // REST also sends chartColor, which Min Side doesn't read
-      expect(trpc).to.deep.equal(
+      expect(trpc).toStrictEqual(
         rest.body.content.map(({ chartColor, ...org }: { chartColor: unknown }) => org),
       );
-      expect(trpc.map((org) => org.isActive)).to.deep.equal([true, false]);
+      expect(trpc.map((org) => org.isActive)).toStrictEqual([true, false]);
     });
 
     it("accepts the Danish backend's organizations", () => {
@@ -531,13 +553,13 @@ describe("tRPC site router", () => {
           causeAreaId: -1,
         },
       ];
-      expect(siteOrganizationsOutput.parse(dk)).to.deep.equal(dk);
+      expect(siteOrganizationsOutput.parse(dk)).toStrictEqual(dk);
     });
   });
 
   it("keeps the shared schemas free of backend imports (apps/web bundles them)", () => {
     const source = readFileSync(join(__dirname, "../trpc/shared/site.ts"), "utf8");
     const imports = [...source.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
-    expect(imports).to.deep.equal(["zod"]);
+    expect(imports).toStrictEqual(["zod"]);
   });
 });

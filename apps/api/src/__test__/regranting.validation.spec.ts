@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { dec, ZERO } from "../custom_modules/regranting/money";
 import type { ProposedPosition } from "../custom_modules/regranting/proposal";
 import type { FundGrant, RoundDonation, Transfer } from "../custom_modules/regranting/types";
@@ -136,20 +135,22 @@ const codes = (input: ValidationInput) => validateRound(input).map((i) => [i.sev
 
 describe("regranting validation before approval", () => {
   it("passes a consistent round", () => {
-    expect(validateRound(valid())).to.deep.equal([]);
+    expect(validateRound(valid())).toStrictEqual([]);
   });
 
   it("error: an own fund in a transfer line", () => {
     const input = valid();
     input.transfers = [transfer(2, "10.00", [[FUND, null, "10.00"]])];
     const [issue] = validateRound(input);
-    expect(issue).to.include({
-      severity: "error",
-      code: "own_fund_in_transfer",
-      organizationId: FUND,
-      transferId: 2,
-      transferLineId: 200,
-    });
+    expect(issue).toEqual(
+      expect.objectContaining({
+        severity: "error",
+        code: "own_fund_in_transfer",
+        organizationId: FUND,
+        transferId: 2,
+        transferLineId: 200,
+      }),
+    );
   });
 
   it("error: fund grants exceeding the fund's balance at the cutoff less what is committed", () => {
@@ -160,13 +161,16 @@ describe("regranting validation before approval", () => {
       fundGrants: -700,
     });
     const [issue] = validateRound(input);
-    expect(issue).to.include({
-      severity: "error",
-      code: "fund_grant_exceeds_balance",
-      organizationId: FUND,
-      fundGrantId: 1,
-    });
-    expect(issue.message).to.contain("700,00\u00a0kr").and.contain("600,00\u00a0kr");
+    expect(issue).toEqual(
+      expect.objectContaining({
+        severity: "error",
+        code: "fund_grant_exceeds_balance",
+        organizationId: FUND,
+        fundGrantId: 1,
+      }),
+    );
+    expect(issue.message).toContain("700,00\u00a0kr");
+    expect(issue.message).toContain("600,00\u00a0kr");
   });
 
   it("counts the round's own adjustments to a fund in what it can grant", () => {
@@ -177,40 +181,48 @@ describe("regranting validation before approval", () => {
       fundGrants: -700,
       roundAdjustments: 100,
     });
-    expect(validateRound(input).some((i) => i.code === "fund_grant_exceeds_balance")).to.be.false;
+    expect(validateRound(input).some((i) => i.code === "fund_grant_exceeds_balance")).toBe(false);
   });
 
   it("error: a fund grant without a rationale", () => {
     const input = valid();
     input.fundGrants[0].rationale = "  ";
-    expect(codes(input)).to.deep.equal([["error", "fund_grant_missing_rationale"]]);
+    expect(codes(input)).toStrictEqual([["error", "fund_grant_missing_rationale"]]);
   });
 
   it("error: a fund grant to another own fund", () => {
     const input = valid();
     input.fundGrants = [grant(3, FUND, "x", [[FUND2, null, "10.00"]])];
     const issues = validateRound(input);
-    expect(issues.map((i) => i.code)).to.include("fund_to_fund_grant");
-    expect(issues.find((i) => i.code === "fund_to_fund_grant")).to.include({
-      fundGrantLineId: 300,
-    });
+    expect(issues.map((i) => i.code)).toContain("fund_to_fund_grant");
+    expect(issues.find((i) => i.code === "fund_to_fund_grant")).toEqual(
+      expect.objectContaining({
+        fundGrantLineId: 300,
+      }),
+    );
   });
 
   it("error: a transfer whose lines don't sum to its amount", () => {
     const input = valid();
     input.transfers[0].amountNok = "1699.99";
-    expect(validateRound(input)).to.have.length(1);
-    expect(validateRound(input)[0]).to.include({ code: "transfer_lines_mismatch", transferId: 1 });
+    expect(validateRound(input)).toHaveLength(1);
+    expect(validateRound(input)[0]).toEqual(
+      expect.objectContaining({ code: "transfer_lines_mismatch", transferId: 1 }),
+    );
   });
 
   it("error: a project on a line that belongs to another recipient (transfer and fund grant lines)", () => {
     const input = valid();
     input.projectOrganizations = new Map([[MOMS, MC]]);
     const issues = validateRound(input).filter((i) => i.code === "project_recipient_mismatch");
-    expect(issues.map((i) => [i.transferLineId, i.fundGrantLineId])).to.have.deep.members([
-      [101, null],
-      [null, 101],
-    ]);
+    const lines = issues.map((i) => [i.transferLineId, i.fundGrantLineId]);
+    expect(lines).toHaveLength(2);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        [101, null],
+        [null, 101],
+      ]),
+    );
   });
 
   it("error: a major-donor donation already passed on", () => {
@@ -228,7 +240,7 @@ describe("regranting validation before approval", () => {
     };
     input.donations = [donation, { ...donation, donationId: 98, excludedReason: "after_cutoff" }];
     const issues = validateRound(input);
-    expect(issues.map((i) => [i.code, i.donationId])).to.deep.equal([
+    expect(issues.map((i) => [i.code, i.donationId])).toStrictEqual([
       ["donation_already_passed_on", 99],
     ]);
   });
@@ -241,31 +253,31 @@ describe("regranting validation before approval", () => {
     input.positions[0] = position(AGF, null, { balanceAtCutoff: 1500, inRound: 1500 });
     input.positions[1] = position(GD, MOMS, { balanceAtCutoff: 200, inRound: 200 });
     const issues = validateRound(input);
-    expect(issues.map((i) => [i.severity, i.code, i.organizationId])).to.deep.equal([
+    expect(issues.map((i) => [i.severity, i.code, i.organizationId])).toStrictEqual([
       ["warning", "negative_balance", MC],
     ]);
-    expect(hasErrors(issues)).to.be.false;
+    expect(hasErrors(issues)).toBe(false);
   });
 
   it("warning: a recipient with money but no payee", () => {
     const input = valid();
     input.positions.push(position(NOPAYEE, null, { balanceAtCutoff: 40 }));
     input.positions.push(position(MC, null, { balanceAtCutoff: 0 }));
-    expect(codes(input)).to.deep.equal([["warning", "recipient_without_payee"]]);
-    expect(validateRound(input)[0].organizationId).to.equal(NOPAYEE);
+    expect(codes(input)).toStrictEqual([["warning", "recipient_without_payee"]]);
+    expect(validateRound(input)[0].organizationId).toBe(NOPAYEE);
   });
 
   it("warning: money in Unassigned", () => {
     const input = valid();
     input.unassigned = { amount: "250.00", donationCount: 1 };
-    expect(codes(input)).to.deep.equal([["warning", "unassigned_balance"]]);
+    expect(codes(input)).toStrictEqual([["warning", "unassigned_balance"]]);
   });
 
   it("hasErrors only counts errors", () => {
-    expect(hasErrors([])).to.be.false;
+    expect(hasErrors([])).toBe(false);
     const input = valid();
     input.transfers[0].amountNok = "1.00";
-    expect(hasErrors(validateRound(input))).to.be.true;
+    expect(hasErrors(validateRound(input))).toBe(true);
   });
 });
 
@@ -273,29 +285,29 @@ describe("regranting payment check", () => {
   const eur = { currency: "EUR", amountNok: "11520.00", bankFee: null };
 
   it("a foreign-currency payment adds up within max(1 kr, 0.5 %)", () => {
-    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.52" })).to.equal(null);
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.52" })).toBe(null);
     // 0.5 % of 11 520 is 57.60
-    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.5776" })).to.equal(null);
-    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.578" })).to.match(
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.5776" })).toBe(null);
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: "11.578" })).toMatch(
       /1000 EUR at 11\.578 NOK\/EUR is 11\s578,00\skr, but the transfer is 11\s520,00\skr \(more than 57,60\skr apart\)/,
     );
     // Small transfers: 1 kr
     const small = { ...eur, amountNok: "10.00" };
-    expect(paymentProblem({ ...small, amountForeign: "0.95", fxRate: "11.5" })).to.equal(null);
-    expect(paymentProblem({ ...small, amountForeign: "0.7", fxRate: "11.5" })).to.match(
+    expect(paymentProblem({ ...small, amountForeign: "0.95", fxRate: "11.5" })).toBe(null);
+    expect(paymentProblem({ ...small, amountForeign: "0.7", fxRate: "11.5" })).toMatch(
       /1,00\skr apart/,
     );
   });
 
   it("needs both the foreign amount and the rate, and a NOK payment has neither", () => {
-    expect(paymentProblem({ ...eur, amountForeign: null, fxRate: null })).to.equal(
+    expect(paymentProblem({ ...eur, amountForeign: null, fxRate: null })).toBe(
       "A EUR transfer needs the amount paid in EUR and the FX rate (NOK per EUR)",
     );
-    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: null })).to.match(/FX rate/);
+    expect(paymentProblem({ ...eur, amountForeign: "1000", fxRate: null })).toMatch(/FX rate/);
     const nok = { currency: "NOK", amountNok: "100.00", bankFee: 25 };
-    expect(paymentProblem({ ...nok, amountForeign: null, fxRate: null })).to.equal(null);
-    expect(paymentProblem({ ...nok, amountForeign: "100", fxRate: null })).to.match(/NOK transfer/);
-    expect(paymentProblem({ ...nok, amountForeign: null, fxRate: null, bankFee: -1 })).to.match(
+    expect(paymentProblem({ ...nok, amountForeign: null, fxRate: null })).toBe(null);
+    expect(paymentProblem({ ...nok, amountForeign: "100", fxRate: null })).toMatch(/NOK transfer/);
+    expect(paymentProblem({ ...nok, amountForeign: null, fxRate: null, bankFee: -1 })).toMatch(
       /negative/,
     );
   });

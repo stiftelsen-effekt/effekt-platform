@@ -1,7 +1,7 @@
 import { DAO } from "./DAO";
 
 const config = require("../config.js");
-import moment from "moment";
+import { formatNorwegianDate, formatNorwegianTimestamp } from "./dates";
 import { DateTime } from "luxon";
 
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
@@ -18,9 +18,25 @@ import { VippsAgreement } from "./DAO_modules/vipps";
 import { isUserRegisteredInAuth0, getProfilePageLink } from "./auth0";
 import { redactForAlert } from "./requestErrors";
 import { handleGiftcardDonation } from "./giftcards/service";
+import paymentMethods from "../enums/paymentMethods";
 
 export function formatCurrency(currencyString) {
   return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(currencyString);
+}
+
+/** AvtaleGiro and Vipps recurring charges belong to a standing ("fast") agreement, not a one-off gift */
+const RECURRING_PAYMENT_METHOD_IDS: number[] = [
+  paymentMethods.avtalegiro,
+  paymentMethods.vipps_recurring,
+];
+
+/**
+ * Whether a donation is a single, one-off gift (not part of a standing AvtaleGiro/Vipps agreement).
+ * Used together with the donor's donation count to flag a donation as a first-time, one-off gift
+ * for the MailerSend receipt templates (e.g. to offer a matching campaign only there).
+ */
+export function isSingleDonation(paymentId: number | null | undefined): boolean {
+  return paymentId != null && !RECURRING_PAYMENT_METHOD_IDS.includes(paymentId);
 }
 
 /**
@@ -95,8 +111,10 @@ export async function sendDonationReceipt(donationID, reciever: string | null = 
       ...taxInformation,
       donorName: donation.donor,
       donationKID: donation.KID,
-      donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
+      donationDate: formatNorwegianDate(donation.timestamp),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+      isFundraiserDonation: Boolean(donation.fundraiserId),
+      isFirstSingleDonation: numberOfDonations === 1 && isSingleDonation(donation.paymentId),
       donationTotalSum: formatCurrency(donation.sum) + " kr",
       alltimeDonationsSum: formatCurrency(totalDonations) + " kr",
       firstDonationYear: minYear.toString(),
@@ -195,8 +213,10 @@ async function sendFirstDonationReceipt(donation, reciever: string | null = null
       ...taxInformation,
       donorName: donation.donor,
       donationKID: donation.KID,
-      donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
+      donationDate: formatNorwegianDate(donation.timestamp),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
+      isFundraiserDonation: Boolean(donation.fundraiserId),
+      isFirstSingleDonation: isSingleDonation(donation.paymentId),
       donationTotalSum: formatCurrency(donation.sum) + " kr",
       hasGiveWellTopCharitiesFund,
       numberOfDonors: numberOfDonors,
@@ -1289,6 +1309,5 @@ const getOrganizationOverallPercentage = (percentage: string, causeAreaPercentag
 };
 
 function formatTimestamp(date) {
-  const timestamp = moment(date).format("HH:mm - DD.MM.YYYY");
-  return timestamp;
+  return formatNorwegianTimestamp(date);
 }

@@ -70,6 +70,9 @@ export interface Donation extends DonationInput {
   apiError?: string | null;
   /** Optional campaign/matching referral code, from the donor pane or ?referral= */
   referralCode?: string;
+  /** A referral code came with the link. Stays true when the donor clears the code, so the field
+   * they cleared it in does not disappear. */
+  referralCodePrefilled?: boolean;
   /** What the donor last entered in the donor pane, kept so it survives the pane unmounting.
    * Never sent to the API, the registration only reads `donor`. */
   donorFormDraft?: DonorFormDraft;

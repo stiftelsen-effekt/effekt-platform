@@ -77,3 +77,13 @@ export const donorFromForm = (values: DonorFormValues, nameField: boolean): Dono
         ssn: values.taxDeduction ? values.ssn.toString().trim() : "",
         newsletter: values.newsletter,
       };
+
+/** For the referral code field when it shows only because the link brought a code, so Sanity may
+ * have no placeholder for it */
+export const referralCodePlaceholderFallback: Record<"en" | "no" | "sv" | "et" | "dk", string> = {
+  en: "Campaign code",
+  no: "Kampanjekode",
+  sv: "Kampanjkod",
+  et: "Kampaaniakood",
+  dk: "Kampagnekode",
+};

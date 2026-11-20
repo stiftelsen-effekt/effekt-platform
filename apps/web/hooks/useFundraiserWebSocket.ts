@@ -7,6 +7,7 @@ type Transaction = {
   message: string | null;
   amount: number;
   date?: string;
+  recurring?: boolean;
 };
 
 type FundraiserData = {

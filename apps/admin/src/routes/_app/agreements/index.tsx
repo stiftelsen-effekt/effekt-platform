@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon } from "lucide-react";
 import { useState } from "react";
-import { createColumns, DataTable, TableSummary } from "@/components/data-table";
+import { cellPlaceholder, createColumns, DataTable, TableSummary } from "@/components/data-table";
 import { CopyValue } from "@/components/domain/copy-value";
 import { ErrorState } from "@/components/domain/error-state";
 import { DateTime, Money, Num } from "@/components/domain/format";
@@ -77,6 +77,11 @@ const columns = col.columns([
     header: "Organisations",
     meta: orgSplitColumnMeta,
     cell: ({ getValue }) => <OrgSplitCell split={getValue()} />,
+  }),
+  col.accessor("campaignCode", {
+    header: "Campaign code",
+    meta: { placeholder: cellPlaceholder.word, cellClassName: "max-w-48 truncate" },
+    cell: ({ getValue }) => getValue() ?? <span className="text-faint-foreground">–</span>,
   }),
   col.accessor("id", {
     header: "ID",
@@ -162,6 +167,7 @@ function AgreementsPage() {
           <RangeFilter field="chargeDay" label="Charge day" />
           <DateRangeFilter field="created" label="Created" />
           <TextFilter field="kid" label="KID" numeric />
+          <TextFilter field="campaignCode" label="Campaign code" placeholder="Campaign code" />
         </FilterBar>
       }
     >

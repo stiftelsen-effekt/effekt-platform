@@ -3,6 +3,7 @@ import AnimateHeight from "react-animate-height";
 import style from "./FundraiserGiftActivity.module.scss";
 import { thousandize } from "../../../../util/formatting";
 import { FetchFundraiserResult } from "../../../../studio/sanity.types";
+import { giftAmountText } from "./giftAmountText";
 
 export const FundraiserGiftActivity: React.FC<{
   config: NonNullable<FetchFundraiserResult["page"]>["gift_activity_config"];
@@ -10,6 +11,7 @@ export const FundraiserGiftActivity: React.FC<{
     amount: number;
     name: string | null;
     message: string | null;
+    recurring?: boolean;
   }[];
   locale: string;
 }> = ({ donations, config, locale }) => {
@@ -26,10 +28,18 @@ export const FundraiserGiftActivity: React.FC<{
   const {
     gift_amount_text_template,
     anonymous_gift_amount_text_template,
+    recurring_gift_amount_text_template,
+    anonymous_recurring_gift_amount_text_template,
     show_more_text_template,
     no_donations_text,
     title,
   } = config;
+  const templates = {
+    gift_amount_text_template,
+    anonymous_gift_amount_text_template,
+    recurring_gift_amount_text_template,
+    anonymous_recurring_gift_amount_text_template,
+  };
 
   const showMoreText = show_more_text_template.replace(
     "{count}",
@@ -47,15 +57,11 @@ export const FundraiserGiftActivity: React.FC<{
       acc[index].push(donation);
       return acc;
     },
-    [] as { amount: number; name: string | null; message: string | null }[][],
+    [] as { amount: number; name: string | null; message: string | null; recurring?: boolean }[][],
   );
 
-  const getHeaderText = (name: string | null, amount: number) => {
-    const template = name ? gift_amount_text_template : anonymous_gift_amount_text_template;
-    return template
-      .replace("{name}", name ?? "Donor")
-      .replace("{sum}", thousandize(amount, locale));
-  };
+  const getHeaderText = (name: string | null, amount: number, recurring?: boolean) =>
+    giftAmountText(templates, name, thousandize(amount, locale), recurring);
 
   return (
     <div className={style.container} data-cy="fundraiser-gift-activity">
@@ -67,7 +73,7 @@ export const FundraiserGiftActivity: React.FC<{
           {donationGroup.map((donation, j) => (
             <div key={j} className={style.donation} data-cy="fundraiser-gift-item">
               <span className={style.amount} data-cy="fundraiser-gift-amount">
-                {getHeaderText(donation.name, donation.amount)}
+                {getHeaderText(donation.name, donation.amount, donation.recurring)}
               </span>
               {donation.message && (
                 <span className={style.message} data-cy="fundraiser-gift-message">

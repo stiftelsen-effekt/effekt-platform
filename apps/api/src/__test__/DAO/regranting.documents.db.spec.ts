@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
@@ -28,10 +27,10 @@ const alice = createCaller({
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: RegExp) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code, err.message).to.equal(code);
-    if (message) expect(err.message).to.match(message);
+    expect(err.code, err.message).toBe(code);
+    if (message) expect(err.message).toMatch(message);
   }
 };
 
@@ -135,33 +134,35 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
         );
 
         const roundDocs = await dao().listDocuments({ roundId: draftRound });
-        expect(roundDocs.map((d) => d.id)).to.deep.equal([onRound]);
-        expect(roundDocs[0]).to.deep.include({
-          url: drive("r1"),
-          label: "Styrevedtak",
-          roundId: draftRound,
-          transferId: null,
-          adjustmentId: null,
-          createdBy: "alice@example.org",
-        });
-        expect(roundDocs[0].createdAt).to.be.instanceOf(Date);
+        expect(roundDocs.map((d) => d.id)).toStrictEqual([onRound]);
+        expect(roundDocs[0]).toEqual(
+          expect.objectContaining({
+            url: drive("r1"),
+            label: "Styrevedtak",
+            roundId: draftRound,
+            transferId: null,
+            adjustmentId: null,
+            createdBy: "alice@example.org",
+          }),
+        );
+        expect(roundDocs[0].createdAt).toBeInstanceOf(Date);
 
         // Returned with the transfer and the adjustment, oldest first
         const [t] = await dao().getTransfers(paidRound);
-        expect(t.documents.map((d) => d.id)).to.deep.equal([onTransfer1, onTransfer2]);
+        expect(t.documents.map((d) => d.id)).toStrictEqual([onTransfer1, onTransfer2]);
         const a = await dao().getAdjustment(adjustment);
-        expect(a!.documents.map((d) => d.url)).to.deep.equal([drive("a1")]);
+        expect(a!.documents.map((d) => d.url)).toStrictEqual([drive("a1")]);
         expect(
           (await dao().listAdjustments({})).find((x) => x.id === adjustment)!.documents,
-        ).to.have.length(1);
+        ).toHaveLength(1);
         // A round's own list doesn't include its transfers' documents
-        expect(await dao().listDocuments({ roundId: paidRound })).to.deep.equal([]);
+        expect(await dao().listDocuments({ roundId: paidRound })).toStrictEqual([]);
 
-        expect(await dao().deleteDocument(onTransfer1)).to.equal(true);
-        expect(await dao().deleteDocument(onTransfer1)).to.equal(false);
+        expect(await dao().deleteDocument(onTransfer1)).toBe(true);
+        expect(await dao().deleteDocument(onTransfer1)).toBe(false);
         expect(
           (await dao().listDocuments({ transferId: transfer })).map((d) => d.id),
-        ).to.deep.equal([onTransfer2]);
+        ).toStrictEqual([onTransfer2]);
       });
 
       it("needs exactly one parent", async () => {
@@ -176,7 +177,7 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
           } catch (err) {
             error = err as Error;
           }
-          expect(error?.message, JSON.stringify(parent)).to.match(/exactly one/);
+          expect(error?.message, JSON.stringify(parent)).toMatch(/exactly one/);
         }
         let listError: Error | undefined;
         try {
@@ -184,7 +185,7 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
         } catch (err) {
           listError = err as Error;
         }
-        expect(listError?.message).to.match(/exactly one/);
+        expect(listError?.message).toMatch(/exactly one/);
       });
 
       it("deletes a parent's documents with it", async () => {
@@ -195,7 +196,7 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
         ).insertId;
         const id = await dao().addDocument({ roundId: temp, url: drive("tmp"), label: null }, "a");
         await sql(`DELETE FROM Regrant_rounds WHERE ID = ?`, [temp]);
-        expect(await dao().getDocument(id)).to.equal(null);
+        expect(await dao().getDocument(id)).toBe(null);
       });
     });
 
@@ -206,7 +207,9 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
           url: `  ${drive("paid")}  `,
           label: "  ",
         });
-        expect(doc).to.deep.include({ url: drive("paid"), label: null, roundId: paidRound });
+        expect(doc).toEqual(
+          expect.objectContaining({ url: drive("paid"), label: null, roundId: paidRound }),
+        );
         const onTransfer = await alice.documents.add({
           transferId: transfer,
           url: drive("bank"),
@@ -214,13 +217,13 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
         });
 
         const detail = await alice.rounds.get({ id: paidRound });
-        expect(detail.documents.map((d) => d.id)).to.deep.equal([doc.id]);
-        expect(detail.transfers[0].documents.map((d) => d.id)).to.include(onTransfer.id);
-        expect((await alice.documents.list({ roundId: paidRound })).map((d) => d.id)).to.deep.equal(
+        expect(detail.documents.map((d) => d.id)).toStrictEqual([doc.id]);
+        expect(detail.transfers[0].documents.map((d) => d.id)).toContain(onTransfer.id);
+        expect((await alice.documents.list({ roundId: paidRound })).map((d) => d.id)).toStrictEqual(
           [doc.id],
         );
 
-        expect(await alice.documents.remove({ id: doc.id })).to.deep.equal({ id: doc.id });
+        expect(await alice.documents.remove({ id: doc.id })).toStrictEqual({ id: doc.id });
         await expectTrpcError(alice.documents.remove({ id: doc.id }), "NOT_FOUND");
       });
 
@@ -231,7 +234,7 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
           to: "2016-12-31",
         });
         const opening = s.entries.find((e) => e.adjustmentId === adjustment)!;
-        expect(opening.documents.map((d) => d.url)).to.deep.equal([drive("a1")]);
+        expect(opening.documents.map((d) => d.url)).toStrictEqual([drive("a1")]);
       });
 
       it("rejects inputs without exactly one existing parent or with a non-link url", async () => {
@@ -258,21 +261,19 @@ const drive = (id: string) => `https://drive.google.com/file/d/${id}/view`;
       it("sets and clears notes on rounds and transfers, also on a paid round", async () => {
         const text = "Calculation error in this round:\nAMF got ~1,065 kr more";
         const summary = await alice.rounds.setNotes({ id: paidRound, notes: `  ${text}  ` });
-        expect(summary.notes).to.equal(text);
-        expect((await dao().getRound(paidRound))?.notes).to.equal(text);
-        expect((await dao().listRounds({})).find((r) => r.id === paidRound)?.notes).to.equal(text);
-        expect((await dao().getRound(draftRound))?.notes).to.equal(null);
+        expect(summary.notes).toBe(text);
+        expect((await dao().getRound(paidRound))?.notes).toBe(text);
+        expect((await dao().listRounds({})).find((r) => r.id === paidRound)?.notes).toBe(text);
+        expect((await dao().getRound(draftRound))?.notes).toBe(null);
 
         const t = await alice.transfers.setNotes({ id: transfer, notes: "Held back 500 kr" });
-        expect(t.notes).to.equal("Held back 500 kr");
-        expect(t.bankRef).to.equal(null);
-        expect((await dao().getTransfers(paidRound))[0].notes).to.equal("Held back 500 kr");
+        expect(t.notes).toBe("Held back 500 kr");
+        expect(t.bankRef).toBe(null);
+        expect((await dao().getTransfers(paidRound))[0].notes).toBe("Held back 500 kr");
 
-        expect((await alice.rounds.setNotes({ id: paidRound, notes: "" })).notes).to.equal(null);
-        expect((await alice.transfers.setNotes({ id: transfer, notes: null })).notes).to.equal(
-          null,
-        );
-        expect((await dao().getTransfer(transfer))?.notes).to.equal(null);
+        expect((await alice.rounds.setNotes({ id: paidRound, notes: "" })).notes).toBe(null);
+        expect((await alice.transfers.setNotes({ id: transfer, notes: null })).notes).toBe(null);
+        expect((await dao().getTransfer(transfer))?.notes).toBe(null);
 
         await expectTrpcError(alice.rounds.setNotes({ id: 999999, notes: "x" }), "NOT_FOUND");
         await expectTrpcError(alice.transfers.setNotes({ id: 999999, notes: "x" }), "NOT_FOUND");

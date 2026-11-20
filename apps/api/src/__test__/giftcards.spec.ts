@@ -1,6 +1,4 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, beforeEach, afterEach, expect, vi, type Mock } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import {
   generateGiftcardCode,
@@ -76,11 +74,11 @@ const input = (over: Record<string, unknown> = {}) =>
 
 describe("gift card text", () => {
   it("normalizes Norwegian mobile numbers", () => {
-    expect(normalizeNorwegianMobile("912 34 567")).to.equal("+4791234567");
-    expect(normalizeNorwegianMobile("+47 412 34 567")).to.equal("+4741234567");
-    expect(normalizeNorwegianMobile("004791234567")).to.equal("+4791234567");
-    expect(normalizeNorwegianMobile("22 33 44 55")).to.equal(null); // landline
-    expect(normalizeNorwegianMobile("+4691234567")).to.equal(null);
+    expect(normalizeNorwegianMobile("912 34 567")).toBe("+4791234567");
+    expect(normalizeNorwegianMobile("+47 412 34 567")).toBe("+4741234567");
+    expect(normalizeNorwegianMobile("004791234567")).toBe("+4791234567");
+    expect(normalizeNorwegianMobile("22 33 44 55")).toBe(null); // landline
+    expect(normalizeNorwegianMobile("+4691234567")).toBe(null);
   });
 
   it("renders the SMS and drops an empty greeting line", () => {
@@ -93,70 +91,72 @@ describe("gift card text", () => {
       unitPlural: "myggnett",
       link: "gieffektivt.no/gave/kxbmtrwpzd",
     };
-    expect(renderGiftcardSms(product.smsTemplate, values)).to.equal(
+    expect(renderGiftcardSms(product.smsTemplate, values)).toBe(
       "Kjære Mia!\n\nOla: 1 myggnett.\n\nGod jul!\n\nLes mer: gieffektivt.no/gave/kxbmtrwpzd",
     );
-    expect(renderGiftcardSms(product.smsTemplate, { ...values, message: null })).to.equal(
+    expect(renderGiftcardSms(product.smsTemplate, { ...values, message: null })).toBe(
       "Kjære Mia!\n\nOla: 1 myggnett.\n\nLes mer: gieffektivt.no/gave/kxbmtrwpzd",
     );
   });
 
   it("makes random lower case consonant codes that match the pattern", () => {
     const codes = new Set(Array.from({ length: 200 }, generateGiftcardCode));
-    expect(codes.size).to.equal(200);
-    for (const code of codes) expect(GIFTCARD_CODE_PATTERN.test(code), code).to.equal(true);
-    expect(GIFTCARD_CODE_PATTERN.test("KXBMTRWPZD")).to.equal(false);
-    expect(GIFTCARD_CODE_PATTERN.test("kxbmtrwpza")).to.equal(false); // no vowels
-    expect(GIFTCARD_CODE_PATTERN.test("kxbmtrwpz2")).to.equal(false); // no digits
+    expect(codes.size).toBe(200);
+    for (const code of codes) expect(GIFTCARD_CODE_PATTERN.test(code), code).toBe(true);
+    expect(GIFTCARD_CODE_PATTERN.test("KXBMTRWPZD")).toBe(false);
+    expect(GIFTCARD_CODE_PATTERN.test("kxbmtrwpza")).toBe(false); // no vowels
+    expect(GIFTCARD_CODE_PATTERN.test("kxbmtrwpz2")).toBe(false); // no digits
   });
 
   it("links to the recipient page without https://", () => {
-    expect(giftcardLink("https://gieffektivt.no/", "kxbmtrwpzd")).to.equal(
+    expect(giftcardLink("https://gieffektivt.no/", "kxbmtrwpzd")).toBe(
       "gieffektivt.no/gave/kxbmtrwpzd",
     );
-    expect(giftcardLink(undefined, "kxbmtrwpzd")).to.equal("gieffektivt.no/gave/kxbmtrwpzd");
-    expect(giftcardLink("http://localhost:3000", "kxbmtrwpzd")).to.equal(
+    expect(giftcardLink(undefined, "kxbmtrwpzd")).toBe("gieffektivt.no/gave/kxbmtrwpzd");
+    expect(giftcardLink("http://localhost:3000", "kxbmtrwpzd")).toBe(
       "http://localhost:3000/gave/kxbmtrwpzd",
     );
   });
 
   it("counts the greeting limit in characters, not bytes", () => {
-    expect(() => input({ message: "ø".repeat(GIFTCARD_MESSAGE_MAX) })).not.to.throw();
-    expect(() => input({ message: "a".repeat(GIFTCARD_MESSAGE_MAX + 1) })).to.throw();
+    expect(() => input({ message: "ø".repeat(GIFTCARD_MESSAGE_MAX) })).not.toThrow();
+    expect(() => input({ message: "a".repeat(GIFTCARD_MESSAGE_MAX + 1) })).toThrow();
   });
 
   it("requires phone and send time for SMS, not for PDF", () => {
-    expect(() => input({ recipientPhone: null })).to.throw();
-    expect(() => input({ delivery: "pdf", recipientPhone: null, sendAt: null })).not.to.throw();
+    expect(() => input({ recipientPhone: null })).toThrow();
+    expect(() => input({ delivery: "pdf", recipientPhone: null, sendAt: null })).not.toThrow();
   });
 });
 
 describe("registerGiftcard", () => {
   const now = new Date("2026-12-01T12:00:00Z");
-  let register: sinon.SinonStub;
-  let add: sinon.SinonStub;
+  let register: Mock;
+  let add: Mock;
 
   beforeEach(() => {
-    sinon.stub(DAO.giftcards, "getProductBySlug").resolves(product);
-    add = sinon.stub(DAO.giftcards, "add").resolves(1);
-    register = sinon.stub(pending, "registerPendingDonation").callsFake(async (_body, opts) => {
-      await opts!.onNewKID!("87654321", 5);
-      return {
-        ok: true,
-        content: {
-          KID: "87654321",
-          hasAnsweredReferral: false,
-          registrationToken: "token",
-          paymentProviderUrl: "https://vipps",
-        },
-      };
-    });
+    vi.spyOn(DAO.giftcards, "getProductBySlug").mockResolvedValue(product);
+    add = vi.spyOn(DAO.giftcards, "add").mockResolvedValue(1);
+    register = vi
+      .spyOn(pending, "registerPendingDonation")
+      .mockImplementation(async (_body, opts) => {
+        await opts!.onNewKID!("87654321", 5);
+        return {
+          ok: true,
+          content: {
+            KID: "87654321",
+            hasAnsweredReferral: false,
+            registrationToken: "token",
+            paymentProviderUrl: "https://vipps",
+          },
+        };
+      });
   });
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("prices on the server and gives 100 % to the product's organization on a new KID", async () => {
     const result = await registerGiftcard(input(), now);
-    expect(result).to.deep.equal({
+    expect(result).toEqual({
       ok: true,
       content: {
         KID: "87654321",
@@ -165,10 +165,10 @@ describe("registerGiftcard", () => {
         paymentProviderUrl: "https://vipps",
       },
     });
-    const body = register.firstCall.args[0];
-    expect(body.amount).to.equal(300);
-    expect(body.recurring).to.equal(false);
-    expect(body.distributionCauseAreas).to.deep.equal([
+    const body = register.mock.calls[0][0];
+    expect(body.amount).toBe(300);
+    expect(body.recurring).toBe(false);
+    expect(body.distributionCauseAreas).toEqual([
       {
         id: 1,
         percentageShare: "100",
@@ -176,105 +176,107 @@ describe("registerGiftcard", () => {
         organizations: [{ id: 7, percentageShare: "100" }],
       },
     ]);
-    expect(add.firstCall.args[0]).to.include({
+    expect(add.mock.calls[0][0]).toMatchObject({
       KID: "87654321",
       units: 3,
       amount: 300,
       recipientPhone: "+4791234567",
     });
-    expect(add.firstCall.args[0].sendAt.toISOString()).to.equal("2026-12-24T15:00:00.000Z");
-    expect(add.firstCall.args[0].code).to.match(GIFTCARD_CODE_PATTERN);
+    expect(add.mock.calls[0][0].sendAt.toISOString()).toBe("2026-12-24T15:00:00.000Z");
+    expect(add.mock.calls[0][0].code).toMatch(GIFTCARD_CODE_PATTERN);
   });
 
   it("rejects unknown products, bad unit counts, bad phones and bad send times", async () => {
-    expect(await registerGiftcard(input({ units: 1001 }), now)).to.deep.include({ ok: false });
-    expect(await registerGiftcard(input({ recipientPhone: "22334455" }), now)).to.deep.include({
+    expect(await registerGiftcard(input({ units: 1001 }), now)).toMatchObject({ ok: false });
+    expect(await registerGiftcard(input({ recipientPhone: "22334455" }), now)).toMatchObject({
       ok: false,
     });
-    expect(await registerGiftcard(input({ sendAt: "2026-11-01T12:00:00Z" }), now)).to.deep.include({
+    expect(await registerGiftcard(input({ sendAt: "2026-11-01T12:00:00Z" }), now)).toMatchObject({
       ok: false,
     });
-    expect(await registerGiftcard(input({ sendAt: "2028-01-01T12:00:00Z" }), now)).to.deep.include({
+    expect(await registerGiftcard(input({ sendAt: "2028-01-01T12:00:00Z" }), now)).toMatchObject({
       ok: false,
     });
-    (DAO.giftcards.getProductBySlug as sinon.SinonStub).resolves({ ...product, active: false });
-    expect(await registerGiftcard(input(), now)).to.deep.include({ ok: false });
-    expect(register.called).to.equal(false);
+    (DAO.giftcards.getProductBySlug as Mock).mockResolvedValue({ ...product, active: false });
+    expect(await registerGiftcard(input(), now)).toMatchObject({ ok: false });
+    expect(register.mock.calls.length).toBe(0);
   });
 
   it("sends right away a send time a few minutes in the past", async () => {
     await registerGiftcard(input({ sendAt: "2026-12-01T11:55:00Z" }), now);
-    expect(add.firstCall.args[0].sendAt).to.deep.equal(now);
+    expect(add.mock.calls[0][0].sendAt).toEqual(now);
   });
 
   it("stores no phone or send time for a PDF gift card", async () => {
     await registerGiftcard(input({ delivery: "pdf", recipientPhone: null, sendAt: null }), now);
-    expect(add.firstCall.args[0]).to.include({ recipientPhone: null, sendAt: null });
+    expect(add.mock.calls[0][0]).toMatchObject({ recipientPhone: null, sendAt: null });
   });
 });
 
 describe("sendDueGiftcardSms", () => {
   const now = new Date("2026-12-24T15:01:00Z");
-  let send: sinon.SinonStub;
+  let send: Mock;
   const provider = () => ({ name: "test", send });
 
   beforeEach(() => {
-    send = sinon.stub().resolves({ id: "msg-1" });
-    sinon.stub(DAO.giftcards, "getProductByID").resolves(product);
-    sinon.stub(DAO, "query").resolves([[]] as any); // buyer lookup for the "sent" email
+    send = vi.fn().mockResolvedValue({ id: "msg-1" });
+    vi.spyOn(DAO.giftcards, "getProductByID").mockResolvedValue(product);
+    vi.spyOn(DAO, "query").mockResolvedValue([[]] as any); // buyer lookup for the "sent" email
   });
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("sends each claimed gift card once and marks it sent", async () => {
-    sinon.stub(DAO.giftcards, "getDueSmsIDs").resolves([10, 11]);
-    sinon.stub(DAO.giftcards, "claimForSending").callsFake(async (id) => id === 10);
-    sinon.stub(DAO.giftcards, "getByID").resolves(giftcard());
-    const markSent = sinon.stub(DAO.giftcards, "markSent").resolves();
+    vi.spyOn(DAO.giftcards, "getDueSmsIDs").mockResolvedValue([10, 11]);
+    vi.spyOn(DAO.giftcards, "claimForSending").mockImplementation(async (id) => id === 10);
+    vi.spyOn(DAO.giftcards, "getByID").mockResolvedValue(giftcard());
+    const markSent = vi.spyOn(DAO.giftcards, "markSent").mockResolvedValue();
 
     const summary = await sendDueGiftcardSms(now, provider());
-    expect(summary).to.deep.equal({ due: 2, sent: 1, retrying: 0, failed: 0, skipped: 1 });
-    expect(send.callCount).to.equal(1);
-    expect(send.firstCall.args[0]).to.equal("+4791234567");
-    expect(send.firstCall.args[1]).to.contain("Kjære Mia!");
-    expect(send.firstCall.args[1]).to.match(/Les mer: \S+\/gave\/kxbmtrwpzd$/);
-    expect(markSent.firstCall.args.slice(0, 2)).to.deep.equal([10, "msg-1"]);
+    expect(summary).toEqual({ due: 2, sent: 1, retrying: 0, failed: 0, skipped: 1 });
+    expect(send.mock.calls.length).toBe(1);
+    expect(send.mock.calls[0][0]).toBe("+4791234567");
+    expect(send.mock.calls[0][1]).toContain("Kjære Mia!");
+    expect(send.mock.calls[0][1]).toMatch(/Les mer: \S+\/gave\/kxbmtrwpzd$/);
+    expect(markSent.mock.calls[0].slice(0, 2)).toEqual([10, "msg-1"]);
   });
 
   it("retries a failed send and gives up after the last attempt", async () => {
-    sinon.stub(DAO.giftcards, "getDueSmsIDs").resolves([10]);
-    sinon.stub(DAO.giftcards, "claimForSending").resolves(true);
-    const getByID = sinon.stub(DAO.giftcards, "getByID").resolves(giftcard({ sendAttempts: 1 }));
-    const markFailed = sinon.stub(DAO.giftcards, "markSendFailed").resolves();
-    send.rejects(new Error("provider down"));
+    vi.spyOn(DAO.giftcards, "getDueSmsIDs").mockResolvedValue([10]);
+    vi.spyOn(DAO.giftcards, "claimForSending").mockResolvedValue(true);
+    const getByID = vi
+      .spyOn(DAO.giftcards, "getByID")
+      .mockResolvedValue(giftcard({ sendAttempts: 1 }));
+    const markFailed = vi.spyOn(DAO.giftcards, "markSendFailed").mockResolvedValue();
+    send.mockRejectedValue(new Error("provider down"));
 
-    expect((await sendDueGiftcardSms(now, provider())).retrying).to.equal(1);
-    expect(markFailed.lastCall.args).to.deep.equal([10, "provider down", false]);
+    expect((await sendDueGiftcardSms(now, provider())).retrying).toBe(1);
+    expect(markFailed.mock.lastCall!).toEqual([10, "provider down", false]);
 
-    getByID.resolves(giftcard({ sendAttempts: MAX_SEND_ATTEMPTS }));
-    expect((await sendDueGiftcardSms(now, provider())).failed).to.equal(1);
-    expect(markFailed.lastCall.args[2]).to.equal(true);
+    getByID.mockResolvedValue(giftcard({ sendAttempts: MAX_SEND_ATTEMPTS }));
+    expect((await sendDueGiftcardSms(now, provider())).failed).toBe(1);
+    expect(markFailed.mock.lastCall![2]).toBe(true);
   });
 
   it("does not need an SMS provider when nothing is due", async () => {
-    sinon.stub(DAO.giftcards, "getDueSmsIDs").resolves([]);
-    expect((await sendDueGiftcardSms(now)).due).to.equal(0);
+    vi.spyOn(DAO.giftcards, "getDueSmsIDs").mockResolvedValue([]);
+    expect((await sendDueGiftcardSms(now)).due).toBe(0);
   });
 });
 
 describe("getGiftForRecipient", () => {
   const now = new Date("2026-12-25T10:00:00Z");
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   const lookup = (card: Giftcard | null) => {
-    const getByCode = sinon.stub(DAO.giftcards, "getByCode").resolves(card);
-    sinon.stub(DAO.giftcards, "getProductByID").resolves(product);
+    const getByCode = vi.spyOn(DAO.giftcards, "getByCode").mockResolvedValue(card);
+    vi.spyOn(DAO.giftcards, "getProductByID").mockResolvedValue(product);
     return getByCode;
   };
 
   it("returns what the page shows, and nothing about the buyer or price", async () => {
     lookup(giftcard({ status: "sent", sentAt: new Date("2026-12-24T15:00:10Z") }));
     const gift = await getGiftForRecipient("kxbmtrwpzd", now);
-    expect(gift).to.deep.equal({
+    expect(gift).toEqual({
       product: "malaria",
       units: 3,
       unitSingular: "barn",
@@ -288,22 +290,22 @@ describe("getGiftForRecipient", () => {
 
   it("hides unpaid and cancelled gift cards", async () => {
     const getByCode = lookup(giftcard({ status: "pending" }));
-    expect(await getGiftForRecipient("kxbmtrwpzd", now)).to.equal(null);
-    getByCode.resolves(giftcard({ status: "cancelled" }));
-    expect(await getGiftForRecipient("kxbmtrwpzd", now)).to.equal(null);
+    expect(await getGiftForRecipient("kxbmtrwpzd", now)).toBe(null);
+    getByCode.mockResolvedValue(giftcard({ status: "cancelled" }));
+    expect(await getGiftForRecipient("kxbmtrwpzd", now)).toBe(null);
   });
 
   it("expires the page after GIFT_PAGE_DAYS", async () => {
     const sentAt = new Date("2026-12-24T15:00:00Z");
     lookup(giftcard({ status: "sent", sentAt }));
     const later = new Date(sentAt.getTime() + (GIFT_PAGE_DAYS + 1) * 24 * 60 * 60 * 1000);
-    expect(await getGiftForRecipient("kxbmtrwpzd", later)).to.equal(null);
+    expect(await getGiftForRecipient("kxbmtrwpzd", later)).toBe(null);
   });
 
   it("doesn't query the database for codes that can't exist", async () => {
     const getByCode = lookup(null);
-    expect(await getGiftForRecipient("KXBMTRWPZD", now)).to.equal(null);
-    expect(await getGiftForRecipient("' OR 1=1 --", now)).to.equal(null);
-    expect(getByCode.called).to.equal(false);
+    expect(await getGiftForRecipient("KXBMTRWPZD", now)).toBe(null);
+    expect(await getGiftForRecipient("' OR 1=1 --", now)).toBe(null);
+    expect(getByCode.mock.calls.length).toBe(0);
   });
 });

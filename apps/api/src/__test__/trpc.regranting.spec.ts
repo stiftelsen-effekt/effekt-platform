@@ -1,7 +1,6 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import type { Round, RoundSummary, Transfer } from "../custom_modules/regranting/types";
 import { appRouter } from "../trpc/router";
@@ -16,10 +15,10 @@ const admin = (claims: Record<string, unknown> = { sub: "auth0|bob", email: "bob
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: RegExp) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code, err.message).to.equal(code);
-    if (message) expect(err.message).to.match(message);
+    expect(err.code, err.message).toBe(code);
+    if (message) expect(err.message).toMatch(message);
   }
 };
 
@@ -54,21 +53,23 @@ const mapResults = new Set([
   "documentsFor",
 ]);
 
-type Stubs = Record<keyof typeof DAO.regranting, sinon.SinonStub>;
+type Stubs = Record<keyof typeof DAO.regranting, MockInstance>;
 
 /** Stubs every DAO.regranting function with an empty result; transactions run on a fake connection */
 const stubDao = (): Stubs => {
   const stubs = {} as Stubs;
   for (const key of Object.keys(DAO.regranting) as (keyof typeof DAO.regranting)[]) {
-    const stub = sinon.stub(DAO.regranting, key) as sinon.SinonStub;
-    if (arrayResults.has(key)) stub.resolves([]);
-    else if (mapResults.has(key)) stub.resolves(new Map());
-    else stub.resolves(null);
+    const stub: MockInstance = vi
+      .spyOn(DAO.regranting as Record<string, (...args: any[]) => any>, key)
+      .mockReturnValue(undefined);
+    if (arrayResults.has(key)) stub.mockResolvedValue([]);
+    else if (mapResults.has(key)) stub.mockResolvedValue(new Map());
+    else stub.mockResolvedValue(null);
     stubs[key] = stub;
   }
-  stubs.inTransaction.callsFake((fn: (conn: unknown) => unknown) => fn({ fake: true }));
-  stubs.getUnassigned.resolves({ amount: "0.00", donationCount: 0 });
-  stubs.getOrganizations.resolves([
+  stubs.inTransaction.mockImplementation((fn: (conn: unknown) => unknown) => fn({ fake: true }));
+  stubs.getUnassigned.mockResolvedValue({ amount: "0.00", donationCount: 0 });
+  stubs.getOrganizations.mockResolvedValue([
     { id: 1, name: "AGF", abbriv: "AGF", isActive: true, ordering: 1 },
     { id: 3, name: "MC", abbriv: "MC", isActive: true, ordering: 3 },
     { id: 4, name: "Fund", abbriv: "GEBF", isActive: true, ordering: 4 },
@@ -142,7 +143,7 @@ const balanceRow = (organizationId: number, allocations: string) => ({
 });
 
 describe("tRPC regranting", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   describe("auth and input", () => {
     it("rejects anonymous and non-admin callers", async () => {
@@ -152,7 +153,7 @@ describe("tRPC regranting", () => {
         callerWith({ permissions: ["read:profile"] }).balances.list(),
         "FORBIDDEN",
       );
-      expect(stubs.listRounds.called).to.be.false;
+      expect(stubs.listRounds).not.toHaveBeenCalled();
     });
 
     it("rejects unknown fields and invalid values", async () => {
@@ -236,9 +237,9 @@ describe("tRPC regranting", () => {
   describe("authors", () => {
     it("records the creator from the token's email claim, else its subject", async () => {
       const stubs = stubDao();
-      stubs.createRound.resolves(7);
-      stubs.getRound.resolves(round());
-      stubs.getRoundSummary.resolves(summary(round()));
+      stubs.createRound.mockResolvedValue(7);
+      stubs.getRound.mockResolvedValue(round());
+      stubs.getRoundSummary.mockResolvedValue(summary(round()));
 
       await admin().rounds.create({
         name: "Q3",
@@ -246,7 +247,7 @@ describe("tRPC regranting", () => {
         cutoff: "2026-09-30",
         propose: false,
       });
-      expect(stubs.createRound.firstCall.args[2]).to.equal("bob@example.org");
+      expect(stubs.createRound.mock.calls[0][2]).toBe("bob@example.org");
 
       await admin({ sub: "auth0|carol" }).rounds.create({
         name: "Q3",
@@ -254,14 +255,16 @@ describe("tRPC regranting", () => {
         cutoff: "2026-09-30",
         propose: false,
       });
-      expect(stubs.createRound.secondCall.args[2]).to.equal("auth0|carol");
-      expect(stubs.createRound.firstCall.args[1]).to.deep.include({ minTransfer: 0 });
+      expect(stubs.createRound.mock.calls[1][2]).toBe("auth0|carol");
+      expect(stubs.createRound.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ minTransfer: 0 }),
+      );
     });
 
     it("records who created an adjustment", async () => {
       const stubs = stubDao();
-      stubs.createAdjustment.resolves(5);
-      stubs.getAdjustment.resolves({ id: 5 });
+      stubs.createAdjustment.mockResolvedValue(5);
+      stubs.getAdjustment.mockResolvedValue({ id: 5 });
       await admin({
         "https://gieffektivt.no/email": "nina@example.org",
         sub: "x",
@@ -272,51 +275,57 @@ describe("tRPC regranting", () => {
         reason: "Wire fee charged to recipient",
         effectiveAt: "2026-09-30",
       });
-      expect(stubs.createAdjustment.firstCall.args[1]).to.equal("nina@example.org");
-      expect(stubs.createAdjustment.firstCall.args[0]).to.deep.include({
-        projectId: null,
-        roundId: null,
-        linkedTransferId: null,
-      });
+      expect(stubs.createAdjustment.mock.calls[0][1]).toBe("nina@example.org");
+      expect(stubs.createAdjustment.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          projectId: null,
+          roundId: null,
+          linkedTransferId: null,
+        }),
+      );
     });
   });
 
   describe("approval", () => {
     it("requires someone other than the creator", async () => {
       const stubs = stubDao();
-      stubs.lockRound.resolves(round({ createdBy: "bob@example.org" }));
+      stubs.lockRound.mockResolvedValue(round({ createdBy: "bob@example.org" }));
       await expectTrpcError(admin().rounds.approve({ id: 7 }), "FORBIDDEN", /someone other/);
-      expect(stubs.setRoundApproved.called).to.be.false;
+      expect(stubs.setRoundApproved).not.toHaveBeenCalled();
     });
 
     it("returns the issues and changes nothing when validation finds errors", async () => {
       const stubs = stubDao();
-      stubs.lockRound.resolves(round());
-      stubs.getRound.resolves(round());
-      stubs.getRoundSummary.resolves(summary(round()));
-      stubs.getTransfers.resolves([transfer({ amountNok: "999.00" })]);
-      stubs.getBalances.resolves([balanceRow(1, "1000.00")]);
-      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
+      stubs.lockRound.mockResolvedValue(round());
+      stubs.getRound.mockResolvedValue(round());
+      stubs.getRoundSummary.mockResolvedValue(summary(round()));
+      stubs.getTransfers.mockResolvedValue([transfer({ amountNok: "999.00" })]);
+      stubs.getBalances.mockResolvedValue([balanceRow(1, "1000.00")]);
+      stubs.getPayeesAt.mockResolvedValue(
+        new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]),
+      );
 
       const result = await admin().rounds.approve({ id: 7 });
-      expect(result.approved).to.be.false;
-      expect(result.issues.map((i) => i.code)).to.deep.equal(["transfer_lines_mismatch"]);
-      expect(stubs.writeSnapshot.called).to.be.false;
-      expect(stubs.setRoundApproved.called).to.be.false;
+      expect(result.approved).toBe(false);
+      expect(result.issues.map((i) => i.code)).toStrictEqual(["transfer_lines_mismatch"]);
+      expect(stubs.writeSnapshot).not.toHaveBeenCalled();
+      expect(stubs.setRoundApproved).not.toHaveBeenCalled();
     });
 
     it("writes the snapshot and approves round and fund grants", async () => {
       const stubs = stubDao();
-      stubs.lockRound.resolves(round());
-      stubs.getRound.resolves(round());
-      stubs.getRoundSummary.resolves(summary(round({ status: "approved" })));
-      stubs.getTransfers.resolves([transfer()]);
-      stubs.getBalances.resolves([balanceRow(1, "1200.00")]);
-      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
+      stubs.lockRound.mockResolvedValue(round());
+      stubs.getRound.mockResolvedValue(round());
+      stubs.getRoundSummary.mockResolvedValue(summary(round({ status: "approved" })));
+      stubs.getTransfers.mockResolvedValue([transfer()]);
+      stubs.getBalances.mockResolvedValue([balanceRow(1, "1200.00")]);
+      stubs.getPayeesAt.mockResolvedValue(
+        new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]),
+      );
 
       const result = await admin().rounds.approve({ id: 7 });
-      expect(result.approved).to.be.true;
-      expect(stubs.writeSnapshot.firstCall.args[2]).to.deep.equal([
+      expect(result.approved).toBe(true);
+      expect(stubs.writeSnapshot.mock.calls[0][2]).toStrictEqual([
         {
           organizationId: 1,
           projectId: null,
@@ -328,9 +337,9 @@ describe("tRPC regranting", () => {
           includedDirect: true,
         },
       ]);
-      expect(stubs.setRoundApproved.firstCall.args.slice(1)).to.deep.equal([7, "bob@example.org"]);
+      expect(stubs.setRoundApproved.mock.calls[0].slice(1)).toStrictEqual([7, "bob@example.org"]);
       // balances at the cutoff exclude the round itself
-      expect(stubs.getBalances.firstCall.args[0]).to.deep.equal({
+      expect(stubs.getBalances.mock.calls[0][0]).toStrictEqual({
         at: "2026-09-30",
         excludeRoundId: 7,
       });
@@ -338,9 +347,9 @@ describe("tRPC regranting", () => {
 
     it("only approves drafts", async () => {
       const stubs = stubDao();
-      stubs.lockRound.resolves(round({ status: "paid" }));
+      stubs.lockRound.mockResolvedValue(round({ status: "paid" }));
       await expectTrpcError(admin().rounds.approve({ id: 7 }), "CONFLICT", /never edited/);
-      stubs.lockRound.resolves(null);
+      stubs.lockRound.mockResolvedValue(null);
       await expectTrpcError(admin().rounds.approve({ id: 7 }), "NOT_FOUND");
     });
   });
@@ -348,83 +357,87 @@ describe("tRPC regranting", () => {
   describe("locking", () => {
     it("draft-only edits fail with CONFLICT on approved and paid rounds", async () => {
       const stubs = stubDao();
-      stubs.getTransfer.resolves(transfer());
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.getTransfer.mockResolvedValue(transfer());
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await expectTrpcError(
         admin().transfers.setLine({ id: 70, organizationId: 1, projectId: null, amountNok: 5 }),
         "CONFLICT",
         /approved/,
       );
-      stubs.lockRound.resolves(round({ status: "paid" }));
+      stubs.lockRound.mockResolvedValue(round({ status: "paid" }));
       await expectTrpcError(admin().transfers.delete({ id: 70 }), "CONFLICT", /paid/);
       await expectTrpcError(
         admin().rounds.setIncludeDirect({ roundId: 7, organizationId: 1, includeDirect: true }),
         "CONFLICT",
       );
-      expect(stubs.replaceTransferLines.called).to.be.false;
-      expect(stubs.deleteTransfer.called).to.be.false;
-      expect(stubs.setIncludeDirect.called).to.be.false;
+      expect(stubs.replaceTransferLines).not.toHaveBeenCalled();
+      expect(stubs.deleteTransfer).not.toHaveBeenCalled();
+      expect(stubs.setIncludeDirect).not.toHaveBeenCalled();
     });
 
     it("notes can be set and cleared in any status, also on paid rounds", async () => {
       const stubs = stubDao();
-      stubs.getRoundSummary.resolves(summary(round({ status: "paid", notes: "AMF got more" })));
-      stubs.getTransfer.resolves(transfer({ paidAt: "2016-04-10", notes: "Held back 500 kr" }));
-      stubs.lockRound.resolves(round({ status: "paid" }));
+      stubs.getRoundSummary.mockResolvedValue(
+        summary(round({ status: "paid", notes: "AMF got more" })),
+      );
+      stubs.getTransfer.mockResolvedValue(
+        transfer({ paidAt: "2016-04-10", notes: "Held back 500 kr" }),
+      );
+      stubs.lockRound.mockResolvedValue(round({ status: "paid" }));
 
       const r = await admin().rounds.setNotes({ id: 7, notes: "  AMF got more\nsee bilag  " });
-      expect(r.notes).to.equal("AMF got more");
-      expect(stubs.setRoundNotes.firstCall.args.slice(0, 2)).to.deep.equal([
+      expect(r.notes).toBe("AMF got more");
+      expect(stubs.setRoundNotes.mock.calls[0].slice(0, 2)).toStrictEqual([
         7,
         "AMF got more\nsee bilag",
       ]);
       await admin().rounds.setNotes({ id: 7, notes: "   " });
-      expect(stubs.setRoundNotes.secondCall.args.slice(0, 2)).to.deep.equal([7, null]);
+      expect(stubs.setRoundNotes.mock.calls[1].slice(0, 2)).toStrictEqual([7, null]);
 
       const t = await admin().transfers.setNotes({ id: 70, notes: "Held back 500 kr" });
-      expect(t.notes).to.equal("Held back 500 kr");
+      expect(t.notes).toBe("Held back 500 kr");
       await admin().transfers.setNotes({ id: 70, notes: null });
-      expect(stubs.setTransferNotes.args.map((a) => a.slice(0, 2))).to.deep.equal([
+      expect(stubs.setTransferNotes.mock.calls.map((a) => a.slice(0, 2))).toStrictEqual([
         [70, "Held back 500 kr"],
         [70, null],
       ]);
       // No round lock: notes are documentation, not money
-      expect(stubs.lockRound.called).to.be.false;
+      expect(stubs.lockRound).not.toHaveBeenCalled();
 
       await expectTrpcError(
         admin().rounds.setNotes({ id: 7, notes: "x".repeat(5001) }),
         "BAD_REQUEST",
       );
-      stubs.getRoundSummary.resolves(null);
+      stubs.getRoundSummary.mockResolvedValue(null);
       await expectTrpcError(admin().rounds.setNotes({ id: 8, notes: "x" }), "NOT_FOUND");
-      stubs.getTransfer.resolves(null);
+      stubs.getTransfer.mockResolvedValue(null);
       await expectTrpcError(admin().transfers.setNotes({ id: 71, notes: "x" }), "NOT_FOUND");
     });
 
     it("draft transfers take notes on create and update", async () => {
       const stubs = stubDao();
-      stubs.getPayee.resolves({ id: 10, name: "GiveWell", currency: "NOK" } as any);
-      stubs.lockRound.resolves(round());
-      stubs.createTransfer.resolves(70);
-      stubs.getTransfer.resolves(transfer());
+      stubs.getPayee.mockResolvedValue({ id: 10, name: "GiveWell", currency: "NOK" } as any);
+      stubs.lockRound.mockResolvedValue(round());
+      stubs.createTransfer.mockResolvedValue(70);
+      stubs.getTransfer.mockResolvedValue(transfer());
       await admin().transfers.create({ roundId: 7, payeeId: 10, notes: " Mis-keyed KID " });
-      expect(stubs.createTransfer.firstCall.args[1].notes).to.equal("Mis-keyed KID");
+      expect(stubs.createTransfer.mock.calls[0][1].notes).toBe("Mis-keyed KID");
       await admin().transfers.update({ id: 70, notes: "" });
-      expect(stubs.setTransferNotes.firstCall.args.slice(0, 2)).to.deep.equal([70, null]);
+      expect(stubs.setTransferNotes.mock.calls[0].slice(0, 2)).toStrictEqual([70, null]);
       await admin().transfers.update({ id: 70, currency: "USD" });
-      expect(stubs.setTransferNotes.calledOnce).to.be.true;
+      expect(stubs.setTransferNotes).toHaveBeenCalledOnce();
     });
 
     it("payments are recorded on approved rounds only, and all before marking paid", async () => {
       const stubs = stubDao();
-      stubs.getTransfer.resolves(transfer());
-      stubs.lockRound.resolves(round({ status: "draft" }));
+      stubs.getTransfer.mockResolvedValue(transfer());
+      stubs.lockRound.mockResolvedValue(round({ status: "draft" }));
       await expectTrpcError(
         admin().transfers.recordPayment({ id: 70, paidAt: "2026-10-05" }),
         "CONFLICT",
         /approve it first/,
       );
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await admin().transfers.recordPayment({
         id: 70,
         paidAt: "2026-10-05",
@@ -433,7 +446,7 @@ describe("tRPC regranting", () => {
         fxRate: "11.52",
         bankFee: 30,
       });
-      expect(stubs.recordPayment.firstCall.args[2]).to.deep.equal({
+      expect(stubs.recordPayment.mock.calls[0][2]).toStrictEqual({
         paidAt: "2026-10-05",
         currency: "EUR",
         amountForeign: "86.81",
@@ -443,22 +456,25 @@ describe("tRPC regranting", () => {
         paidBy: "foundation",
       });
 
-      stubs.getTransfers.resolves([transfer(), transfer({ id: 71, paidAt: "2026-10-05" })]);
+      stubs.getTransfers.mockResolvedValue([
+        transfer(),
+        transfer({ id: 71, paidAt: "2026-10-05" }),
+      ]);
       await expectTrpcError(admin().rounds.markPaid({ id: 7 }), "PRECONDITION_FAILED", /70/);
-      expect(stubs.setRoundPaid.called).to.be.false;
+      expect(stubs.setRoundPaid).not.toHaveBeenCalled();
     });
 
     it("transfer setLine replaces just that line and syncs the amount", async () => {
       const stubs = stubDao();
-      stubs.getTransfer.resolves(transfer());
-      stubs.lockRound.resolves(round());
+      stubs.getTransfer.mockResolvedValue(transfer());
+      stubs.lockRound.mockResolvedValue(round());
       await admin().transfers.setLine({
         id: 70,
         organizationId: 3,
         projectId: null,
         amountNok: 250,
       });
-      expect(stubs.replaceTransferLines.firstCall.args.slice(1)).to.deep.equal([
+      expect(stubs.replaceTransferLines.mock.calls[0].slice(1)).toStrictEqual([
         70,
         [
           { organizationId: 1, projectId: null, amount: "1000.00" },
@@ -467,24 +483,24 @@ describe("tRPC regranting", () => {
         true,
       ]);
       await admin().transfers.setLine({ id: 70, organizationId: 1, projectId: null, amountNok: 0 });
-      expect(stubs.replaceTransferLines.secondCall.args[2]).to.deep.equal([]);
+      expect(stubs.replaceTransferLines.mock.calls[1][2]).toStrictEqual([]);
     });
 
     it("adjustments in approved or paid rounds can't change", async () => {
       const stubs = stubDao();
-      stubs.getAdjustment.resolves({
+      stubs.getAdjustment.mockResolvedValue({
         id: 5,
         roundId: 7,
         type: "correction",
         pairedAdjustmentId: null,
       });
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await expectTrpcError(
         admin().adjustments.delete({ id: 5 }),
         "CONFLICT",
         /Q3 \(cutoff 30\.09\.2026\)/,
       );
-      expect(stubs.deleteAdjustments.called).to.be.false;
+      expect(stubs.deleteAdjustments).not.toHaveBeenCalled();
       // Attaching a new adjustment to an approved round locks it and fails too
       await expectTrpcError(
         admin().adjustments.create({
@@ -498,7 +514,7 @@ describe("tRPC regranting", () => {
         "CONFLICT",
         /approved/,
       );
-      expect(stubs.createAdjustment.called).to.be.false;
+      expect(stubs.createAdjustment).not.toHaveBeenCalled();
     });
 
     it("half of an earmark is deleted with its pair and can't be edited alone", async () => {
@@ -510,11 +526,11 @@ describe("tRPC regranting", () => {
         reason: "Earmarked for Water in Q3",
         pairedAdjustmentId: 6,
       };
-      stubs.getAdjustment.resolves(half);
-      stubs.lockRound.resolves(round());
+      stubs.getAdjustment.mockResolvedValue(half);
+      stubs.lockRound.mockResolvedValue(round());
       const result = await admin().adjustments.delete({ id: 5 });
-      expect(result.deletedIds).to.deep.equal([5, 6]);
-      expect(stubs.deleteAdjustments.firstCall.args[1]).to.deep.equal([5, 6]);
+      expect(result.deletedIds).toStrictEqual([5, 6]);
+      expect(stubs.deleteAdjustments.mock.calls[0][1]).toStrictEqual([5, 6]);
       await expectTrpcError(
         admin().adjustments.update({
           id: 5,
@@ -528,16 +544,16 @@ describe("tRPC regranting", () => {
         "CONFLICT",
         /half of an earmark/,
       );
-      expect(stubs.updateAdjustment.called).to.be.false;
+      expect(stubs.updateAdjustment).not.toHaveBeenCalled();
     });
 
     it("fronted entries can be linked to their donation after the round is paid", async () => {
       const stubs = stubDao();
-      stubs.getAdjustment.resolves({ id: 5, roundId: 7, type: "fronted" });
-      stubs.existingDonationIds.resolves([123]);
+      stubs.getAdjustment.mockResolvedValue({ id: 5, roundId: 7, type: "fronted" });
+      stubs.existingDonationIds.mockResolvedValue([123]);
       await admin().adjustments.linkDonation({ id: 5, donationId: 123 });
-      expect(stubs.linkAdjustmentDonation.firstCall.args).to.deep.equal([5, 123]);
-      stubs.getAdjustment.resolves({ id: 6, roundId: null, type: "fee" });
+      expect(stubs.linkAdjustmentDonation.mock.calls[0]).toStrictEqual([5, 123]);
+      stubs.getAdjustment.mockResolvedValue({ id: 6, roundId: null, type: "fee" });
       await expectTrpcError(
         admin().adjustments.linkDonation({ id: 6, donationId: 123 }),
         "BAD_REQUEST",
@@ -548,10 +564,10 @@ describe("tRPC regranting", () => {
   describe("references", () => {
     it("own funds can't be on transfer lines or receive fund grants", async () => {
       const stubs = stubDao();
-      stubs.listFunds.resolves([
+      stubs.listFunds.mockResolvedValue([
         { organizationId: 4, name: "Fund", abbriv: "GEBF", maxHoldDays: null },
       ]);
-      stubs.getFund.resolves({
+      stubs.getFund.mockResolvedValue({
         organizationId: 4,
         name: "Fund",
         abbriv: "GEBF",
@@ -572,7 +588,7 @@ describe("tRPC regranting", () => {
         "BAD_REQUEST",
         /own fund/,
       );
-      stubs.getFund.resolves(null);
+      stubs.getFund.mockResolvedValue(null);
       await expectTrpcError(
         admin().fundGrants.create({
           roundId: 7,
@@ -587,8 +603,8 @@ describe("tRPC regranting", () => {
 
     it("routings may not overlap for a recipient", async () => {
       const stubs = stubDao();
-      stubs.getPayee.resolves({ id: 10 });
-      stubs.overlappingRoutings.resolves([
+      stubs.getPayee.mockResolvedValue({ id: 10 });
+      stubs.overlappingRoutings.mockResolvedValue([
         { id: 1, payeeName: "GiveWell", validFrom: "2020-01-01", validTo: null },
       ]);
       await expectTrpcError(
@@ -605,7 +621,7 @@ describe("tRPC regranting", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(stubs.createRouting.called).to.be.false;
+      expect(stubs.createRouting).not.toHaveBeenCalled();
     });
   });
 
@@ -613,10 +629,12 @@ describe("tRPC regranting", () => {
     it("leaves donations already passed on out of the chosen allocations", async () => {
       const stubs = stubDao();
       const md = round({ kind: "major_donor" });
-      stubs.getRound.resolves(md);
-      stubs.getRoundSummary.resolves(summary(md));
-      stubs.getBalances.resolves([balanceRow(3, "15000.00")]);
-      stubs.getPayeesAt.resolves(new Map([[3, { id: 10, name: "GiveWell", currency: "NOK" }]]));
+      stubs.getRound.mockResolvedValue(md);
+      stubs.getRoundSummary.mockResolvedValue(summary(md));
+      stubs.getBalances.mockResolvedValue([balanceRow(3, "15000.00")]);
+      stubs.getPayeesAt.mockResolvedValue(
+        new Map([[3, { id: 10, name: "GiveWell", currency: "NOK" }]]),
+      );
       const donation = {
         donorId: 1,
         sum: "10000.00",
@@ -626,7 +644,7 @@ describe("tRPC regranting", () => {
         frontedByAdjustmentId: null,
         allocations: [{ organizationId: 3, amount: "10000.00" }],
       };
-      stubs.getRoundDonations.resolves([
+      stubs.getRoundDonations.mockResolvedValue([
         { ...donation, donationId: 1 },
         {
           ...donation,
@@ -646,16 +664,16 @@ describe("tRPC regranting", () => {
 
       const builder = await admin().rounds.builder({ id: 7 });
       const mc = builder.recipients.find((r) => r.organizationId === 3)!;
-      expect(mc.chosenAllocations).to.equal("10000.00");
-      expect(mc.totals.proposed).to.equal("10000.00");
+      expect(mc.chosenAllocations).toBe("10000.00");
+      expect(mc.totals.proposed).toBe("10000.00");
       expect(
         builder.donations.map((d) => [d.donationId, d.inScope, d.excludedReason]),
-      ).to.deep.equal([
+      ).toStrictEqual([
         [1, true, null],
         [2, false, "passed_on"],
         [3, false, "after_cutoff"],
       ]);
-      expect(builder.issues.map((i) => [i.code, i.donationId])).to.deep.equal([
+      expect(builder.issues.map((i) => [i.code, i.donationId])).toStrictEqual([
         ["donation_already_passed_on", 2],
       ]);
     });
@@ -667,8 +685,8 @@ describe("tRPC regranting", () => {
 
     it("needs the foreign amount and FX rate of a foreign-currency transfer, and they add up", async () => {
       const stubs = stubDao();
-      stubs.getTransfer.resolves(transfer({ currency: "EUR" }));
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.getTransfer.mockResolvedValue(transfer({ currency: "EUR" }));
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await expectTrpcError(
         record({}),
         "BAD_REQUEST",
@@ -681,15 +699,15 @@ describe("tRPC regranting", () => {
         "BAD_REQUEST",
         /86\.81 EUR at 12\.52 NOK\/EUR is 1\s086,86\skr, but the transfer is 1\s000,00\skr/,
       );
-      expect(stubs.recordPayment.called).to.be.false;
+      expect(stubs.recordPayment).not.toHaveBeenCalled();
       await record({ amountForeign: "86.81", fxRate: "11.52" }); // 1000.05: within 5 kr
-      expect(stubs.recordPayment.calledOnce).to.be.true;
+      expect(stubs.recordPayment).toHaveBeenCalledOnce();
     });
 
     it("a NOK transfer has no foreign amount or FX rate", async () => {
       const stubs = stubDao();
-      stubs.getTransfer.resolves(transfer());
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.getTransfer.mockResolvedValue(transfer());
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await expectTrpcError(
         record({ fxRate: "1" }),
         "BAD_REQUEST",
@@ -698,7 +716,7 @@ describe("tRPC regranting", () => {
       await expectTrpcError(record({ bankFee: -1 }), "BAD_REQUEST");
       // The currency in the input wins over the transfer's
       await expectTrpcError(record({ currency: "USD" }), "BAD_REQUEST", /USD transfer needs/);
-      expect(stubs.recordPayment.called).to.be.false;
+      expect(stubs.recordPayment).not.toHaveBeenCalled();
     });
   });
 
@@ -714,66 +732,71 @@ describe("tRPC regranting", () => {
     /** inTransaction keeps the writes of a callback that throws out of the "database" */
     const transactional = (stubs: Stubs) => {
       const committed: string[] = [];
-      stubs.inTransaction.callsFake(async (fn: (conn: unknown) => unknown) => {
+      stubs.inTransaction.mockImplementation(async (fn: (conn: unknown) => unknown) => {
         const conn = { pending: [] as string[] };
         const result = await fn(conn);
         committed.push(...conn.pending);
         return result;
       });
-      stubs.createTransfer.callsFake(
+      stubs.createTransfer.mockImplementation(
         async (conn: { pending: string[] }, t: { payeeId: number }) => {
           conn.pending.push(`create payee ${t.payeeId}`);
           return 71;
         },
       );
-      stubs.replaceTransferLines.callsFake(async (conn: { pending: string[] }, id: number) => {
-        conn.pending.push(`lines ${id}`);
-      });
+      stubs.replaceTransferLines.mockImplementation(
+        async (conn: { pending: string[] }, id: number) => {
+          conn.pending.push(`lines ${id}`);
+        },
+      );
       return committed;
     };
 
     const setUp = () => {
       const stubs = stubDao();
-      stubs.lockRound.resolves(round());
-      stubs.getTransfers.resolves([transfer()]);
-      stubs.getPayee.resolves({ id: 11, name: "MC", currency: "NOK" });
+      stubs.lockRound.mockResolvedValue(round());
+      stubs.getTransfers.mockResolvedValue([transfer()]);
+      stubs.getPayee.mockResolvedValue({ id: 11, name: "MC", currency: "NOK" });
       return stubs;
     };
 
     it("applies the whole plan in one transaction", async () => {
       const stubs = setUp();
       const committed = transactional(stubs);
-      expect(await admin().transfers.savePayments(plan)).to.deep.equal({ updated: 1, created: 1 });
-      expect(stubs.inTransaction.calledOnce).to.be.true;
-      expect(committed).to.deep.equal(["lines 70", "create payee 11", "lines 71"]);
+      expect(await admin().transfers.savePayments(plan)).toStrictEqual({ updated: 1, created: 1 });
+      expect(stubs.inTransaction).toHaveBeenCalledOnce();
+      expect(committed).toStrictEqual(["lines 70", "create payee 11", "lines 71"]);
     });
 
     it("saves nothing when a step fails", async () => {
       const stubs = setUp();
       const committed = transactional(stubs);
-      stubs.replaceTransferLines
-        .withArgs(sinon.match.any, 71)
-        .rejects(new Error("connection lost"));
+      // Saving transfer 71 fails; other transfers keep the fake above
+      const replaceLines = stubs.replaceTransferLines.getMockImplementation()!;
+      stubs.replaceTransferLines.mockImplementation(async (...args: any[]) => {
+        if (args[1] === 71) throw new Error("connection lost");
+        return replaceLines(...args);
+      });
       try {
         await admin().transfers.savePayments(plan);
-        expect.fail("expected the save to fail");
+        expect.unreachable("expected the save to fail");
       } catch (err: any) {
-        expect(err.message).to.match(/connection lost/);
+        expect(err.message).toMatch(/connection lost/);
       }
-      expect(committed).to.deep.equal([]);
+      expect(committed).toStrictEqual([]);
     });
 
     it("refuses a plan made from transfers that have changed (a retry after a lost response)", async () => {
       const stubs = setUp();
       const committed = transactional(stubs);
       // The first save went through: the round now has the updated line and a new transfer
-      stubs.getTransfers.resolves([
+      stubs.getTransfers.mockResolvedValue([
         transfer({ lines: [{ ...transfer().lines[0], amountNok: "600.00" }] }),
         transfer({ id: 71, payee: { id: 11, name: "MC", currency: "NOK" } }),
       ]);
       await expectTrpcError(admin().transfers.savePayments(plan), "CONFLICT", /changed since/);
-      expect(committed).to.deep.equal([]);
-      expect(stubs.createTransfer.called).to.be.false;
+      expect(committed).toStrictEqual([]);
+      expect(stubs.createTransfer).not.toHaveBeenCalled();
     });
 
     it("only edits the round's own transfers, and only in a draft", async () => {
@@ -783,9 +806,9 @@ describe("tRPC regranting", () => {
         "BAD_REQUEST",
         /isn't in this round/,
       );
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await expectTrpcError(admin().transfers.savePayments(plan), "CONFLICT");
-      expect(stubs.replaceTransferLines.called).to.be.false;
+      expect(stubs.replaceTransferLines).not.toHaveBeenCalled();
     });
   });
 
@@ -815,12 +838,14 @@ describe("tRPC regranting", () => {
 
     it("count in the round's own positions and proposal, kept apart from the balance", async () => {
       const stubs = stubDao();
-      stubs.getRound.resolves(round());
-      stubs.getRoundSummary.resolves(summary(round()));
-      stubs.getBalances.resolves([balanceRow(1, "1000.00")]);
-      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
-      stubs.getProjectNames.resolves(new Map([[61, { name: "Water", status: "active" }]]));
-      stubs.listAdjustments.resolves([
+      stubs.getRound.mockResolvedValue(round());
+      stubs.getRoundSummary.mockResolvedValue(summary(round()));
+      stubs.getBalances.mockResolvedValue([balanceRow(1, "1000.00")]);
+      stubs.getPayeesAt.mockResolvedValue(
+        new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]),
+      );
+      stubs.getProjectNames.mockResolvedValue(new Map([[61, { name: "Water", status: "active" }]]));
+      stubs.listAdjustments.mockResolvedValue([
         adjustment({ id: 1, amount: "-300.00", pairedAdjustmentId: 2 }),
         adjustment({
           id: 2,
@@ -843,37 +868,37 @@ describe("tRPC regranting", () => {
           l.available,
           l.proposed,
         ]),
-      ).to.deep.equal([
+      ).toStrictEqual([
         [null, "1000.00", "-300.00", "700.00", "700.00"],
         ["Water", "0.00", "300.00", "300.00", "300.00"],
       ]);
-      expect(stubs.listAdjustments.firstCall.args[0]).to.deep.equal({ roundId: 7 });
+      expect(stubs.listAdjustments.mock.calls[0][0]).toStrictEqual({ roundId: 7 });
     });
 
     it("are paid in rounds without direct donations too", async () => {
       const stubs = stubDao();
       const r = round({ kind: "fund_grant" });
-      stubs.getRound.resolves(r);
-      stubs.getRoundSummary.resolves(summary(r));
-      stubs.getBalances.resolves([balanceRow(1, "1000.00"), balanceRow(3, "500.00")]);
-      stubs.getPayeesAt.resolves(
+      stubs.getRound.mockResolvedValue(r);
+      stubs.getRoundSummary.mockResolvedValue(summary(r));
+      stubs.getBalances.mockResolvedValue([balanceRow(1, "1000.00"), balanceRow(3, "500.00")]);
+      stubs.getPayeesAt.mockResolvedValue(
         new Map([
           [1, { id: 10, name: "GiveWell", currency: "NOK" }],
           [3, { id: 10, name: "GiveWell", currency: "NOK" }],
         ]),
       );
-      stubs.listAdjustments.resolves([
+      stubs.listAdjustments.mockResolvedValue([
         adjustment({ id: 1, amount: "-300.00", pairedAdjustmentId: 2 }),
         adjustment({ id: 2, projectId: 61, amount: "300.00", pairedAdjustmentId: 1 }),
       ]);
       const builder = await admin().rounds.builder({ id: 7 });
       const agf = builder.recipients.find((x) => x.organizationId === 1)!;
-      expect(agf.lines.map((l) => [l.projectId, l.proposed])).to.deep.equal([
+      expect(agf.lines.map((l) => [l.projectId, l.proposed])).toStrictEqual([
         [null, "0.00"],
         [61, "300.00"],
       ]);
       // In the round: AGF has adjustments here; MC only has a balance
-      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).to.deep.equal([
+      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).toStrictEqual([
         [1, true],
         [3, false],
       ]);
@@ -881,21 +906,25 @@ describe("tRPC regranting", () => {
 
     it("the snapshot keeps them apart", async () => {
       const stubs = stubDao();
-      stubs.lockRound.resolves(round());
-      stubs.getRound.resolves(round());
-      stubs.getRoundSummary.resolves(summary(round({ status: "approved" })));
-      stubs.getBalances.resolves([balanceRow(1, "1000.00")]);
-      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
-      stubs.getTransfers.resolves([
+      stubs.lockRound.mockResolvedValue(round());
+      stubs.getRound.mockResolvedValue(round());
+      stubs.getRoundSummary.mockResolvedValue(summary(round({ status: "approved" })));
+      stubs.getBalances.mockResolvedValue([balanceRow(1, "1000.00")]);
+      stubs.getPayeesAt.mockResolvedValue(
+        new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]),
+      );
+      stubs.getTransfers.mockResolvedValue([
         transfer({ amountNok: "700.00", lines: [{ ...transfer().lines[0], amountNok: "700.00" }] }),
       ]);
-      stubs.listAdjustments.resolves([adjustment({ amount: "-300.00" })]);
+      stubs.listAdjustments.mockResolvedValue([adjustment({ amount: "-300.00" })]);
       await admin().rounds.approve({ id: 7 });
-      expect(stubs.writeSnapshot.firstCall.args[2][0]).to.include({
-        balanceAtCutoff: "1000.00",
-        roundAdjustments: "-300.00",
-        inRound: "700.00",
-      });
+      expect(stubs.writeSnapshot.mock.calls[0][2][0]).toEqual(
+        expect.objectContaining({
+          balanceAtCutoff: "1000.00",
+          roundAdjustments: "-300.00",
+          inRound: "700.00",
+        }),
+      );
     });
   });
 
@@ -903,21 +932,21 @@ describe("tRPC regranting", () => {
     it("flags recipients the round touches: lines, grant lines, chosen donations or an override", async () => {
       const stubs = stubDao();
       const r = round({ kind: "extraordinary" });
-      stubs.getRound.resolves(r);
-      stubs.getRoundSummary.resolves(summary(r));
-      stubs.getBalances.resolves([balanceRow(1, "1000.00"), balanceRow(3, "500.00")]);
-      stubs.getIncludeDirectOverrides.resolves(new Map([[3, false]]));
+      stubs.getRound.mockResolvedValue(r);
+      stubs.getRoundSummary.mockResolvedValue(summary(r));
+      stubs.getBalances.mockResolvedValue([balanceRow(1, "1000.00"), balanceRow(3, "500.00")]);
+      stubs.getIncludeDirectOverrides.mockResolvedValue(new Map([[3, false]]));
       let builder = await admin().rounds.builder({ id: 7 });
-      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).to.deep.equal([
+      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).toStrictEqual([
         [1, false],
         [3, true], // an override, even one that leaves direct donations out
       ]);
-      stubs.getIncludeDirectOverrides.resolves(new Map());
-      stubs.getTransfers.resolves([
+      stubs.getIncludeDirectOverrides.mockResolvedValue(new Map());
+      stubs.getTransfers.mockResolvedValue([
         transfer({ lines: [{ ...transfer().lines[0], amountNok: "1.00" }], amountNok: "1.00" }),
       ]);
       builder = await admin().rounds.builder({ id: 7 });
-      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).to.deep.equal([
+      expect(builder.recipients.map((x) => [x.organizationId, x.inRound])).toStrictEqual([
         [1, true],
         [3, false],
       ]);
@@ -933,14 +962,16 @@ describe("tRPC regranting", () => {
     });
     const setUp = () => {
       const stubs = stubDao();
-      stubs.lockRound.resolves(round());
-      stubs.getRound.resolves(round());
-      stubs.getRoundSummary.resolves(summary(round()));
-      stubs.getBalances.resolves([balanceRow(1, "1200.00")]);
-      stubs.getPayeesAt.resolves(new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]));
-      stubs.getTransfers.resolves([transfer()]); // AGF unrestricted pays 1000
-      stubs.getProject.resolves(project(1));
-      stubs.createAdjustment.onFirstCall().resolves(11).onSecondCall().resolves(12);
+      stubs.lockRound.mockResolvedValue(round());
+      stubs.getRound.mockResolvedValue(round());
+      stubs.getRoundSummary.mockResolvedValue(summary(round()));
+      stubs.getBalances.mockResolvedValue([balanceRow(1, "1200.00")]);
+      stubs.getPayeesAt.mockResolvedValue(
+        new Map([[1, { id: 10, name: "GiveWell", currency: "NOK" }]]),
+      );
+      stubs.getTransfers.mockResolvedValue([transfer()]); // AGF unrestricted pays 1000
+      stubs.getProject.mockResolvedValue(project(1));
+      stubs.createAdjustment.mockResolvedValueOnce(11).mockResolvedValueOnce(12);
       return stubs;
     };
 
@@ -953,22 +984,24 @@ describe("tRPC regranting", () => {
         amount: 400,
         note: "Grant letter 12",
       });
-      expect(stubs.inTransaction.calledOnce).to.be.true;
-      const [from, to] = stubs.createAdjustment.getCalls().map((c) => c.args);
-      expect(from[0]).to.deep.include({
-        organizationId: 1,
-        projectId: null,
-        amount: -400,
-        type: "reallocation",
-        effectiveAt: "2026-09-30",
-        roundId: 7,
-        reason: "Earmarked for Water in Q3: Grant letter 12",
-      });
-      expect(to[0]).to.deep.include({ projectId: 61, amount: 400, roundId: 7 });
-      expect(from[1]).to.equal("bob@example.org");
-      expect(from[2]).to.deep.equal({ fake: true });
-      expect(stubs.pairAdjustments.firstCall.args.slice(1)).to.deep.equal([11, 12]);
-      expect(stubs.replaceTransferLines.firstCall.args.slice(1)).to.deep.equal([
+      expect(stubs.inTransaction).toHaveBeenCalledOnce();
+      const [from, to] = stubs.createAdjustment.mock.calls;
+      expect(from[0]).toEqual(
+        expect.objectContaining({
+          organizationId: 1,
+          projectId: null,
+          amount: -400,
+          type: "reallocation",
+          effectiveAt: "2026-09-30",
+          roundId: 7,
+          reason: "Earmarked for Water in Q3: Grant letter 12",
+        }),
+      );
+      expect(to[0]).toEqual(expect.objectContaining({ projectId: 61, amount: 400, roundId: 7 }));
+      expect(from[1]).toBe("bob@example.org");
+      expect(from[2]).toStrictEqual({ fake: true });
+      expect(stubs.pairAdjustments.mock.calls[0].slice(1)).toStrictEqual([11, 12]);
+      expect(stubs.replaceTransferLines.mock.calls[0].slice(1)).toStrictEqual([
         70,
         [
           { organizationId: 1, projectId: null, amount: "600.00" },
@@ -981,33 +1014,33 @@ describe("tRPC regranting", () => {
     it("moves at most what the unrestricted line pays", async () => {
       const stubs = setUp();
       await admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 1200 });
-      expect(stubs.replaceTransferLines.firstCall.args[2]).to.deep.equal([
+      expect(stubs.replaceTransferLines.mock.calls[0][2]).toStrictEqual([
         { organizationId: 1, projectId: 61, amount: "1000.00" },
       ]);
     });
 
     it("checks the project, the amount and that the round is a draft", async () => {
       const stubs = setUp();
-      stubs.getProject.resolves(project(3));
+      stubs.getProject.mockResolvedValue(project(3));
       await expectTrpcError(
         admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 100 }),
         "BAD_REQUEST",
         /Water is a project at MC, not at AGF/,
       );
-      stubs.getProject.resolves(project(1));
+      stubs.getProject.mockResolvedValue(project(1));
       await expectTrpcError(
         admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 1200.01 }),
         "BAD_REQUEST",
         /AGF has 1\s200,00\skr unrestricted available in Q3 \(cutoff 30\.09\.2026\)/,
       );
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await expectTrpcError(
         admin().rounds.earmark({ roundId: 7, organizationId: 1, projectId: 61, amount: 100 }),
         "CONFLICT",
         /Can't earmark money in Q3 \(cutoff 30\.09\.2026\): it is approved/,
       );
-      expect(stubs.createAdjustment.called).to.be.false;
-      expect(stubs.replaceTransferLines.called).to.be.false;
+      expect(stubs.createAdjustment).not.toHaveBeenCalled();
+      expect(stubs.replaceTransferLines).not.toHaveBeenCalled();
     });
 
     it("removing one deletes both halves and moves Pay now back", async () => {
@@ -1022,9 +1055,13 @@ describe("tRPC regranting", () => {
         roundId: 7,
         pairedAdjustmentId: paired,
       });
-      stubs.getAdjustment.withArgs(11).resolves(half(11, null, "-400.00", 12));
-      stubs.getAdjustment.withArgs(12).resolves(half(12, 61, "400.00", 11));
-      stubs.getTransfers.resolves([
+      const adjustments = new Map<unknown, unknown>([
+        [11, half(11, null, "-400.00", 12)],
+        [12, half(12, 61, "400.00", 11)],
+      ]);
+      // Unknown ids keep stubDao's default (null)
+      stubs.getAdjustment.mockImplementation(async (id) => adjustments.get(id) ?? null);
+      stubs.getTransfers.mockResolvedValue([
         transfer({
           lines: [
             { ...transfer().lines[0], amountNok: "600.00" },
@@ -1039,14 +1076,12 @@ describe("tRPC regranting", () => {
         }),
       ]);
       await admin().rounds.removeEarmark({ adjustmentId: 11 });
-      expect(stubs.replaceTransferLines.firstCall.args[2]).to.deep.equal([
+      expect(stubs.replaceTransferLines.mock.calls[0][2]).toStrictEqual([
         { organizationId: 1, projectId: null, amount: "1000.00" },
       ]);
-      expect(stubs.deleteAdjustments.firstCall.args[1]).to.deep.equal([11, 12]);
+      expect(stubs.deleteAdjustments.mock.calls[0][1]).toStrictEqual([11, 12]);
 
-      stubs.getAdjustment
-        .withArgs(13)
-        .resolves({ ...half(13, null, "-5.00", 0), pairedAdjustmentId: null, type: "fee" });
+      adjustments.set(13, { ...half(13, null, "-5.00", 0), pairedAdjustmentId: null, type: "fee" });
       await expectTrpcError(
         admin().rounds.removeEarmark({ adjustmentId: 13 }),
         "BAD_REQUEST",
@@ -1058,8 +1093,8 @@ describe("tRPC regranting", () => {
   describe("messages", () => {
     it("name things and write dates as dd.mm.yyyy", async () => {
       const stubs = stubDao();
-      stubs.getPayee.resolves({ id: 10 });
-      stubs.overlappingRoutings.resolves([
+      stubs.getPayee.mockResolvedValue({ id: 10 });
+      stubs.overlappingRoutings.mockResolvedValue([
         {
           id: 1,
           organizationName: "Malaria Consortium",
@@ -1078,8 +1113,8 @@ describe("tRPC regranting", () => {
         "BAD_REQUEST",
         /^Recipient #99 doesn't exist$/,
       );
-      stubs.getTransfers.resolves([transfer()]);
-      stubs.lockRound.resolves(round({ status: "approved" }));
+      stubs.getTransfers.mockResolvedValue([transfer()]);
+      stubs.lockRound.mockResolvedValue(round({ status: "approved" }));
       await expectTrpcError(
         admin().rounds.markPaid({ id: 7 }),
         "PRECONDITION_FAILED",
@@ -1089,8 +1124,8 @@ describe("tRPC regranting", () => {
 
     it("turn a delete of something still in use into a CONFLICT that says what to do", async () => {
       const stubs = stubDao();
-      stubs.getPayee.resolves({ id: 10, name: "GiveWell" });
-      stubs.deletePayee.rejects(
+      stubs.getPayee.mockResolvedValue({ id: 10, name: "GiveWell" });
+      stubs.deletePayee.mockRejectedValue(
         Object.assign(new Error("ER_ROW_IS_REFERENCED_2"), { errno: 1451 }),
       );
       await expectTrpcError(
@@ -1124,7 +1159,7 @@ describe("tRPC regranting", () => {
         createdBy: null,
         pending: false,
       };
-      stubs.getStatementRows.resolves([
+      stubs.getStatementRows.mockResolvedValue([
         { ...row, date: "2026-09-01", kind: "allocations", amount: "1000.00", donationCount: 3 },
         {
           ...row,
@@ -1143,18 +1178,18 @@ describe("tRPC regranting", () => {
       });
       expect(
         s.entries.map((e) => [e.amount, e.pending, e.affectsBalance, e.balanceAfter]),
-      ).to.deep.equal([
+      ).toStrictEqual([
         ["1000.00", false, true, "1000.00"],
         ["-300.00", true, false, "1000.00"],
       ]);
-      expect(s.closingBalance).to.equal("1000.00");
+      expect(s.closingBalance).toBe("1000.00");
     });
   });
 
   describe("DAO getBalances", () => {
     it("passes one parameter per placeholder, with and without a recipient filter", async () => {
-      sinon.restore();
-      const query = sinon.stub(DAO, "query").resolves([[], []] as any);
+      vi.restoreAllMocks();
+      const query = vi.spyOn(DAO, "query").mockResolvedValue([[], []] as any);
       await DAO.regranting.getBalances({ at: "2026-09-30" });
       await DAO.regranting.getBalances({
         at: "2026-09-30",
@@ -1162,24 +1197,24 @@ describe("tRPC regranting", () => {
         excludeRoundId: 3,
         inflowSince: "2026-06-30",
       });
-      for (const call of query.getCalls()) {
-        const [sql, params] = call.args as [string, unknown[]];
-        expect((sql.match(/\?/g) ?? []).length).to.equal(params.length);
+      for (const args of query.mock.calls) {
+        const [sql, params] = args as [string, unknown[]];
+        expect((sql.match(/\?/g) ?? []).length).toBe(params.length);
       }
-      const [, filtered] = query.secondCall.args as [string, unknown[]];
-      expect(filtered[0]).to.equal("2026-06-30");
-      expect(filtered.filter((p) => Array.isArray(p))).to.have.length(5);
+      const [, filtered] = query.mock.calls[1] as [string, unknown[]];
+      expect(filtered[0]).toBe("2026-06-30");
+      expect(filtered.filter((p) => Array.isArray(p))).toHaveLength(5);
       // excludeRoundId leaves the round's fund grants, transfer lines and adjustments out
-      expect(filtered.filter((p) => p === 3)).to.have.length(4);
+      expect(filtered.filter((p) => p === 3)).toHaveLength(4);
     });
 
     it("returns nothing for an empty recipient filter without querying", async () => {
-      sinon.restore();
-      const query = sinon.stub(DAO, "query");
+      vi.restoreAllMocks();
+      const query = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
       expect(
         await DAO.regranting.getBalances({ at: "2026-09-30", organizationIds: [] }),
-      ).to.deep.equal([]);
-      expect(query.called).to.be.false;
+      ).toStrictEqual([]);
+      expect(query).not.toHaveBeenCalled();
     });
   });
 });

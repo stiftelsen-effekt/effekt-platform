@@ -265,6 +265,21 @@ export const fundraisersListInput = z.strictObject({
   filter: fundraiserFilter.optional(),
 });
 
+/**
+ * Counts one donation towards a fundraiser. The message and sender name are what the widget
+ * stores for a gift (shown on the fundraiser page; the name only with `showName`).
+ */
+export const fundraiserAttachDonationInput = z.strictObject({
+  donationId: id,
+  fundraiserId: id,
+  message: z.string().trim().max(2000),
+  /** Fundraiser_transactions.Message_sender_name is VARCHAR(45) */
+  messageSenderName: z.string().trim().max(45).nullable(),
+  showName: z.boolean(),
+});
+
+export const fundraiserDetachDonationInput = z.strictObject({ donationId: id });
+
 //endregion
 
 //region Review queue

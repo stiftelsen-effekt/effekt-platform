@@ -14,6 +14,10 @@ import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 import { draftFromApi } from "@/features/distribution/model";
 import { useCauseAreaConfig } from "@/features/distribution/queries";
 import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
+import {
+  AddToFundraiserDialog,
+  RemoveFromFundraiserDialog,
+} from "@/features/fundraisers/donation-fundraiser";
 import { formatAmount } from "@/features/donations/edit-model";
 import { notify } from "@/lib/notify";
 import { loadPage } from "@/lib/route-data";
@@ -154,6 +158,11 @@ function DonationPage() {
             </Link>
           </Button>
           <ResendReceiptDialog donationId={d.id} email={d.email} />
+          {d.fundraiserId == null ? (
+            <AddToFundraiserDialog donation={d} />
+          ) : (
+            <RemoveFromFundraiserDialog donation={d} fundraiserId={d.fundraiserId} />
+          )}
           <ConfirmDialog
             title={`Delete the donation of ${formatAmount(d.sum)} from ${d.donor}?`}
             consequences={[
@@ -206,7 +215,13 @@ function DonationPage() {
               <Property label="Data owner">{owner?.name}</Property>
               {d.fundraiserId != null && (
                 <Property label="Fundraiser">
-                  <CopyValue value={d.fundraiserId} prefix="#" label="fundraiser ID" />
+                  <Link
+                    to="/fundraisers/$id"
+                    params={{ id: String(d.fundraiserId) }}
+                    className="num text-accent hover:underline"
+                  >
+                    #{d.fundraiserId}
+                  </Link>
                 </Property>
               )}
             </PropertyList>

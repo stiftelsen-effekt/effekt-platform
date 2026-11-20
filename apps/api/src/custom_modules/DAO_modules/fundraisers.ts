@@ -1,7 +1,9 @@
 import { Donors, Fundraisers, Organizations } from "@prisma/client";
+import type { PoolConnection, ResultSetHeader } from "mysql2/promise";
 import { DAO, SqlResult } from "../DAO";
 import * as crypto from "crypto";
 import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
+import { isRecurringPaymentMethod } from "../recurringPaymentMethods";
 
 type FundraiserListFilter = {
   registrationDate?: { from?: Date; to?: Date };
@@ -61,24 +63,29 @@ type PaginatedFundraiserList = {
 };
 
 export const fundraisers = {
-  addFundraiserTransaction: async function ({
-    fundraiserId,
-    message,
-    messageSenderName,
-    showName,
-  }: {
-    fundraiserId: Fundraisers["ID"];
-    message: string | null;
-    messageSenderName: string | null;
-    showName: boolean;
-  }): Promise<number> {
-    const [res] = await DAO.query(
-      `
+  addFundraiserTransaction: async function (
+    {
+      fundraiserId,
+      message,
+      messageSenderName,
+      showName,
+    }: {
+      fundraiserId: Fundraisers["ID"];
+      message: string | null;
+      messageSenderName: string | null;
+      showName: boolean;
+    },
+    /** Runs the insert in this transaction instead of on the pool */
+    connection?: PoolConnection,
+  ): Promise<number> {
+    const sql = `
         INSERT INTO Fundraiser_transactions (Fundraiser_ID, Message, Message_sender_name, Show_name)
         VALUES (?, ?, ?, ?);
-      `,
-      [fundraiserId, message, messageSenderName, showName ? 1 : 0],
-    );
+      `;
+    const params = [fundraiserId, message, messageSenderName, showName ? 1 : 0];
+    const [res] = connection
+      ? await connection.query<ResultSetHeader>(sql, params)
+      : await DAO.query(sql, params);
     if (res.affectedRows === 0) {
       throw new Error("Failed to add fundraiser transaction");
     } else {
@@ -95,6 +102,8 @@ export const fundraisers = {
       message: string | null;
       amount: number;
       date: Date;
+      /** Whether this donation started or belongs to a standing AvtaleGiro or Vipps agreement */
+      recurring: boolean;
     }[];
   } | null> {
     const [transactions] = await DAO.query<
@@ -108,10 +117,11 @@ export const fundraisers = {
         donation_amount: string;
         donation_date: Date;
         name: string;
+        payment_id: number;
       }[]
     >(
       `
-        SELECT 
+        SELECT
             ft.ID AS transaction_id,
             ft.Message AS message,
             ft.Message_sender_name AS name,
@@ -120,8 +130,9 @@ export const fundraisers = {
             d.KID AS distribution_kid,
             don.ID AS donation_id,
             don.sum_confirmed AS donation_amount,
-            don.timestamp_confirmed AS donation_date
-        FROM 
+            don.timestamp_confirmed AS donation_date,
+            don.Payment_ID AS payment_id
+        FROM
             Fundraiser_transactions ft
         JOIN 
             Fundraisers f ON ft.Fundraiser_ID = f.ID
@@ -177,6 +188,7 @@ export const fundraisers = {
         message: transaction.message,
         amount: parseFloat(transaction.donation_amount),
         date: transaction.donation_date,
+        recurring: isRecurringPaymentMethod(transaction.payment_id),
       })),
     };
   },
@@ -192,6 +204,7 @@ export const fundraisers = {
       date: Date;
       donorName: string;
       donorEmail: string;
+      recurring: boolean;
     }[]
   > {
     const [transactions] = await DAO.query<
@@ -204,10 +217,11 @@ export const fundraisers = {
         donation_date: Date;
         donor_name: string;
         donor_email: string;
+        payment_id: number;
       }[]
     >(
       `
-        SELECT 
+        SELECT
             ft.ID AS transaction_id,
             ft.Message AS message,
             ft.Message_sender_name AS name,
@@ -215,8 +229,9 @@ export const fundraisers = {
             don.sum_confirmed AS donation_amount,
             don.timestamp_confirmed AS donation_date,
             donors.full_name AS donor_name,
-            donors.email AS donor_email
-        FROM 
+            donors.email AS donor_email,
+            don.Payment_ID AS payment_id
+        FROM
             Fundraiser_transactions ft
         JOIN 
             Fundraisers f ON ft.Fundraiser_ID = f.ID
@@ -253,6 +268,7 @@ export const fundraisers = {
         date: transaction.donation_date,
         donorName: transaction.donor_name,
         donorEmail: transaction.donor_email,
+        recurring: isRecurringPaymentMethod(transaction.payment_id),
       };
     });
   },

@@ -9,32 +9,31 @@ packages:
 catalog:
   "@auth0/auth0-react": 2.30.0
   "@google-cloud/functions-framework": 5.0.5
-  "@trpc/client": 11.22.1
-  "@trpc/server": 11.22.1
-  "@trpc/tanstack-react-query": 11.22.1
+  "@trpc/client": 11.28.0
+  "@trpc/server": 11.28.0
+  "@trpc/tanstack-react-query": 11.28.0
   "@types/luxon": 3.7.6
   "@types/node": 24.19.2
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  "@vitest/coverage-v8": 5.0.5
+  "@vitest/coverage-v8": 5.1.0
   cross-env: 10.1.0
   csv-parse: 7.0.3
   date-fns: 4.4.0
-  dotenv: 18.0.9
   katex: 0.19.1
   luxon: 3.7.2
   norwegian-workdays: github:stiftelsen-effekt/norwegian-workdays#v1.1.0
-  oxlint: 1.90.0
-  prettier: 3.9.10
+  oxlint: 1.93.0
+  prettier: 3.10.1
   react: 19.3.1
   react-dom: 19.3.1
   react-feather: 2.0.10
   styled-components: 6.6.0
-  # The API (ts-node, Vitest's spec transform) and the website (next build, the tRPC type
+  # The API (Vitest's spec transform) and the website (next build, the tRPC type
   # build) use TypeScript's JavaScript API, which TypeScript 7 doesn't have yet. Packages that
   # only run `tsc` use the native compiler from the `native` catalog below.
   typescript: 5.9.3
-  vitest: 5.0.5
+  vitest: 5.1.0
   zod: 4.6.7
 
 catalogs:
