@@ -91,7 +91,7 @@ describe("DAO avtalegiroagreements", () => {
       queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
       metaStub = vi.spyOn(DAO.meta, "getDefaultOwnerID").mockReturnValue(undefined as any);
 
-      // Create a fake mysql connection using sinon
+      // Create a fake mysql connection with spies
       const connection = {
         query: queryStub,
       } as any;

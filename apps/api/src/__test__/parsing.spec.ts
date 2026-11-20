@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
-import moment from "moment";
+import { DateTime } from "luxon";
 import { parseReport as vippsParseReport } from "../custom_modules/parsers/vipps";
 import { parseReport as bankParseReport } from "../custom_modules/parsers/bank";
 
@@ -21,8 +21,8 @@ describe("Vipps CSV", () => {
 
     const data = vippsParseReport(sample);
     expect(data.transactions).toHaveLength(4);
-    expect(data.minDate.getTime()).toBe(moment.utc("2026-06-17").valueOf());
-    expect(data.maxDate.getTime()).toBe(moment.utc("2026-06-17").valueOf());
+    expect(data.minDate.getTime()).toBe(Date.UTC(2026, 5, 17));
+    expect(data.maxDate.getTime()).toBe(Date.UTC(2026, 5, 17));
 
     expect(data.transactions[0]).toEqual(
       expect.objectContaining({
@@ -33,7 +33,7 @@ describe("Vipps CSV", () => {
         message: "",
       }),
     );
-    expect(data.transactions[0].date.isSame(moment.utc("2026-06-17"))).toBe(true);
+    expect(+data.transactions[0].date === Date.UTC(2026, 5, 17)).toBe(true);
     expect(data.transactions[0].KID).toBe(null);
 
     expect(data.transactions[1].KID).toBe(62354782);
@@ -47,7 +47,7 @@ describe("Bank CSV", () => {
     let transactions = bankParseReport(readCSV("bank", "sampleReport"));
 
     expect(transactions[0].KID).toBe(57967549);
-    expect(transactions[6].date.isSame(moment.utc("02.01.2019", "DD.MM.YYYY"))).toBe(true);
+    expect(transactions[6].date.equals(DateTime.utc(2019, 1, 2))).toBe(true);
     expect(transactions[2].amount).toBe(250.15);
     expect(transactions[4].transactionID).toBe("1264");
   });

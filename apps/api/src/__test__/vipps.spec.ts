@@ -10,7 +10,7 @@ import { isDeepStrictEqual } from "node:util";
 const vipps = require("../custom_modules/vipps");
 
 /**
- * Stand-in for sinon's `stub.withArgs(...args).resolves(value)`. As with sinon, a behaviour matches
+ * Makes `stub` resolve `value` for calls with the given leading arguments. A behaviour matches
  * a call whose leading arguments deep-equal `args` (the most specific match wins, so `whenCalledWith(stub)`
  * with no args is the default), other calls return `undefined`, and behaviours persist across tests
  * (`vi.clearAllMocks()` only clears call history).

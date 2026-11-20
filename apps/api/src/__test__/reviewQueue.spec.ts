@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import express from "express";
-import moment from "moment";
+import { DateTime } from "luxon";
 import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
@@ -33,7 +33,7 @@ describe("review queue: enqueueInvalidTransactions", () => {
         reason: undefined,
         transaction: {
           amount: 100,
-          date: moment.utc("2026-10-02"),
+          date: DateTime.fromISO("2026-10-02", { zone: "utc" }),
           transactionID: "ocr.2",
           paymentID: 5,
           donorName: "Ola",

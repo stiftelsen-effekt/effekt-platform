@@ -54,8 +54,8 @@ describe("POST /scheduled/avtalegiro", function () {
   let claimedKIDsStub;
   let addChargesStub;
   let deletionsStub;
-  // Stand-ins for sinon's `agreementsStub.withArgs(day).resolves(..)` (which persisted across tests)
-  // and its default behaviour
+  // What getByPaymentDate resolves per payment day (persisting across tests), and its default
+  // for other days
   const agreementsByPaymentDate = new Map<number, unknown>();
   const defaultAgreements = vi.fn();
 
@@ -608,7 +608,7 @@ describe("POST /initiate-follow-ups", function () {
     // Set up conditions for the second run
 
     // The newer intent now has a follow-up recorded
-    // (sinon `withArgs(2)`; other calls keep the `resolves([])` set above)
+    // (other intents keep the `[]` set above)
     const newerIntentFollowUps = [{ Follow_up_date: new Date() }];
     getFollowUpsForPaymentIntentStub.mockImplementation(async (id) =>
       id === 2 ? newerIntentFollowUps : [],
