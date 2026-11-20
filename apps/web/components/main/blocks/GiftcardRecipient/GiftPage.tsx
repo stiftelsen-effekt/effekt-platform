@@ -261,7 +261,7 @@ const Slide: React.FC<{
   innerRef?: React.MutableRefObject<HTMLElement | null>;
   children: React.ReactNode | ((visible: boolean) => React.ReactNode);
 }> = ({ className, dark, innerRef, children }) => {
-  const [revealRef, visible] = useReveal<HTMLElement>(0.35);
+  const [revealRef, visible] = useReveal<HTMLElement>(0.15);
   const setRef = (el: HTMLElement | null) => {
     revealRef.current = el;
     if (innerRef) innerRef.current = el;

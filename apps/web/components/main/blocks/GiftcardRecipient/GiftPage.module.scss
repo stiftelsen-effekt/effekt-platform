@@ -133,8 +133,9 @@ $wide: 1100px; // two columns from here
   position: relative;
   min-height: 100vh;
   min-height: 100svh;
+  // Native snapping only. No scroll-snap-stop: always, which makes the browser fight a
+  // trackpad's momentum at every slide and feels sluggish; a flick may pass a slide instead.
   scroll-snap-align: start;
-  scroll-snap-stop: always;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -166,10 +167,10 @@ $wide: 1100px; // two columns from here
 .reveal > *,
 .reveal .split > * {
   opacity: 0;
-  transform: translateY(40px);
+  transform: translateY(24px);
   transition:
-    opacity 800ms $ease-out,
-    transform 800ms $ease-out;
+    opacity 450ms $ease-out,
+    transform 450ms $ease-out;
 }
 
 .reveal[data-visible="true"] > *,
@@ -179,7 +180,7 @@ $wide: 1100px; // two columns from here
 
   @for $i from 1 through 6 {
     &:nth-child(#{$i}) {
-      transition-delay: #{($i - 1) * 140}ms;
+      transition-delay: #{($i - 1) * 70}ms;
     }
   }
 }
