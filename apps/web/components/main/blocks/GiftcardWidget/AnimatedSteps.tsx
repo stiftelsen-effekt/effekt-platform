@@ -3,55 +3,65 @@ import styles from "./GiftcardWidget.module.scss";
 
 export type StepDirection = "forward" | "backward";
 
+/** How long the step being left stays on screen while it fades out (matches the CSS) */
+const EXIT_MS = 140;
+
+type Exiting = { key: string; node: React.ReactNode; direction: StepDirection };
+
 /**
- * The widget's steps, animated like the fundraiser widget's panes: the panel's height follows
- * the content (300 ms), and each new step slides in from the side it comes from while fading
- * in. `stepKey` changing is what starts the slide. Reduced motion turns both off (CSS).
+ * The widget's steps with a short crossfade: the step being left fades out where it was while
+ * the next one slides a little in from the side it comes from, so the panel is never empty.
+ * Nothing is clipped: the panel grows at once (new content is never cut off) and shrinks
+ * smoothly (the old step fades out inside it). Nothing animates until the first step change,
+ * and reduced motion turns it all off (CSS).
  */
 export const AnimatedSteps: React.FC<{
   stepKey: string;
   direction: StepDirection;
-  /** Shown above the steps without sliding (the step indicator); its height is animated too */
+  /** Shown above the steps without sliding (the step indicator) */
   header?: React.ReactNode;
   children: React.ReactNode;
 }> = ({ stepKey, direction, header, children }) => {
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number | null>(null);
-  // Overflow is only hidden while a step changes, so dropdowns can open past the panel
-  const [animating, setAnimating] = useState(false);
-  const firstStep = useRef(true);
-
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const animate = () => {
-    setAnimating(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setAnimating(false), 350);
-  };
-  useEffect(() => () => clearTimeout(timer.current), []);
-
-  // Nothing animates until the first step change: the widget is still on page load. Known in
-  // the same render as the change (the step that slides in needs its class right away)
+  // Known in the same render as the first change: the step that comes in needs its class
   const [initialStep] = useState(stepKey);
   const [changedBefore, setChangedBefore] = useState(false);
-  const interacted = changedBefore || stepKey !== initialStep;
-  useEffect(() => {
-    if (firstStep.current) {
-      firstStep.current = false;
-      return;
-    }
-    setChangedBefore(true);
-    animate();
-  }, [stepKey]);
+  const animate = changedBefore || stepKey !== initialStep;
 
+  // The last rendered step, kept so it can fade out after the step changes
+  const last = useRef<{ key: string; node: React.ReactNode }>({ key: stepKey, node: children });
+  const [exiting, setExiting] = useState<Exiting | null>(null);
+
+  // Before paint, so the old step never disappears for a frame
+  useLayoutEffect(() => {
+    if (last.current.key === stepKey) return;
+    setExiting({ ...last.current, direction });
+    setChangedBefore(true);
+    last.current = { key: stepKey, node: children };
+    // Only when the step changes; `children` and `direction` are read as they are then
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepKey]);
+  // The current step as last rendered (what fades out when the step changes)
+  useLayoutEffect(() => {
+    last.current = { key: stepKey, node: children };
+  });
+
+  useEffect(() => {
+    if (!exiting) return;
+    const timer = setTimeout(() => setExiting(null), EXIT_MS);
+    return () => clearTimeout(timer);
+  }, [exiting]);
+
+  // The panel follows the current step's height: growing is immediate, shrinking eases
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ height: number; growing: boolean } | null>(null);
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner) return;
-    let previous: number | null = null;
     const measure = () => {
-      const next = inner.offsetHeight;
-      if (previous !== null && previous !== next) animate();
-      previous = next;
-      setHeight(next);
+      const height = inner.offsetHeight;
+      setSize((prev) =>
+        prev?.height === height ? prev : { height, growing: !prev || height > prev.height },
+      );
     };
     measure();
     if (typeof ResizeObserver === "undefined") return;
@@ -62,13 +72,25 @@ export const AnimatedSteps: React.FC<{
 
   return (
     <div
-      className={`${styles.steps} ${interacted ? styles.stepsinteractive : ""} ${animating ? styles.stepsanimating : ""}`}
-      style={height === null ? undefined : { height }}
+      className={`${styles.steps} ${animate && size && !size.growing ? styles.stepsshrinking : ""}`}
+      style={size ? { height: size.height } : undefined}
     >
       <div ref={innerRef} className={styles.stepsinner}>
         {header}
-        <div key={stepKey} className={interacted ? styles[`enter${direction}`] : undefined}>
-          {children}
+        <div className={styles.stage}>
+          {exiting && (
+            <div
+              key={exiting.key}
+              className={`${styles.stepexit} ${styles[`exit${exiting.direction}`]}`}
+              aria-hidden="true"
+              inert
+            >
+              {exiting.node}
+            </div>
+          )}
+          <div key={stepKey} className={animate ? styles[`enter${direction}`] : undefined}>
+            {children}
+          </div>
         </div>
       </div>
     </div>

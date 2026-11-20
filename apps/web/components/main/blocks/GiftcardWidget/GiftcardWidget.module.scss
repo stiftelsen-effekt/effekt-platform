@@ -340,20 +340,14 @@
   }
 }
 
-// Step animation (AnimatedSteps.tsx), as the fundraiser widget's panes
+// Step animation (AnimatedSteps.tsx): a quick crossfade, nothing clipped
 .steps {
-  // Room for focus outlines at the edges while overflow is hidden
-  margin: 0 -4px;
-  padding: 0 4px;
+  position: relative;
 }
 
-// Height animates only after the first interaction (not while the page loads and fonts settle)
-.stepsinteractive {
-  transition: height 0.3s ease;
-}
-
-.stepsanimating {
-  overflow: hidden;
+// Shrinking eases (the old step fades out inside); growing is immediate so nothing is cut off
+.stepsshrinking {
+  transition: height 0.22s cubic-bezier(0.2, 0, 0, 1);
 }
 
 // Contains the children's margins, so the measured height is the height they take up
@@ -361,21 +355,44 @@
   display: flow-root;
 }
 
+.stage {
+  position: relative;
+}
+
+// The step being left, on top of where it was, fading out
+.stepexit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  animation: giftcard-step-out 0.14s ease-in both;
+}
+
+.exitforward {
+  --giftcard-step-to: -8px;
+}
+
+.exitbackward {
+  --giftcard-step-to: 8px;
+}
+
 .enterforward,
 .enterbackward {
-  animation: giftcard-step-in 0.3s ease both;
+  // Starts as the old step is mostly gone, so the two never read on top of each other
+  animation: giftcard-step-in 0.2s cubic-bezier(0.2, 0, 0, 1) 0.04s both;
 }
 
 .enterforward {
-  --giftcard-step-from: 30px;
+  --giftcard-step-from: 12px;
 }
 
 .enterbackward {
-  --giftcard-step-from: -30px;
+  --giftcard-step-from: -12px;
 }
 
 .naventer {
-  animation: giftcard-fade-in 0.3s ease both;
+  animation: giftcard-fade-in 0.2s ease both;
 }
 
 @keyframes giftcard-step-in {
@@ -389,6 +406,17 @@
   }
 }
 
+@keyframes giftcard-step-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(var(--giftcard-step-to));
+  }
+}
+
 @keyframes giftcard-fade-in {
   from {
     opacity: 0;
@@ -399,10 +427,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .steps,
+  .stepsshrinking,
   .back,
   .dots li {
     transition: none;
+  }
+
+  .stepexit {
+    display: none;
   }
 
   .enterforward,
