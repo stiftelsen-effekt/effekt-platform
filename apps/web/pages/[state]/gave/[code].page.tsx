@@ -29,15 +29,17 @@ const fetchProduct = groq`
   "productPage": page->slug.current,
   recipient {
     impact,
-    icon,
     cta_heading,
-    cta_label,
+    cta_text,
+    recurring_label,
+    organization_label,
     story[] {
       _key,
       kicker,
       heading,
       text,
       stat,
+      chart,
       image { ..., asset-> { _id, url, metadata { lqip, dimensions { width, height } } } }
     },
     organization-> {

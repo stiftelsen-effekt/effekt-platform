@@ -96,6 +96,8 @@ export const giftcardGiftInput = z.object({ code: z.string().max(32) });
 
 export const giftcardGiftOutput = z.object({
   product: z.string(),
+  organizationId: z.number().int(),
+  causeAreaId: z.number().int(),
   units: z.number().int(),
   unitSingular: z.string(),
   unitPlural: z.string(),

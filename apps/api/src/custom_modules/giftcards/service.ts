@@ -318,6 +318,9 @@ export const GIFT_PAGE_DAYS = 400;
 /** What the recipient's page (gieffektivt.no/gave/<code>) shows. Never the phone, price or buyer */
 export type GiftForRecipient = {
   product: string;
+  /** For "set up a monthly donation" on the page: the gift card's organization and cause area */
+  organizationId: number;
+  causeAreaId: number;
   units: number;
   unitSingular: string;
   unitPlural: string;
@@ -345,6 +348,8 @@ export async function getGiftForRecipient(
   if (!product) return null;
   return {
     product: product.slug,
+    organizationId: product.organizationId,
+    causeAreaId: product.causeAreaId,
     units: giftcard.units,
     unitSingular: product.unitSingular,
     unitPlural: product.unitPlural,

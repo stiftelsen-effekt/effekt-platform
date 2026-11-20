@@ -394,23 +394,6 @@ export default defineType({
           initialValue: "beskytter {units} {unit} mot malaria gjennom en hel sesong",
         }),
         defineField({
-          name: "icon",
-          title: "Counter icon",
-          type: "string",
-          description: "Shown once per unit (up to 24) in the impact counter",
-          options: {
-            list: [
-              { title: "Child", value: "child" },
-              { title: "Mosquito net", value: "net" },
-              { title: "Syringe (vaccine)", value: "vaccine" },
-              { title: "Capsule (vitamin, medicine)", value: "capsule" },
-              { title: "Coin (cash)", value: "coin" },
-              { title: "Heart", value: "heart" },
-            ],
-          },
-          initialValue: "child",
-        }),
-        defineField({
           name: "story",
           title: "Story",
           type: "array",
@@ -431,6 +414,43 @@ export default defineType({
                   fields: [
                     defineField({ name: "value", title: "Value", type: "string" }),
                     defineField({ name: "label", title: "Label", type: "string" }),
+                  ],
+                }),
+                defineField({
+                  name: "chart",
+                  title: "Bar chart (optional)",
+                  type: "object",
+                  description:
+                    "Bars that grow in when the slide is shown. Highlighted bars are black, the rest outlined.",
+                  fields: [
+                    defineField({ name: "title", title: "Title", type: "string" }),
+                    defineField({
+                      name: "bars",
+                      title: "Bars",
+                      type: "array",
+                      of: [
+                        defineArrayMember({
+                          type: "object",
+                          name: "bar",
+                          fields: [
+                            defineField({ name: "label", title: "Label", type: "string" }),
+                            defineField({ name: "value", title: "Value", type: "number" }),
+                            defineField({
+                              name: "highlight",
+                              title: "Highlight",
+                              type: "boolean",
+                            }),
+                          ],
+                          preview: { select: { title: "label", subtitle: "value" } },
+                        }),
+                      ],
+                    }),
+                    defineField({
+                      name: "highlight_label",
+                      title: "Legend for highlighted bars",
+                      type: "string",
+                    }),
+                    defineField({ name: "caption", title: "Caption / source", type: "string" }),
                   ],
                 }),
                 defineField({
@@ -456,13 +476,29 @@ export default defineType({
           name: "cta_heading",
           title: "Closing heading",
           type: "string",
-          initialValue: "Vil du også glede noen?",
+          initialValue: "Vil du gjøre enda mer?",
         }),
         defineField({
-          name: "cta_label",
-          title: "Closing button",
+          name: "cta_text",
+          title: "Closing text",
+          type: "text",
+          rows: 3,
+          initialValue:
+            "Med en fast månedlig donasjon beskytter du nye barn hver sesong. Du bestemmer selv beløpet, og kan endre eller stoppe når som helst.",
+        }),
+        defineField({
+          name: "recurring_label",
+          title: "Monthly donation button",
           type: "string",
-          initialValue: "Gi et gavekort",
+          description: "Opens the donation widget with a monthly donation to the organization",
+          initialValue: "Sett opp fast donasjon",
+        }),
+        defineField({
+          name: "organization_label",
+          title: "Organization button",
+          type: "string",
+          description: "Links to the organization's page",
+          initialValue: "Les mer om organisasjonen",
         }),
       ],
     }),
