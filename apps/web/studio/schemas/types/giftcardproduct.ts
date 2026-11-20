@@ -404,7 +404,6 @@ export default defineType({
               type: "object",
               name: "chapter",
               fields: [
-                defineField({ name: "kicker", title: "Kicker", type: "string" }),
                 defineField({ name: "heading", title: "Heading", type: "string" }),
                 defineField({ name: "text", title: "Text", type: "text", rows: 4 }),
                 defineField({
@@ -454,6 +453,40 @@ export default defineType({
                   ],
                 }),
                 defineField({
+                  name: "waffle",
+                  title: "Square chart (optional)",
+                  type: "object",
+                  description:
+                    '100 filled squares, of which the given share empties out when the slide is shown. E.g. 75 for "three in four malaria cases prevented".',
+                  fields: [
+                    defineField({
+                      name: "share",
+                      title: "Share that empties out (%)",
+                      type: "number",
+                      validation: (Rule) => Rule.min(0).max(100),
+                    }),
+                    defineField({ name: "filled_label", title: "Legend, filled", type: "string" }),
+                    defineField({ name: "empty_label", title: "Legend, emptied", type: "string" }),
+                    defineField({ name: "caption", title: "Caption / source", type: "string" }),
+                  ],
+                }),
+                defineField({
+                  name: "map",
+                  title: "Map (optional)",
+                  type: "object",
+                  description: "The Africa map, with these countries lighting up one by one",
+                  fields: [
+                    defineField({
+                      name: "countries",
+                      title: "Countries",
+                      type: "array",
+                      of: [{ type: "string" }],
+                      description: "Two-letter country codes, e.g. ng, bf, td, tg, mz",
+                    }),
+                    defineField({ name: "caption", title: "Caption / source", type: "string" }),
+                  ],
+                }),
+                defineField({
                   name: "image",
                   title: "Picture",
                   type: "image",
@@ -461,7 +494,7 @@ export default defineType({
                   fields: [defineField({ name: "alt", title: "Alternative text", type: "string" })],
                 }),
               ],
-              preview: { select: { title: "heading", subtitle: "kicker", media: "image" } },
+              preview: { select: { title: "heading", media: "image" } },
             }),
           ],
         }),

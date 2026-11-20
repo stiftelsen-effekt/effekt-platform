@@ -1,0 +1,25 @@
+.table {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 2rem;
+}
+
+.column .cell {
+  padding-top: 0.5rem;
+}
+
+.column .cell a:link {
+  border-bottom: 1px solid var(--primary);
+}
+
+.column .cell:first-child {
+  font-weight: bold;
+}
+
+@media (max-width: 1180px) {
+  .table {
+    grid-auto-flow: row;
+    width: 100%;
+    gap: 1rem;
+  }
+}

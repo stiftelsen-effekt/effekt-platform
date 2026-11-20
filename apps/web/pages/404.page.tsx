@@ -8,7 +8,7 @@ import { getClient } from "../lib/sanity.client";
 import { GeneralPageProps, getAppStaticProps } from "./_app.page";
 import { ConsentState } from "../proxy.page";
 import { GetStaticProps } from "next";
-import { CustomLink } from "../components/shared/components/CustomLink/CustomLink";
+import { SiteMenuTable } from "../components/shared/components/SiteMenuTable/SiteMenuTable";
 import styles from "../styles/404.module.css";
 
 const fetch404Page = groq`{
@@ -65,27 +65,6 @@ export default function Custom404({ data, navbar, draftMode }: Custom404Props) {
 
   const navigationItems = navbar.data.result.settings.main_navigation;
 
-  /** Create a table based on the main navigation */
-  const columns = navigationItems.map((item) =>
-    item._type === "navgroup"
-      ? [
-          { title: item.title },
-          ...item.items.map((subItem) => ({
-            title: subItem.title,
-            slug: subItem.slug || "",
-            type: subItem._type,
-          })),
-        ]
-      : [
-          null,
-          {
-            title: item.title,
-            slug: item.slug || "",
-            type: item._type,
-          },
-        ],
-  );
-
   return (
     <>
       <SEO
@@ -102,35 +81,7 @@ export default function Custom404({ data, navbar, draftMode }: Custom404Props) {
       <SectionContainer nodivider>
         <div className={styles.container}>
           <h1 className={styles.header}>{settings.not_found_title || "Page not found"}</h1>
-          <div className={styles.table}>
-            {columns.map((column, columnIndex) => (
-              <div key={columnIndex} className={styles.column}>
-                {column.map((item, rowIndex) => {
-                  if (!item) {
-                    return (
-                      <div key={`${columnIndex}-${rowIndex}`} className={styles.cell}>
-                        &nbsp;
-                      </div>
-                    );
-                  }
-                  if ("slug" in item) {
-                    return (
-                      <div key={`${columnIndex}-${rowIndex}`} className={styles.cell}>
-                        <CustomLink href={item.slug} type={item.type}>
-                          {item.title}
-                        </CustomLink>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={`${columnIndex}-${rowIndex}`} className={styles.cell}>
-                      <span>{item.title}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+          <SiteMenuTable navigationItems={navigationItems} />
         </div>
       </SectionContainer>
     </>

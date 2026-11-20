@@ -7,6 +7,7 @@ import { getClient } from "../../../lib/sanity.client";
 import { publicTrpcFor } from "../../../lib/trpc/client";
 import type { ConsentState } from "../../../proxy.page";
 import { isGiftCode } from "../../../util/giftcardPaths";
+import { Navbar } from "../../../components/shared/components/Navbar/Navbar";
 import {
   GiftPage,
   type GiftPageProduct,
@@ -35,11 +36,12 @@ const fetchProduct = groq`
     organization_label,
     story[] {
       _key,
-      kicker,
       heading,
       text,
       stat,
       chart,
+      waffle,
+      map,
       image { ..., asset-> { _id, url, metadata { lqip, dimensions { width, height } } } }
     },
     organization-> {
@@ -74,18 +76,21 @@ export const getServerSideProps = async (
   // Personal data: never in a shared cache, and not kept by the browser for other visitors
   ctx.res.setHeader("Cache-Control", "private, no-store");
 
-  const [gift, appStaticProps] = await Promise.all([
+  const [gift, appStaticProps, navbar] = await Promise.all([
     fetchGift(code),
     getAppStaticProps({ draftMode: false, consentState, showGiveButton: false }),
+    // The main menu, shown after the story instead of on top
+    Navbar.getStaticProps({ dashboard: false, draftMode: false }),
   ]);
   if (gift === null) return { notFound: true as const };
+  const navigationItems = navbar.data.result.settings.main_navigation ?? [];
   if (gift === "unavailable") {
     ctx.res.statusCode = 503;
-    return { props: { appStaticProps, gift: null, product: null } };
+    return { props: { appStaticProps, gift: null, product: null, navigationItems } };
   }
 
   const product = await getClient().fetch<GiftPageProduct | null>(fetchProduct, {
     slug: gift.product,
   });
-  return { props: { appStaticProps, gift, product } };
+  return { props: { appStaticProps, gift, product, navigationItems } };
 };

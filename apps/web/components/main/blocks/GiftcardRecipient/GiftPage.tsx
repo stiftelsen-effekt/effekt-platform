@@ -11,6 +11,12 @@ import {
 import { WidgetContext } from "../../layout/layout";
 import { RecurringDonation } from "../../../shared/components/Widget/types/Enums";
 import { useCountUp, useNoMotion, useReveal } from "./motion";
+import {
+  SiteMenuTable,
+  type NavigationItems,
+} from "../../../shared/components/SiteMenuTable/SiteMenuTable";
+import { Waffle } from "./Waffle";
+import { StoryMap } from "./StoryMap";
 import styles from "./GiftPage.module.scss";
 // A static import: served from /_next/static, which the consent proxy (proxy.page.ts) leaves alone
 import logo from "../../../../public/logo-cropped.svg";
@@ -29,12 +35,20 @@ type ChartData = {
   caption?: string | null;
 };
 
+type WaffleData = {
+  share?: number | null;
+  filled_label?: string | null;
+  empty_label?: string | null;
+  caption?: string | null;
+};
+
 type Chapter = {
   _key: string;
-  kicker?: string | null;
   heading?: string | null;
   text?: string | null;
   stat?: { value?: string | null; label?: string | null } | null;
+  waffle?: WaffleData | null;
+  map?: { countries?: string[] | null; caption?: string | null } | null;
   chart?: ChartData | null;
   image?: Image | null;
 };
@@ -96,12 +110,14 @@ const formatGivenAt = (iso: string) =>
  * as a unit chart, the product's story (pictures, big numbers and bar charts that animate in),
  * who does the work, and a monthly donation to the same organization. Texts and pictures come
  * from the gift card product in Sanity (Recipient page); names and greeting from the purchase.
- * No site menu, only the logo. With reduced motion nothing moves or snaps.
+ * The site menu is not on top, only the logo; it comes after the story, before the footer, as on
+ * the 404 page. With reduced motion nothing moves or snaps.
  */
 export const GiftPage: React.FC<{
   gift: GiftcardGift | null;
   product: GiftPageProduct | null;
-}> = ({ gift, product }) => (
+  navigationItems?: NavigationItems | null;
+}> = ({ gift, product, navigationItems }) => (
   <main className={styles.page}>
     <SEO
       title="En gave til deg"
@@ -122,6 +138,11 @@ export const GiftPage: React.FC<{
         <h2>Gaven din er trygt på plass.</h2>
         <p className="inngress">Vi får ikke vist den akkurat nå. Prøv igjen om litt.</p>
       </section>
+    )}
+    {navigationItems && navigationItems.length > 0 && (
+      <nav className={styles.menu} aria-label="Meny">
+        <SiteMenuTable navigationItems={navigationItems} />
+      </nav>
     )}
   </main>
 );
@@ -218,7 +239,12 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
           <Impact units={gift.units} unit={unit} unitSingular={gift.unitSingular} impact={impact} />
 
           {story.map((chapter, i) => (
-            <StoryChapter key={chapter._key} chapter={chapter} number={i + 1} dark={i % 2 === 1} />
+            <StoryChapter
+              key={chapter._key}
+              chapter={chapter}
+              // Alternate black and white; the map (black countries) always sits on white
+              dark={i % 2 === 1 && !chapter.map?.countries?.length}
+            />
           ))}
 
           {recipient?.organization && (
@@ -329,60 +355,119 @@ const Counter: React.FC<{ to: number; start: boolean; unit: string }> = ({ to, s
 
 const StoryChapter: React.FC<{
   chapter: Chapter;
-  number: number;
   dark: boolean;
-}> = ({ chapter, number, dark }) => (
-  <Slide
-    className={[
-      styles.chapter,
-      chapter.image?.asset ? styles.withImage : "",
-      chapter.chart?.bars?.length ? styles.withChart : "",
-    ].join(" ")}
-    dark={dark}
-  >
-    {(visible: boolean) => (
-      <>
-        {chapter.image?.asset && (
-          <div className={styles.chapterImage}>
-            <ResponsiveImage
-              image={chapter.image}
-              alt={chapter.image.alt ?? ""}
-              layout="cover"
-              sizes="(min-width: 1181px) 50vw, 100vw"
-            />
-          </div>
-        )}
-        <div className={styles.chapterText}>
-          <span className="detailheader">
-            {String(number).padStart(2, "0")}
-            {chapter.kicker ? ` — ${chapter.kicker}` : ""}
-          </span>
-          {chapter.heading && <h2 className={styles.chapterTitle}>{chapter.heading}</h2>}
-          {chapter.stat?.value && (
-            <Stat value={chapter.stat.value} label={chapter.stat.label} start={visible} />
-          )}
-          {chapter.chart?.bars && chapter.chart.bars.length > 0 && (
-            <BarChart chart={chapter.chart} start={visible} />
-          )}
-          {chapter.text && <p className={styles.chapterBody}>{chapter.text}</p>}
-        </div>
-      </>
-    )}
-  </Slide>
-);
+}> = ({ chapter, dark }) => {
+  const hasImage = !!chapter.image?.asset;
+  const hasChart = !!chapter.chart?.bars?.length;
+  // Without a picture, a square chart or map sits beside the text, or else a big number does:
+  // two columns on wide screens, stacked on narrow ones
+  const visual = !hasImage && (chapter.waffle?.share != null || !!chapter.map?.countries?.length);
+  const statBeside = !hasImage && !visual && !hasChart && !!chapter.stat?.value;
+
+  return (
+    <Slide
+      className={[
+        styles.chapter,
+        hasImage ? styles.withImage : "",
+        hasChart ? styles.withChart : "",
+      ].join(" ")}
+      dark={dark}
+    >
+      {(visible: boolean) => {
+        const title = chapter.heading && <h2 className={styles.chapterTitle}>{chapter.heading}</h2>;
+        const body = chapter.text && <p className={styles.chapterBody}>{chapter.text}</p>;
+        const stat = chapter.stat?.value && (
+          <Stat
+            value={chapter.stat.value}
+            label={chapter.stat.label}
+            start={visible}
+            large={statBeside}
+          />
+        );
+
+        if (visual || statBeside) {
+          return (
+            <div className={styles.split}>
+              {visual ? (
+                <div className={styles.chapterVisual}>
+                  {chapter.waffle && <Waffle data={chapter.waffle} start={visible} />}
+                  {chapter.map?.countries && (
+                    <StoryMap
+                      countries={chapter.map.countries}
+                      caption={chapter.map.caption}
+                      start={visible}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {title}
+                  {body}
+                </div>
+              )}
+              {visual ? (
+                <div>
+                  {title}
+                  {stat}
+                  {body}
+                </div>
+              ) : (
+                <div>{stat}</div>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <>
+            {hasImage && (
+              <div className={styles.chapterImage}>
+                <ResponsiveImage
+                  image={chapter.image!}
+                  alt={chapter.image!.alt ?? ""}
+                  layout="cover"
+                  sizes="(min-width: 1181px) 50vw, 100vw"
+                />
+              </div>
+            )}
+            <div className={styles.chapterText}>
+              {title}
+              {stat}
+              {hasChart && <BarChart chart={chapter.chart!} start={visible} />}
+              {body}
+            </div>
+          </>
+        );
+      }}
+    </Slide>
+  );
+};
 
 /** A big number that counts up over a rule that draws itself */
-const Stat: React.FC<{ value: string; label?: string | null; start: boolean }> = ({
-  value,
-  label,
-  start,
-}) => {
+const Stat: React.FC<{
+  value: string;
+  label?: string | null;
+  start: boolean;
+  /** Alone in its column: larger, and may break between words (never inside the number) */
+  large?: boolean;
+}> = ({ value, label, start, large }) => {
   const parts = splitNumber(value);
   const count = useCountUp(parts?.[1] ?? 0, start, 1400);
   return (
-    <div className={styles.stat} data-visible={start}>
+    <div className={`${styles.stat} ${large ? styles.statLarge : ""}`} data-visible={start}>
       <span className={styles.statValue} aria-label={value}>
-        {parts ? `${parts[0]}${formatNumber(count)}${parts[2]}` : value}
+        {parts ? (
+          <>
+            {parts[0]}
+            {/* The number keeps its unit: "Over / 400 000", never "Rundt 70 / kr" */}
+            <span className={styles.statNumber}>
+              {formatNumber(count)}
+              {parts[2]}
+            </span>
+          </>
+        ) : (
+          value
+        )}
       </span>
       <span className={styles.statRule} aria-hidden />
       {label && <span className="caption">{label}</span>}
