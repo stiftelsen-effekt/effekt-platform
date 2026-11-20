@@ -1,6 +1,11 @@
 import type { GiftcardGift } from "@effekt/api/giftcard";
 
 /**
+ * Previews of the gift card branch: these demo codes show the recipient pages without the API,
+ * and the purchase pages (/gavekort/<product>, noindex) reach the PR's API preview through a
+ * branch-scoped NEXT_PUBLIC_EFFEKT_API on the Vercel project (other previews use the production
+ * API, which has no gift cards until this ships). Remove that Vercel variable after the merge.
+ *
  * Demo gift cards for showing the recipient page (/gave/<code>) on Vercel previews and locally,
  * where the API has no gift cards to look up. The names and greetings are made up. Production
  * never serves them: only the API's paid gift cards are shown there.
