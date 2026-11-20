@@ -1323,6 +1323,7 @@ async function add(
     amount: sum,
     timestamp: registeredDate,
     donorId: donorID,
+    paymentMethodID,
   });
 
   enqueueTidbytDonationConfirmed({

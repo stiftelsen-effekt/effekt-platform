@@ -7,6 +7,7 @@ export type DonationConfirmedEvent = {
   amount: number;
   timestamp: Date;
   donorId: number;
+  paymentMethodID: number;
 };
 
 export const daoEvents = new EventEmitter();

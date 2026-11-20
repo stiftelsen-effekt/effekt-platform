@@ -3923,6 +3923,8 @@ export type Fundraiser_page = {
     title?: string;
     gift_amount_text_template?: string;
     anonymous_gift_amount_text_template?: string;
+    recurring_gift_amount_text_template?: string;
+    anonymous_recurring_gift_amount_text_template?: string;
     show_more_text_template?: string;
     no_donations_text?: string;
   };
@@ -10661,6 +10663,8 @@ export type FetchFundraiserResult = {
       title?: string;
       gift_amount_text_template?: string;
       anonymous_gift_amount_text_template?: string;
+      recurring_gift_amount_text_template?: string;
+      anonymous_recurring_gift_amount_text_template?: string;
       show_more_text_template?: string;
       no_donations_text?: string;
     };
@@ -20313,6 +20317,8 @@ export type FetchAgreementsPageResult = {
           title?: string;
           gift_amount_text_template?: string;
           anonymous_gift_amount_text_template?: string;
+          recurring_gift_amount_text_template?: string;
+          anonymous_recurring_gift_amount_text_template?: string;
           show_more_text_template?: string;
           no_donations_text?: string;
         };
@@ -25411,6 +25417,8 @@ export type FetchDonationsPageResult = {
           title?: string;
           gift_amount_text_template?: string;
           anonymous_gift_amount_text_template?: string;
+          recurring_gift_amount_text_template?: string;
+          anonymous_recurring_gift_amount_text_template?: string;
           show_more_text_template?: string;
           no_donations_text?: string;
         };
@@ -30331,6 +30339,8 @@ export type FetchProfilePageResult = {
           title?: string;
           gift_amount_text_template?: string;
           anonymous_gift_amount_text_template?: string;
+          recurring_gift_amount_text_template?: string;
+          anonymous_recurring_gift_amount_text_template?: string;
           show_more_text_template?: string;
           no_donations_text?: string;
         };

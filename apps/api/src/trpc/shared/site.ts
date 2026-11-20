@@ -135,6 +135,9 @@ export const siteFundraiserOutput = z.object({
       message: z.string().nullable(),
       amount: z.number(),
       date: isoDateTime,
+      // Whether this gift started or belongs to a standing AvtaleGiro or Vipps agreement.
+      // Optional: the Danish backend does not send it yet.
+      recurring: z.boolean().optional(),
     }),
   ),
 });

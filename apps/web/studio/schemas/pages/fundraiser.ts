@@ -192,6 +192,20 @@ export default defineType({
           validation: (Rule) => Rule.required(),
         }),
         defineField({
+          name: "recurring_gift_amount_text_template",
+          title: "Recurring gift amount text template",
+          type: "string",
+          description:
+            'Template for the gift amount text of a donation that started a monthly (recurring) agreement, instead of the gift amount text template above. Use {name} to insert the name and {sum} to insert the amount, e.g. "{name} ga {sum} kr og startet en fast avtale". Leave empty to use the gift amount text template above for these too.',
+        }),
+        defineField({
+          name: "anonymous_recurring_gift_amount_text_template",
+          title: "Anonymous recurring gift amount text template",
+          type: "string",
+          description:
+            'Template for the anonymous gift amount text of a donation that started a monthly (recurring) agreement, instead of the anonymous gift amount text template above. Use {sum} to insert the amount, e.g. "En gave på {sum} kr ble gitt med en fast avtale". Leave empty to use the anonymous gift amount text template above for these too.',
+        }),
+        defineField({
           name: "show_more_text_template",
           title: "Show more text template",
           type: "string",

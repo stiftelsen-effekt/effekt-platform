@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { daoEvents, DonationConfirmedEvent } from "./custom_modules/daoEvents";
 import { DAO } from "./custom_modules/DAO";
 import { Server } from "http";
+import { isRecurringPaymentMethod } from "./custom_modules/recurringPaymentMethods";
 
 const subscriptions = new Map<number, Set<WebSocket>>();
 
@@ -48,6 +49,7 @@ export function startWebSocketServer(server: Server) {
         name: fundraiserInfo.name,
         message: fundraiserInfo.message,
         amount: data.amount,
+        recurring: isRecurringPaymentMethod(data.paymentMethodID),
         date:
           data.timestamp instanceof Date
             ? data.timestamp.toISOString()
