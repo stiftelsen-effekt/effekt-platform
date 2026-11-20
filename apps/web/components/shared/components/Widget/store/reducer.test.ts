@@ -5,6 +5,7 @@ import {
   nextPane,
   prefillActions,
   prefillAmount,
+  prefillReferralCode,
   prevPane,
   selectPaymentMethod,
   selectReferral,
@@ -104,6 +105,17 @@ describe("widgetReducer", () => {
     expect(reduce(setReferralCode("CODE"), setReferralCode("  ")).donation.referralCode).toBe(
       undefined,
     );
+  });
+
+  it("remembers a referral code from the link even after the donor clears it", () => {
+    expect(reduce(setReferralCode("CODE")).donation.referralCodePrefilled).toBeFalsy();
+    expect(reduce(prefillReferralCode("  ")).donation.referralCodePrefilled).toBeFalsy();
+    const prefilled = reduce(prefillReferralCode(" CODE "));
+    expect(prefilled.donation.referralCode).toBe("CODE");
+    expect(prefilled.donation.referralCodePrefilled).toBe(true);
+    const cleared = reduce(prefillReferralCode("CODE"), setReferralCode(""));
+    expect(cleared.donation.referralCode).toBeUndefined();
+    expect(cleared.donation.referralCodePrefilled).toBe(true);
   });
 
   it("resets the prefilled organization tracking along with new prefilled shares", () => {

@@ -65,6 +65,7 @@ export type WidgetAction =
   | { type: "setShowAllOrganizations"; show: boolean }
   | { type: "setHasManuallyEditedPrefilledOrgAmount"; edited: boolean }
   | { type: "setReferralCode"; referralCode?: string }
+  | { type: "prefillReferralCode"; referralCode: string }
   | { type: "setDonorFormDraft"; draft: DonorFormDraft };
 
 // Action creators, so call sites read as before: dispatch(setOrgAmount(id, amount))
@@ -207,6 +208,12 @@ export const setHasManuallyEditedPrefilledOrgAmount = (edited: boolean): WidgetA
 /** A campaign/matching referral code (from the donor pane or ?referral=), or undefined to clear it */
 export const setReferralCode = (referralCode?: string): WidgetAction => ({
   type: "setReferralCode",
+  referralCode,
+});
+/** A referral code from the link (?referral=, or kept from earlier in the session). The donor pane
+ * then shows the code field whatever the Sanity setting, so the donor can see and change it. */
+export const prefillReferralCode = (referralCode: string): WidgetAction => ({
+  type: "prefillReferralCode",
   referralCode,
 });
 export const setDonorFormDraft = (draft: DonorFormDraft): WidgetAction => ({

@@ -235,6 +235,14 @@ const donationReducer = (state: Donation, action: WidgetAction): Donation => {
       return { ...state, hasManuallyEditedPrefilledOrgAmount: action.edited };
     case "setReferralCode":
       return { ...state, referralCode: action.referralCode?.trim() || undefined };
+    case "prefillReferralCode": {
+      const referralCode = action.referralCode.trim() || undefined;
+      return {
+        ...state,
+        referralCode,
+        referralCodePrefilled: state.referralCodePrefilled || !!referralCode,
+      };
+    }
     case "setDonorFormDraft":
       return { ...state, donorFormDraft: action.draft };
     case "setSmartDistributionTotal":
