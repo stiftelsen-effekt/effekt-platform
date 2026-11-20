@@ -9,9 +9,9 @@ packages:
 catalog:
   "@auth0/auth0-react": 2.30.0
   "@google-cloud/functions-framework": 5.0.5
-  "@trpc/client": 11.22.1
-  "@trpc/server": 11.22.1
-  "@trpc/tanstack-react-query": 11.22.1
+  "@trpc/client": 11.28.0
+  "@trpc/server": 11.28.0
+  "@trpc/tanstack-react-query": 11.28.0
   "@types/luxon": 3.7.6
   "@types/node": 24.19.2
   "@types/react": 19.3.0
