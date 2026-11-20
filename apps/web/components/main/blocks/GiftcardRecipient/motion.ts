@@ -43,8 +43,11 @@ export function useReveal<T extends Element>(threshold = 0.2) {
   return [ref, seen || noMotion] as const;
 }
 
-/** Counts from 0 to `to` over about a second once `start` is true (eased; instant with useNoMotion) */
-export function useCountUp(to: number, start: boolean, durationMs = 1100) {
+/**
+ * Counts from 0 to `to` over about a second once `start` is true (eased; instant with
+ * useNoMotion), rounded to `decimals` places on the way, so 2,1 counts 0,0 … 1,4 … 2,1.
+ */
+export function useCountUp(to: number, start: boolean, durationMs = 1100, decimals = 0) {
   const [value, setValue] = useState(0);
   const noMotion = useNoMotion();
   useEffect(() => {
@@ -53,11 +56,12 @@ export function useCountUp(to: number, start: boolean, durationMs = 1100) {
     const began = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - began) / durationMs);
-      setValue(Math.round((1 - Math.pow(1 - t, 3)) * to));
+      const factor = Math.pow(10, decimals);
+      setValue(Math.round((1 - Math.pow(1 - t, 3)) * to * factor) / factor);
       if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [to, start, durationMs, noMotion]);
+  }, [to, start, durationMs, decimals, noMotion]);
   return noMotion ? to : value;
 }

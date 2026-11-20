@@ -97,16 +97,24 @@ export const fillImpact = (template: string, units: number, unit: string) =>
 export const keepHyphenated = (text: string) =>
   text.replace(/([A-Za-zÀ-ÿ])-([A-Za-zÀ-ÿ])/g, "$1\u2011$2");
 
-/** "Over 400 000" → ["Over ", 400000, ""], so the number part can count up; null without one */
-export const splitNumber = (text: string): [string, number, string] | null => {
-  const match = /(\d[\d\s ]*\d|\d)/.exec(text);
+/**
+ * "Over 400 000" → ["Over ", 400000, "", 0] and "2,1 millioner" → ["", 2.1, " millioner", 1], so
+ * the number part can count up with its decimals; null without a number. Spaces (incl. no-break)
+ * group thousands; a comma or point followed by digits is the decimal mark.
+ */
+export const splitNumber = (text: string): [string, number, string, number] | null => {
+  const match = /(\d(?:[\d\s\u00a0]*\d)?)(?:[,.](\d+))?/.exec(text);
   if (!match) return null;
-  const value = Number(match[1].replace(/[\s ]/g, ""));
+  const whole = match[1].replace(/[\s\u00a0]/g, "");
+  const decimals = match[2]?.length ?? 0;
+  const value = Number(decimals ? `${whole}.${match[2]}` : whole);
   if (!Number.isFinite(value)) return null;
-  return [text.slice(0, match.index), value, text.slice(match.index + match[1].length)];
+  return [text.slice(0, match.index), value, text.slice(match.index + match[0].length), decimals];
 };
 
-const formatNumber = (n: number) => n.toLocaleString("nb-NO");
+/** Norwegian number format with a fixed number of decimals: 400 000, 2,1 */
+export const formatNumber = (n: number, decimals = 0) =>
+  n.toLocaleString("nb-NO", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
 const formatGivenAt = (iso: string) =>
   new Date(iso).toLocaleDateString("nb-NO", {
@@ -541,7 +549,8 @@ const Stat: React.FC<{
   large?: boolean;
 }> = ({ value, label, start, large }) => {
   const parts = splitNumber(value);
-  const count = useCountUp(parts?.[1] ?? 0, start, 1400);
+  const decimals = parts?.[3] ?? 0;
+  const count = useCountUp(parts?.[1] ?? 0, start, 1400, decimals);
   return (
     <div className={`${styles.stat} ${large ? styles.statLarge : ""}`} data-visible={start}>
       <span className={styles.statValue} aria-label={value}>
@@ -550,7 +559,7 @@ const Stat: React.FC<{
             {parts[0]}
             {/* The number keeps its unit: "Over / 400 000", never "Rundt 70 / kr" */}
             <span className={styles.statNumber}>
-              {formatNumber(count)}
+              {formatNumber(count, decimals)}
               {parts[2]}
             </span>
           </>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { axisTicks, barValue, fillImpact, splitNumber } from "./GiftPage";
+import { axisTicks, barValue, fillImpact, formatNumber, splitNumber } from "./GiftPage";
 
 describe("gift page helpers", () => {
   it("fills the impact template", () => {
@@ -7,9 +7,19 @@ describe("gift page helpers", () => {
   });
 
   it("splits out the number to count up", () => {
-    expect(splitNumber("Over 400 000")).toEqual(["Over ", 400000, ""]);
-    expect(splitNumber("Rundt 70 kr")).toEqual(["Rundt ", 70, " kr"]);
+    expect(splitNumber("Over 400 000")).toEqual(["Over ", 400000, "", 0]);
+    expect(splitNumber("Rundt 70 kr")).toEqual(["Rundt ", 70, " kr", 0]);
     expect(splitNumber("Mange")).toBeNull();
+  });
+
+  it("keeps a number's decimals so it counts up with them", () => {
+    expect(splitNumber("2,1 millioner")).toEqual(["", 2.1, " millioner", 1]);
+    expect(splitNumber("Rundt 2.5 mill")).toEqual(["Rundt ", 2.5, " mill", 1]);
+    expect(splitNumber("−29 %")).toEqual(["−", 29, " %", 0]);
+    expect(splitNumber("1 av 4")).toEqual(["", 1, " av 4", 0]);
+    expect(formatNumber(2.1, 1)).toBe("2,1");
+    expect(formatNumber(0, 1)).toBe("0,0");
+    expect(formatNumber(400000)).toMatch(/^400\s000$/);
   });
 
   it("keeps bar values from Sanity finite and never negative", () => {
