@@ -65,6 +65,7 @@ export type GiftPageProduct = {
     cta_text?: string | null;
     recurring_label?: string | null;
     organization_label?: string | null;
+    organization_logo?: Image | null;
     story?: Chapter[] | null;
     organization?: {
       name: string;
@@ -252,10 +253,10 @@ const Gift: React.FC<{ gift: GiftcardGift; product: GiftPageProduct | null }> = 
               <div className={styles.split}>
                 <div>
                   <span className="detailheader">Arbeidet gjøres av</span>
-                  {recipient.organization.logo?.asset ? (
+                  {(recipient.organization_logo ?? recipient.organization.logo)?.asset ? (
                     <div className={styles.logo}>
                       <ResponsiveImage
-                        image={recipient.organization.logo}
+                        image={(recipient.organization_logo ?? recipient.organization.logo)!}
                         alt={recipient.organization.name}
                         layout="responsive"
                       />

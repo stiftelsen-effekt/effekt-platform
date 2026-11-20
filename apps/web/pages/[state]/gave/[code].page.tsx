@@ -44,6 +44,7 @@ const fetchProduct = groq`
       map,
       image { ..., asset-> { _id, url, metadata { lqip, dimensions { width, height } } } }
     },
+    organization_logo { ..., asset-> { _id, url, metadata { lqip, dimensions { width, height } } } },
     organization-> {
       name,
       subtitle,

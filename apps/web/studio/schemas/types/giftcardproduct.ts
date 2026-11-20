@@ -506,6 +506,13 @@ export default defineType({
           description: "Who does the work: its name, summary and page are shown near the end",
         }),
         defineField({
+          name: "organization_logo",
+          title: "Organization logo (colour)",
+          type: "image",
+          description:
+            "Shown instead of the organization's black and white logo on this page. Get the organization's permission first.",
+        }),
+        defineField({
           name: "cta_heading",
           title: "Closing heading",
           type: "string",
