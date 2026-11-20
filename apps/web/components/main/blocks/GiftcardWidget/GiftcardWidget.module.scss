@@ -342,11 +342,14 @@
 
 // Step animation (AnimatedSteps.tsx), as the fundraiser widget's panes
 .steps {
-  transition: height 0.3s ease;
-  will-change: height;
   // Room for focus outlines at the edges while overflow is hidden
   margin: 0 -4px;
   padding: 0 4px;
+}
+
+// Height animates only after the first interaction (not while the page loads and fonts settle)
+.stepsinteractive {
+  transition: height 0.3s ease;
 }
 
 .stepsanimating {

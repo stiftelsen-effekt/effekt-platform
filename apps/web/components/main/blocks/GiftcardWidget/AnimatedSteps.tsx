@@ -29,11 +29,17 @@ export const AnimatedSteps: React.FC<{
   };
   useEffect(() => () => clearTimeout(timer.current), []);
 
+  // Nothing animates until the first step change: the widget is still on page load. Known in
+  // the same render as the change (the step that slides in needs its class right away)
+  const [initialStep] = useState(stepKey);
+  const [changedBefore, setChangedBefore] = useState(false);
+  const interacted = changedBefore || stepKey !== initialStep;
   useEffect(() => {
     if (firstStep.current) {
       firstStep.current = false;
       return;
     }
+    setChangedBefore(true);
     animate();
   }, [stepKey]);
 
@@ -56,12 +62,12 @@ export const AnimatedSteps: React.FC<{
 
   return (
     <div
-      className={`${styles.steps} ${animating ? styles.stepsanimating : ""}`}
+      className={`${styles.steps} ${interacted ? styles.stepsinteractive : ""} ${animating ? styles.stepsanimating : ""}`}
       style={height === null ? undefined : { height }}
     >
       <div ref={innerRef} className={styles.stepsinner}>
         {header}
-        <div key={stepKey} className={styles[`enter${direction}`]}>
+        <div key={stepKey} className={interacted ? styles[`enter${direction}`] : undefined}>
           {children}
         </div>
       </div>

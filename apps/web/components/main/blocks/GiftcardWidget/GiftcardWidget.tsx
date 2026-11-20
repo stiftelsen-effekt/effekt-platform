@@ -64,6 +64,7 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
   );
 
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
+  const [startPending, setStartPending] = useState(false);
   useEffect(() => {
     let cancelled = false;
     trpc.giftcard.products
@@ -158,6 +159,14 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
     }
     goTo(steps[index + 1]);
   };
+
+  useEffect(() => {
+    if (startPending && product) {
+      setStartPending(false);
+      next();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startPending, product]);
 
   const total = giftcardTotal(form.units, product?.unitPrice ?? 0);
   const sendAtIso =
@@ -321,15 +330,13 @@ export const GiftcardWidget: React.FC<{ product: GiftcardDocument }> = ({ produc
             <button
               type="button"
               className={styles.button}
-              onClick={next}
-              disabled={!product}
+              // Same text while the price loads, so nothing changes on page load; a click
+              // before it has loaded waits for it (the amount step needs the price)
+              onClick={() => (product ? next() : setStartPending(true))}
+              disabled={product === null}
               data-cy="giftcard-start"
             >
-              {product === undefined ? (
-                <Spinner className={styles.spinner} />
-              ) : (
-                page.delivery?.start_button_text || "Gi et gavekort"
-              )}
+              {page.delivery?.start_button_text || "Gi et gavekort"}
             </button>
           </div>
         )}
