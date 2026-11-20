@@ -518,9 +518,6 @@ importers:
       '@effekt/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@types/chai':
-        specifier: ^5.2.3
-        version: 5.2.3
       '@types/compression':
         specifier: ^1.8.1
         version: 1.8.1
@@ -539,9 +536,6 @@ importers:
       '@types/qs':
         specifier: 6.15.1
         version: 6.15.1
-      '@types/sinon':
-        specifier: ^22.0.0
-        version: 22.0.2
       '@types/supertest':
         specifier: ^7.2.1
         version: 7.2.1
@@ -551,12 +545,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.1.0(vitest@5.1.0)
-      chai:
-        specifier: ^6.3.0
-        version: 6.3.0
-      chai-datetime:
-        specifier: ^1.7.0
-        version: 1.8.1
       copyfiles:
         specifier: ^2.4.1
         version: 2.4.1
@@ -569,9 +557,6 @@ importers:
       oxlint:
         specifier: 'catalog:'
         version: 1.93.0
-      sinon:
-        specifier: ^22.1.0
-        version: 22.1.0
       ssh2:
         specifier: 1.17.0
         version: 1.17.0
@@ -4533,15 +4518,6 @@ packages:
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
 
-  '@sinonjs/commons@3.0.1':
-    resolution: {integrity: sha512-K3mCHKQ9sVh8o1C9cxkwxaOmXoAMlDxC1mYyHrjqOWEcBjYr76t96zL2zlj5dUGZ3HSw240X1qgH3Mjf1yJWpQ==}
-
-  '@sinonjs/fake-timers@15.4.0':
-    resolution: {integrity: sha512-DsG+8/LscQIQg68J6Ef3dv10u6nVyetYn923s3/sus5eaGfTo1of5WMZSLf0UJc9KDuKPilPH0UDJCjvNbDNCA==}
-
-  '@sinonjs/samsam@10.0.2':
-    resolution: {integrity: sha512-8lVwD1Df1BmzoaOLhMcGGcz/Jyr5QY2KSB75/YK1QgKzoabTeLdIVyhXNZK9ojfSKSdirbXqdbsXXqP9/Ve8+A==}
-
   '@ssfbank/norwegian-id-validators@1.0.0':
     resolution: {integrity: sha512-8/2c6tnkg6oSLaQoPsrla2iU+SyNYkdbgdFuweHBt8EI+/vuzahOs5d8j2nrwzGjRPk0OC5OmdbGOVcVJbjaWg==}
 
@@ -5823,9 +5799,6 @@ packages:
   '@types/serve-static@2.2.0':
     resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
 
-  '@types/sinon@22.0.2':
-    resolution: {integrity: sha512-2qLRFlluKkn6mci189eKhlOsHcdFpsn/9+29S4VmwKCpfb+vseKrZSSOSy5259yzIpP/y4gLfqQfIIR/lZn4Ng==}
-
   '@types/sinonjs__fake-timers@8.1.1':
     resolution: {integrity: sha512-0kSuKjAS0TrGLJ0M/+8MaFkGsQhZpB6pxOmvS3K8FYI72K//YmdfoW9X2qPsAKh1mkwxGD5zib9s1FIFed6E8g==}
 
@@ -6613,9 +6586,6 @@ packages:
     resolution: {integrity: sha512-QJ6k4lOD/btI08xG8jBPxRCGXvCnusGGkTsiXk0u3NqUu/W+BXRnFD4PYjwtqh8AWmGa5LDbGk0fLQsqr0nSMA==}
     peerDependencies:
       react: '>=17.0.0'
-
-  chai-datetime@1.8.1:
-    resolution: {integrity: sha512-GqQPq+l1yQI/c6sG2rvGkrM5SrmBm1ox/cmRjIA+g4632kLYGRWSIQR02qCeCkwabjYyCZNsHAKMV6gCsSV/1Q==}
 
   chai@6.3.0:
     resolution: {integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==}
@@ -10012,9 +9982,6 @@ packages:
   simple-wcswidth@1.1.2:
     resolution: {integrity: sha512-j7piyCjAeTDSjzTSQ7DokZtMNwNlEAyxqSZeCS+CXH7fJ4jx3FuJ/mTW3mE+6JLs4VJBbcll0Kjn+KXI5t21Iw==}
 
-  sinon@22.1.0:
-    resolution: {integrity: sha512-n1ajF2rBWMTtEwbKcw4UdFg4nCnDdq/U6RDoxtOd7oapOlRoJ5ynwFx60owROyhDpA9QhMZi0pCO/xtmwFjG7w==}
-
   sister@3.0.2:
     resolution: {integrity: sha512-p19rtTs+NksBRKW9qn0UhZ8/TUI9BPw9lmtHny+Y3TinWlOa9jWh9xB0AtPSdmOy49NJJJSSe0Ey4C7h0TrcYA==}
 
@@ -10444,14 +10411,6 @@ packages:
 
   tweetnacl@0.14.5:
     resolution: {integrity: sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==}
-
-  type-detect@4.0.8:
-    resolution: {integrity: sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==}
-    engines: {node: '>=4'}
-
-  type-detect@4.1.0:
-    resolution: {integrity: sha512-Acylog8/luQ8L7il+geoSxhEkazvkslg7PSNKOX59mbB9cOveP5aq9h74Y7YU8yDpJwetzQQrfIwtf4Wp4LKcw==}
-    engines: {node: '>=4'}
 
   type-fest@0.21.3:
     resolution: {integrity: sha512-t0rzBq87m3fVcduHDUFhKmyyX+9eo6WQjZvf51Ea/M0Q7+T374Jp1aUiyUl0GKxp8M/OETVHSDvmkyPgvX+X2w==}
@@ -15729,19 +15688,6 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
-  '@sinonjs/commons@3.0.1':
-    dependencies:
-      type-detect: 4.0.8
-
-  '@sinonjs/fake-timers@15.4.0':
-    dependencies:
-      '@sinonjs/commons': 3.0.1
-
-  '@sinonjs/samsam@10.0.2':
-    dependencies:
-      '@sinonjs/commons': 3.0.1
-      type-detect: 4.1.0
-
   '@ssfbank/norwegian-id-validators@1.0.0': {}
 
   '@standard-schema/spec@1.1.0': {}
@@ -17202,10 +17148,6 @@ snapshots:
       '@types/http-errors': 2.0.4
       '@types/node': 24.19.2
 
-  '@types/sinon@22.0.2':
-    dependencies:
-      '@sinonjs/fake-timers': 15.4.0
-
   '@types/sinonjs__fake-timers@8.1.1': {}
 
   '@types/sizzle@2.3.10': {}
@@ -18002,10 +17944,6 @@ snapshots:
   ce-la-react@0.3.2(react@19.3.1):
     dependencies:
       react: 19.3.1
-
-  chai-datetime@1.8.1:
-    dependencies:
-      chai: 6.3.0
 
   chai@6.3.0: {}
 
@@ -22070,13 +22008,6 @@ snapshots:
 
   simple-wcswidth@1.1.2: {}
 
-  sinon@22.1.0:
-    dependencies:
-      '@sinonjs/commons': 3.0.1
-      '@sinonjs/fake-timers': 15.4.0
-      '@sinonjs/samsam': 10.0.2
-      diff: 9.0.0
-
   sister@3.0.2: {}
 
   skills@1.8.1:
@@ -22529,10 +22460,6 @@ snapshots:
   tw-animate-css@1.4.0: {}
 
   tweetnacl@0.14.5: {}
-
-  type-detect@4.0.8: {}
-
-  type-detect@4.1.0: {}
 
   type-fest@0.21.3: {}
 
