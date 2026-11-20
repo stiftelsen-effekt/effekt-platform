@@ -58,6 +58,7 @@ export const AnimatedSteps: React.FC<{
   const headerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [heights, setHeights] = useState<{ header: number; stage: number } | null>(null);
+  const measureRef = useRef<() => void>(() => {});
   useLayoutEffect(() => {
     const headerEl = headerRef.current;
     const stage = stageRef.current;
@@ -68,6 +69,7 @@ export const AnimatedSteps: React.FC<{
         prev?.header === next.header && prev.stage === next.stage ? prev : next,
       );
     };
+    measureRef.current = measure;
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
@@ -75,6 +77,11 @@ export const AnimatedSteps: React.FC<{
     observer.observe(stage);
     return () => observer.disconnect();
   }, []);
+  // On a step change, measure before paint (the observer reports a frame or two later), so the
+  // height starts moving in the same frame as the steps crossfade
+  useLayoutEffect(() => {
+    measureRef.current();
+  }, [stepKey, headerOpen]);
   const height = heights ? (headerOpen ? heights.header : 0) + heights.stage : undefined;
 
   return (

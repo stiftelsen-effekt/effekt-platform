@@ -346,13 +346,18 @@
 }
 
 // After the first interaction the panel eases to its new height (never on page load)
+// One duration and curve for the height, the step indicator and the incoming step, so they move
+// together
+$step-duration: 0.28s;
+$step-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+
 .stepsinteractive {
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height $step-duration $step-ease;
 
   .headerwrap {
     transition:
-      grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.25s ease;
+      grid-template-rows $step-duration $step-ease,
+      opacity $step-duration $step-ease;
   }
 }
 
@@ -390,7 +395,7 @@
   left: 0;
   right: 0;
   pointer-events: none;
-  animation: giftcard-step-out 0.14s ease-in both;
+  animation: giftcard-step-out 0.14s ease-out both;
 }
 
 .exitforward {
@@ -403,8 +408,7 @@
 
 .enterforward,
 .enterbackward {
-  // Starts as the old step is mostly gone, so the two never read on top of each other
-  animation: giftcard-step-in 0.2s cubic-bezier(0.2, 0, 0, 1) 0.04s both;
+  animation: giftcard-step-in $step-duration $step-ease both;
 }
 
 .enterforward {
