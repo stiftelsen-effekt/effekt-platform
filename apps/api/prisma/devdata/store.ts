@@ -356,6 +356,15 @@ const GIFTCARD_PRODUCTS = [
     plural: "barn",
     sms: "Kjære {recipientName}!\n\n{senderName} har gitt en gave til både deg og noen av dem som trenger det mest 🎁\n\n{message}\n\nGaven sørger for at {units} {unit} blir vaksinert.\n\n→ Se gaven din: {link}",
   },
+  {
+    slug: "a-vitamin",
+    name: "Beskytt barn mot å miste synet",
+    org: "HKI",
+    price: 50,
+    singular: "barn",
+    plural: "barn",
+    sms: "Kjære {recipientName}!\n\n{senderName} har gitt en gave til både deg og noen av dem som trenger det mest 🎁\n\n{message}\n\nGaven gir {units} {unit} A-vitamin i et helt år.\n\n→ Se gaven din: {link}",
+  },
 ];
 
 async function seedGiftcardProducts(conn: mysql.Connection) {
