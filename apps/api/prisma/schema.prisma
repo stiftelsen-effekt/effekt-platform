@@ -577,6 +577,7 @@ model Giftcard_products {
 model Giftcards {
   ID                 Int       @id @default(autoincrement())
   KID                String    @unique(map: "Giftcards_KID_key") @db.VarChar(32)
+  Code               String?   @unique(map: "Giftcards_Code_key") @db.VarChar(16) /// In the recipient's link
   Product_ID         Int
   Units              Int
   Amount             Decimal   @db.Decimal(15, 2)

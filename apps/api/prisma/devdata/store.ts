@@ -336,7 +336,7 @@ const GIFTCARD_PRODUCTS = [
     price: 100,
     singular: "barn",
     plural: "barn",
-    sms: "Kjære {recipientName}!\n\n{senderName} har gitt deg en gave som beskytter {units} {unit} mot malaria gjennom en hel sesong.\n\n{message}\n\nSe hva gaven går til: https://gieffektivt.no/gavekort/malaria",
+    sms: "Kjære {recipientName}!\n\n{senderName} har gitt en gave til både deg og noen av dem som trenger det mest 🎁\n\n{message}\n\nGaven beskytter {units} {unit} mot malaria gjennom en hel sesong.\n\n→ Se gaven din: {link}",
   },
   {
     slug: "myggnett",
@@ -345,7 +345,7 @@ const GIFTCARD_PRODUCTS = [
     price: 60,
     singular: "myggnett",
     plural: "myggnett",
-    sms: "Kjære {recipientName}!\n\n{senderName} har gitt deg en gave: {units} {unit} som beskytter familier mot malaria.\n\n{message}\n\nSe hva gaven går til: https://gieffektivt.no/gavekort/myggnett",
+    sms: "Kjære {recipientName}!\n\n{senderName} har gitt en gave til både deg og noen av dem som trenger det mest 🎁\n\n{message}\n\nGaven er {units} {unit} som beskytter familier mot malaria i flere år.\n\n→ Se gaven din: {link}",
   },
   {
     slug: "vaksine",
@@ -354,7 +354,7 @@ const GIFTCARD_PRODUCTS = [
     price: 200,
     singular: "barn",
     plural: "barn",
-    sms: "Kjære {recipientName}!\n\n{senderName} har gitt deg en gave som sørger for at {units} {unit} blir vaksinert.\n\n{message}\n\nSe hva gaven går til: https://gieffektivt.no/gavekort/vaksine",
+    sms: "Kjære {recipientName}!\n\n{senderName} har gitt en gave til både deg og noen av dem som trenger det mest 🎁\n\n{message}\n\nGaven sørger for at {units} {unit} blir vaksinert.\n\n→ Se gaven din: {link}",
   },
 ];
 

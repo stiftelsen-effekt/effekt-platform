@@ -18,6 +18,7 @@ export default defineType({
     { name: "product", title: "Product", default: true },
     { name: "steps", title: "Steps" },
     { name: "thankyou", title: "After purchase" },
+    { name: "recipient", title: "Recipient page" },
   ],
   fields: [
     defineField({
@@ -373,6 +374,95 @@ export default defineType({
           title: "Certificate link text",
           type: "string",
           initialValue: "Last ned gavebeviset",
+        }),
+      ],
+    }),
+    defineField({
+      name: "recipient",
+      title: "Recipient page (gieffektivt.no/gave/<code>)",
+      type: "object",
+      group: "recipient",
+      description:
+        "What the person who gets the gift card sees after opening the link in the SMS. Their name, the giver's name and greeting come from the purchase.",
+      fields: [
+        defineField({
+          name: "impact",
+          title: "Impact",
+          type: "string",
+          description:
+            'One sentence, {units} and {unit} are replaced. E.g. "beskytter {units} {unit} mot malaria gjennom en hel sesong"',
+          initialValue: "beskytter {units} {unit} mot malaria gjennom en hel sesong",
+        }),
+        defineField({
+          name: "icon",
+          title: "Counter icon",
+          type: "string",
+          description: "Shown once per unit (up to 24) in the impact counter",
+          options: {
+            list: [
+              { title: "Child", value: "child" },
+              { title: "Mosquito net", value: "net" },
+              { title: "Syringe (vaccine)", value: "vaccine" },
+              { title: "Capsule (vitamin, medicine)", value: "capsule" },
+              { title: "Coin (cash)", value: "coin" },
+              { title: "Heart", value: "heart" },
+            ],
+          },
+          initialValue: "child",
+        }),
+        defineField({
+          name: "story",
+          title: "Story",
+          type: "array",
+          description:
+            "Short chapters the recipient scrolls through, each with an optional picture",
+          of: [
+            defineArrayMember({
+              type: "object",
+              name: "chapter",
+              fields: [
+                defineField({ name: "kicker", title: "Kicker", type: "string" }),
+                defineField({ name: "heading", title: "Heading", type: "string" }),
+                defineField({ name: "text", title: "Text", type: "text", rows: 4 }),
+                defineField({
+                  name: "stat",
+                  title: "Big number (optional)",
+                  type: "object",
+                  fields: [
+                    defineField({ name: "value", title: "Value", type: "string" }),
+                    defineField({ name: "label", title: "Label", type: "string" }),
+                  ],
+                }),
+                defineField({
+                  name: "image",
+                  title: "Picture",
+                  type: "image",
+                  options: { hotspot: true },
+                  fields: [defineField({ name: "alt", title: "Alternative text", type: "string" })],
+                }),
+              ],
+              preview: { select: { title: "heading", subtitle: "kicker", media: "image" } },
+            }),
+          ],
+        }),
+        defineField({
+          name: "organization",
+          title: "Organization",
+          type: "reference",
+          to: [{ type: "organization" }],
+          description: "Who does the work: its name, summary and page are shown near the end",
+        }),
+        defineField({
+          name: "cta_heading",
+          title: "Closing heading",
+          type: "string",
+          initialValue: "Vil du også glede noen?",
+        }),
+        defineField({
+          name: "cta_label",
+          title: "Closing button",
+          type: "string",
+          initialValue: "Gi et gavekort",
         }),
       ],
     }),

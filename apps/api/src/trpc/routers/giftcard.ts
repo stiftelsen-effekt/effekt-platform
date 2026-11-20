@@ -1,11 +1,17 @@
 import { TRPCError } from "@trpc/server";
 import { DAO } from "../../custom_modules/DAO";
-import { getGiftcardStatus, registerGiftcard } from "../../custom_modules/giftcards/service";
+import {
+  getGiftcardStatus,
+  getGiftForRecipient,
+  registerGiftcard,
+} from "../../custom_modules/giftcards/service";
 import { registrationFor } from "../../custom_modules/registrationToken";
 import { sendBankPendingOnce } from "../../custom_modules/bankPendingMail";
 import methods from "../../enums/methods";
 import { publicProcedure, router } from "../trpc";
 import {
+  giftcardGiftInput,
+  giftcardGiftOutput,
   giftcardProductsOutput,
   giftcardRegisterInput,
   giftcardRegisterOutput,
@@ -67,5 +73,19 @@ export const giftcardRouter = router({
       const status = await getGiftcardStatus(input.KID);
       if (!status) throw new TRPCError({ code: "NOT_FOUND", message: "No gift card" });
       return status;
+    }),
+
+  /**
+   * The gift card behind a recipient's link (gieffektivt.no/gave/<code>), for that page. The code
+   * is the only key (about 42 random bits); unpaid, cancelled, expired and unknown codes are all
+   * NOT_FOUND. Called by the website's server, never cached by it.
+   */
+  gift: publicProcedure
+    .input(giftcardGiftInput)
+    .output(giftcardGiftOutput)
+    .query(async ({ input }) => {
+      const gift = await getGiftForRecipient(input.code);
+      if (!gift) throw new TRPCError({ code: "NOT_FOUND", message: "No gift card" });
+      return gift;
     }),
 });

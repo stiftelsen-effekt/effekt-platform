@@ -18,3 +18,9 @@ export const parseGiftcardCertificatePath = (path: string[]): string | null =>
   /^[a-z0-9-]{1,64}$/.test(path[1])
     ? path[1]
     : null;
+
+/** The recipient's page: /gave/<code>, the link in the gift card SMS */
+export const GIFT_PATH = "gave";
+
+/** A recipient code as the API makes them (giftcards/text.ts): 10 lower case consonants */
+export const isGiftCode = (code: string) => /^[bcdfghjkmnpqrstvwxz]{10}$/.test(code);

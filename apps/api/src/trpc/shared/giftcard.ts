@@ -90,3 +90,19 @@ export const giftcardStatusOutput = z.object({
   /** pending until the payment is received */
   status: z.enum(["pending", "paid", "sending", "sent", "failed", "cancelled"]),
 });
+
+/** The code in the recipient's link, gieffektivt.no/gave/<code> */
+export const giftcardGiftInput = z.object({ code: z.string().max(32) });
+
+export const giftcardGiftOutput = z.object({
+  product: z.string(),
+  units: z.number().int(),
+  unitSingular: z.string(),
+  unitPlural: z.string(),
+  recipientName: z.string(),
+  senderName: z.string(),
+  message: z.string().nullable(),
+  givenAt: z.string(),
+});
+
+export type GiftcardGift = z.infer<typeof giftcardGiftOutput>;

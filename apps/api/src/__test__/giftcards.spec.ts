@@ -2,9 +2,17 @@ import { describe, it, beforeEach, afterEach } from "vitest";
 import { expect } from "chai";
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
-import { normalizeNorwegianMobile, renderGiftcardSms } from "../custom_modules/giftcards/text";
+import {
+  generateGiftcardCode,
+  GIFTCARD_CODE_PATTERN,
+  giftcardLink,
+  normalizeNorwegianMobile,
+  renderGiftcardSms,
+} from "../custom_modules/giftcards/text";
 import * as pending from "../custom_modules/pendingDonationRegistration";
 import {
+  getGiftForRecipient,
+  GIFT_PAGE_DAYS,
   MAX_SEND_ATTEMPTS,
   registerGiftcard,
   sendDueGiftcardSms,
@@ -23,13 +31,15 @@ const product: GiftcardProduct = {
   unitPlural: "barn",
   minUnits: 1,
   maxUnits: 1000,
-  smsTemplate: "Kjære {recipientName}!\n\n{senderName}: {units} {unit}.\n\n{message}\n\nLes mer",
+  smsTemplate:
+    "Kjære {recipientName}!\n\n{senderName}: {units} {unit}.\n\n{message}\n\nLes mer: {link}",
   active: true,
 };
 
 const giftcard = (over: Partial<Giftcard> = {}): Giftcard => ({
   id: 10,
   KID: "12345678",
+  code: "kxbmtrwpzd",
   productId: 1,
   units: 3,
   amount: 300,
@@ -81,12 +91,32 @@ describe("gift card text", () => {
       units: 1,
       unitSingular: "myggnett",
       unitPlural: "myggnett",
+      link: "gieffektivt.no/gave/kxbmtrwpzd",
     };
     expect(renderGiftcardSms(product.smsTemplate, values)).to.equal(
-      "Kjære Mia!\n\nOla: 1 myggnett.\n\nGod jul!\n\nLes mer",
+      "Kjære Mia!\n\nOla: 1 myggnett.\n\nGod jul!\n\nLes mer: gieffektivt.no/gave/kxbmtrwpzd",
     );
     expect(renderGiftcardSms(product.smsTemplate, { ...values, message: null })).to.equal(
-      "Kjære Mia!\n\nOla: 1 myggnett.\n\nLes mer",
+      "Kjære Mia!\n\nOla: 1 myggnett.\n\nLes mer: gieffektivt.no/gave/kxbmtrwpzd",
+    );
+  });
+
+  it("makes random lower case consonant codes that match the pattern", () => {
+    const codes = new Set(Array.from({ length: 200 }, generateGiftcardCode));
+    expect(codes.size).to.equal(200);
+    for (const code of codes) expect(GIFTCARD_CODE_PATTERN.test(code), code).to.equal(true);
+    expect(GIFTCARD_CODE_PATTERN.test("KXBMTRWPZD")).to.equal(false);
+    expect(GIFTCARD_CODE_PATTERN.test("kxbmtrwpza")).to.equal(false); // no vowels
+    expect(GIFTCARD_CODE_PATTERN.test("kxbmtrwpz2")).to.equal(false); // no digits
+  });
+
+  it("links to the recipient page without https://", () => {
+    expect(giftcardLink("https://gieffektivt.no/", "kxbmtrwpzd")).to.equal(
+      "gieffektivt.no/gave/kxbmtrwpzd",
+    );
+    expect(giftcardLink(undefined, "kxbmtrwpzd")).to.equal("gieffektivt.no/gave/kxbmtrwpzd");
+    expect(giftcardLink("http://localhost:3000", "kxbmtrwpzd")).to.equal(
+      "http://localhost:3000/gave/kxbmtrwpzd",
     );
   });
 
@@ -153,6 +183,7 @@ describe("registerGiftcard", () => {
       recipientPhone: "+4791234567",
     });
     expect(add.firstCall.args[0].sendAt.toISOString()).to.equal("2026-12-24T15:00:00.000Z");
+    expect(add.firstCall.args[0].code).to.match(GIFTCARD_CODE_PATTERN);
   });
 
   it("rejects unknown products, bad unit counts, bad phones and bad send times", async () => {
@@ -205,6 +236,7 @@ describe("sendDueGiftcardSms", () => {
     expect(send.callCount).to.equal(1);
     expect(send.firstCall.args[0]).to.equal("+4791234567");
     expect(send.firstCall.args[1]).to.contain("Kjære Mia!");
+    expect(send.firstCall.args[1]).to.match(/Les mer: \S+\/gave\/kxbmtrwpzd$/);
     expect(markSent.firstCall.args.slice(0, 2)).to.deep.equal([10, "msg-1"]);
   });
 
@@ -226,5 +258,52 @@ describe("sendDueGiftcardSms", () => {
   it("does not need an SMS provider when nothing is due", async () => {
     sinon.stub(DAO.giftcards, "getDueSmsIDs").resolves([]);
     expect((await sendDueGiftcardSms(now)).due).to.equal(0);
+  });
+});
+
+describe("getGiftForRecipient", () => {
+  const now = new Date("2026-12-25T10:00:00Z");
+  afterEach(() => sinon.restore());
+
+  const lookup = (card: Giftcard | null) => {
+    const getByCode = sinon.stub(DAO.giftcards, "getByCode").resolves(card);
+    sinon.stub(DAO.giftcards, "getProductByID").resolves(product);
+    return getByCode;
+  };
+
+  it("returns what the page shows, and nothing about the buyer or price", async () => {
+    lookup(giftcard({ status: "sent", sentAt: new Date("2026-12-24T15:00:10Z") }));
+    const gift = await getGiftForRecipient("kxbmtrwpzd", now);
+    expect(gift).to.deep.equal({
+      product: "malaria",
+      units: 3,
+      unitSingular: "barn",
+      unitPlural: "barn",
+      recipientName: "Mia",
+      senderName: "Ola",
+      message: "God jul!",
+      givenAt: "2026-12-24T15:00:10.000Z",
+    });
+  });
+
+  it("hides unpaid and cancelled gift cards", async () => {
+    const getByCode = lookup(giftcard({ status: "pending" }));
+    expect(await getGiftForRecipient("kxbmtrwpzd", now)).to.equal(null);
+    getByCode.resolves(giftcard({ status: "cancelled" }));
+    expect(await getGiftForRecipient("kxbmtrwpzd", now)).to.equal(null);
+  });
+
+  it("expires the page after GIFT_PAGE_DAYS", async () => {
+    const sentAt = new Date("2026-12-24T15:00:00Z");
+    lookup(giftcard({ status: "sent", sentAt }));
+    const later = new Date(sentAt.getTime() + (GIFT_PAGE_DAYS + 1) * 24 * 60 * 60 * 1000);
+    expect(await getGiftForRecipient("kxbmtrwpzd", later)).to.equal(null);
+  });
+
+  it("doesn't query the database for codes that can't exist", async () => {
+    const getByCode = lookup(null);
+    expect(await getGiftForRecipient("KXBMTRWPZD", now)).to.equal(null);
+    expect(await getGiftForRecipient("' OR 1=1 --", now)).to.equal(null);
+    expect(getByCode.called).to.equal(false);
   });
 });

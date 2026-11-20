@@ -24,6 +24,8 @@ export type GiftcardProduct = {
 export type Giftcard = {
   id: number;
   KID: string;
+  /** In the recipient's link; null for gift cards bought before codes existed */
+  code: string | null;
   productId: number;
   units: number;
   amount: number;
@@ -45,6 +47,7 @@ export type Giftcard = {
 export type NewGiftcard = Pick<
   Giftcard,
   | "KID"
+  | "code"
   | "productId"
   | "units"
   | "amount"
@@ -76,6 +79,7 @@ const mapProduct = (row: ProductRow): GiftcardProduct => ({
 const mapGiftcard = (row: SqlResult<Giftcards>): Giftcard => ({
   id: row.ID,
   KID: row.KID,
+  code: row.Code,
   productId: row.Product_ID,
   units: row.Units,
   amount: parseFloat(row.Amount),
@@ -122,11 +126,12 @@ export const giftcards = {
   add: async function (giftcard: NewGiftcard): Promise<number> {
     const [res] = await DAO.query(
       `INSERT INTO Giftcards
-        (KID, Product_ID, Units, Amount, Delivery, Recipient_name, Sender_name, Message,
+        (KID, Code, Product_ID, Units, Amount, Delivery, Recipient_name, Sender_name, Message,
          Recipient_phone, Send_at, Status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [
         giftcard.KID,
+        giftcard.code,
         giftcard.productId,
         giftcard.units,
         giftcard.amount,
@@ -145,6 +150,14 @@ export const giftcards = {
     const [rows] = await DAO.query<SqlResult<Giftcards>[]>(
       `SELECT * FROM Giftcards WHERE KID = ?`,
       [KID],
+    );
+    return rows.length > 0 ? mapGiftcard(rows[0]) : null;
+  },
+
+  getByCode: async function (code: string): Promise<Giftcard | null> {
+    const [rows] = await DAO.query<SqlResult<Giftcards>[]>(
+      `SELECT * FROM Giftcards WHERE Code = ?`,
+      [code],
     );
     return rows.length > 0 ? mapGiftcard(rows[0]) : null;
   },

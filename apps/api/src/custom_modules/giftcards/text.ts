@@ -1,6 +1,36 @@
+import { randomInt } from "node:crypto";
+
 /**
- * Pure helpers for gift cards: phone numbers and the SMS text. No database or network.
+ * Pure helpers for gift cards: phone numbers, recipient codes and the SMS text. No database or
+ * network.
  */
+
+/**
+ * The recipient's code: 10 lower case consonants (no vowels, so it never spells a word, and no l,
+ * which looks like 1 and I), e.g. "kxbmtrwpzd". 19^10 is about 6·10^12 (42 bits), so codes can't
+ * be guessed. Lower case only: the column's collation ignores case.
+ */
+const CODE_ALPHABET = "bcdfghjkmnpqrstvwxz";
+export const GIFTCARD_CODE_LENGTH = 10;
+export const GIFTCARD_CODE_PATTERN = /^[bcdfghjkmnpqrstvwxz]{10}$/;
+
+export function generateGiftcardCode(): string {
+  let code = "";
+  for (let i = 0; i < GIFTCARD_CODE_LENGTH; i++)
+    code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
+  return code;
+}
+
+/**
+ * The recipient's link without "https://" (phones make it clickable, and it is 8 characters
+ * shorter): gieffektivt.no/gave/<code>. Other schemes (http://localhost in development) are kept.
+ */
+export function giftcardLink(frontendUrl: string | undefined, code: string): string {
+  const base = (frontendUrl || "https://gieffektivt.no")
+    .replace(/\/+$/, "")
+    .replace(/^https:\/\//, "");
+  return `${base}/gave/${code}`;
+}
 
 /**
  * A Norwegian mobile number (8 digits starting with 4 or 9, optionally +47/0047 first, spaces
@@ -19,6 +49,8 @@ export type GiftcardSmsValues = {
   units: number;
   unitSingular: string;
   unitPlural: string;
+  /** The recipient's page (giftcardLink) */
+  link: string;
 };
 
 /**
@@ -31,6 +63,7 @@ export const GIFTCARD_SMS_PLACEHOLDERS = [
   "{message}",
   "{units}",
   "{unit}",
+  "{link}",
 ] as const;
 
 export function renderGiftcardSms(template: string, values: GiftcardSmsValues): string {
@@ -41,6 +74,7 @@ export function renderGiftcardSms(template: string, values: GiftcardSmsValues): 
     "{message}": message,
     "{units}": String(values.units),
     "{unit}": values.units === 1 ? values.unitSingular : values.unitPlural,
+    "{link}": values.link,
   };
   const lines = template
     .replace(/\r\n/g, "\n")
@@ -48,7 +82,7 @@ export function renderGiftcardSms(template: string, values: GiftcardSmsValues): 
     .filter((line) => !(line.trim() === "{message}" && message === ""));
   return lines
     .join("\n")
-    .replace(/\{(recipientName|senderName|message|units|unit)\}/g, (p) => replacements[p])
+    .replace(/\{(recipientName|senderName|message|units|unit|link)\}/g, (p) => replacements[p])
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

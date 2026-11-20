@@ -6,7 +6,13 @@ import type { RegisterDonationBody } from "../../schemas/publicRequests";
 import type { GiftcardRegisterInput } from "../../trpc/shared/giftcard";
 import { OSLO_ZONE } from "../osloDays";
 import { formatCurrency, sendTemplate } from "../mail";
-import { normalizeNorwegianMobile, renderGiftcardSms } from "./text";
+import {
+  generateGiftcardCode,
+  giftcardLink,
+  GIFTCARD_CODE_PATTERN,
+  normalizeNorwegianMobile,
+  renderGiftcardSms,
+} from "./text";
 import { getSmsProvider, type SmsProvider } from "./sms";
 
 const config = require("../../config.js");
@@ -89,6 +95,7 @@ export async function registerGiftcard(
     onNewKID: async (KID) => {
       await DAO.giftcards.add({
         KID,
+        code: generateGiftcardCode(),
         productId: product.id,
         units: input.units,
         amount,
@@ -235,6 +242,9 @@ export async function sendDueGiftcardSms(
         units: giftcard.units,
         unitSingular: product.unitSingular,
         unitPlural: product.unitPlural,
+        link: giftcard.code
+          ? giftcardLink(config.frontend_url, giftcard.code)
+          : certificateUrl(product),
       });
       const { id: providerId } = await provider!.send(
         giftcard.recipientPhone,
@@ -299,5 +309,48 @@ export async function getGiftcardStatus(KID: string) {
     recipientName: giftcard.recipientName,
     sendAt: giftcard.sendAt ? giftcard.sendAt.toISOString() : null,
     status: giftcard.status,
+  };
+}
+
+/** How long the recipient's page shows the gift card, from when the SMS went out (or purchase) */
+export const GIFT_PAGE_DAYS = 400;
+
+/** What the recipient's page (gieffektivt.no/gave/<code>) shows. Never the phone, price or buyer */
+export type GiftForRecipient = {
+  product: string;
+  units: number;
+  unitSingular: string;
+  unitPlural: string;
+  recipientName: string;
+  senderName: string;
+  message: string | null;
+  /** When the gift was given: the SMS send time, else the purchase */
+  givenAt: string;
+};
+
+/**
+ * The gift card with this code for the recipient's page, or null: unknown code, not paid (or
+ * cancelled), or older than GIFT_PAGE_DAYS. Each null looks the same to the caller.
+ */
+export async function getGiftForRecipient(
+  code: string,
+  now: Date = new Date(),
+): Promise<GiftForRecipient | null> {
+  if (!GIFTCARD_CODE_PATTERN.test(code)) return null;
+  const giftcard = await DAO.giftcards.getByCode(code);
+  if (!giftcard || giftcard.status === "pending" || giftcard.status === "cancelled") return null;
+  const givenAt = giftcard.sentAt ?? giftcard.sendAt ?? giftcard.paidAt ?? now;
+  if (now.getTime() - givenAt.getTime() > GIFT_PAGE_DAYS * 24 * 60 * 60 * 1000) return null;
+  const product = await DAO.giftcards.getProductByID(giftcard.productId);
+  if (!product) return null;
+  return {
+    product: product.slug,
+    units: giftcard.units,
+    unitSingular: product.unitSingular,
+    unitPlural: product.unitPlural,
+    recipientName: giftcard.recipientName,
+    senderName: giftcard.senderName,
+    message: giftcard.message,
+    givenAt: givenAt.toISOString(),
   };
 }
