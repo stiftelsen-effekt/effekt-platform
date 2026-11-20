@@ -309,7 +309,7 @@ export async function sendDueGiftcardSms(
     try {
       await sendSmsSentEmail(giftcard, product);
     } catch (ex) {
-      console.error(`Gift card ${id}: failed to email the buyer that the SMS was sent`, ex);
+      console.error("Gift card %d: failed to email the buyer that the SMS was sent", id, ex);
     }
   }
   return summary;
