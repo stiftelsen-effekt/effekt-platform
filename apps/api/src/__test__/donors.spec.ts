@@ -1,8 +1,7 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express from "express";
 import { InvalidTokenError } from "express-oauth2-jwt-bearer";
-import sinon from "sinon";
 import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
@@ -10,9 +9,9 @@ import * as auth0 from "../custom_modules/auth0";
 import { getYearlyTaxReports } from "../custom_modules/taxReports";
 import { RequestLocale } from "../middleware/locale";
 
-let donorUpdateStub: sinon.SinonStub;
-let agreementStub: sinon.SinonStub;
-let donorStub: sinon.SinonStub;
+let donorUpdateStub: MockInstance;
+let agreementStub: MockInstance;
+let donorStub: MockInstance;
 
 const jack = {
   id: 237,
@@ -112,23 +111,25 @@ describe("donors", () => {
       server.use(express.urlencoded({ extended: true }));
 
       // This must be stubbed before importing the routes
-      sinon.stub(authMiddleware, "auth").returns([]);
-      sinon.replace(authMiddleware, "isAdmin", [] as any);
+      vi.spyOn(authMiddleware, "auth").mockReturnValue([]);
+      vi.spyOn(authMiddleware, "isAdmin", "get").mockReturnValue([] as any);
 
       const donorsRouter = require("../routes/donors");
       server.use("/donors", donorsRouter);
 
-      sinon.stub(authMiddleware, "checkAdminOrTheDonor").callsFake((_, req, res, next) => {
+      vi.spyOn(authMiddleware, "checkAdminOrTheDonor").mockImplementation((_, req, res, next) => {
         next();
       });
     });
 
     describe("GET /donors/:id/donations", function () {
       beforeEach(function () {
-        donorStub = sinon.stub(DAO.donors, "getByID");
+        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
         donorStub.withArgs("237").resolves(jack);
 
-        var donationStub = sinon.stub(DAO.donations, "getByDonorId");
+        var donationStub = vi
+          .spyOn(DAO.donations, "getByDonorId")
+          .mockReturnValue(undefined as any);
         donationStub.withArgs("237").resolves(donationsStub);
       });
 
@@ -138,17 +139,17 @@ describe("donors", () => {
 
       it("Should return the donations", async function () {
         const response = await request(server).get("/donors/237/donations");
-        expect(response.body.content).to.deep.equal(donationsStub);
+        expect(response.body.content).toStrictEqual(donationsStub);
       });
     });
 
     describe("GET /donors/:id", function () {
       beforeEach(function () {
-        donorStub = sinon.stub(DAO.donors, "getByID");
+        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
 
         donorStub.withArgs("237").resolves(jack);
 
-        donorUpdateStub = sinon.stub(DAO.donors, "update");
+        donorUpdateStub = vi.spyOn(DAO.donors, "update").mockReturnValue(undefined as any);
       });
 
       it("Should return 200 OK with the donor by ID", async function () {
@@ -157,70 +158,70 @@ describe("donors", () => {
 
       it("Should return a donor that matches the provided id", async function () {
         const response = await request(server).get("/donors/237");
-        expect(response.body.content).to.deep.equal(jack);
+        expect(response.body.content).toStrictEqual(jack);
       });
     });
 
     describe("PUT /donors/:id", () => {
       beforeEach(function () {
-        donorStub = sinon.stub(DAO.donors, "getByID");
+        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
 
         donorStub.withArgs("237").resolves(jack);
 
-        donorUpdateStub = sinon.stub(DAO.donors, "update");
+        donorUpdateStub = vi.spyOn(DAO.donors, "update").mockReturnValue(undefined as any);
       });
 
       it("Should return 404 when donor is not found", async function () {
         donorStub.withArgs("123").resolves(null);
         const response = await request(server).put("/donors/123");
-        expect(response.status).to.equal(404);
+        expect(response.status).toBe(404);
       });
 
       it("Should update donor", async function () {
-        donorUpdateStub.resolves(true);
+        donorUpdateStub.mockResolvedValue(true);
         const response = await request(server).put("/donors/237").send(jack);
-        expect(response.status).to.equal(200);
-        expect(donorUpdateStub.callCount).to.equal(1);
+        expect(response.status).toBe(200);
+        expect(donorUpdateStub).toHaveBeenCalledTimes(1);
       });
 
       it("Should return 400 when name is not a string", async function () {
-        donorUpdateStub.resolves(true);
+        donorUpdateStub.mockResolvedValue(true);
         const response = await request(server).put("/donors/237").send({
           name: 1010,
         });
-        expect(response.status).to.equal(400);
-        expect(donorUpdateStub.callCount).to.equal(0);
+        expect(response.status).toBe(400);
+        expect(donorUpdateStub).toHaveBeenCalledTimes(0);
       });
 
       it("Should return 200 when updating name", async function () {
-        donorUpdateStub.resolves(true);
+        donorUpdateStub.mockResolvedValue(true);
         const response = await request(server).put("/donors/237").send({
           name: "Jack Torrance",
         });
-        expect(response.status).to.equal(200);
-        expect(donorUpdateStub.callCount).to.equal(1);
+        expect(response.status).toBe(200);
+        expect(donorUpdateStub).toHaveBeenCalledTimes(1);
       });
 
       it("Should return 400 when newsletter is not a boolean", async function () {
-        donorUpdateStub.resolves(true);
+        donorUpdateStub.mockResolvedValue(true);
         const response = await request(server).put("/donors/237").send({
           name: "Jack Torrance",
           newsletter: "Yes",
         });
-        expect(response.status).to.equal(400);
-        expect(donorUpdateStub.callCount).to.equal(0);
+        expect(response.status).toBe(400);
+        expect(donorUpdateStub).toHaveBeenCalledTimes(0);
       });
     });
 
     describe("PUT /donors/:id/taxunits/:taxunitid", () => {
-      let taxGetByIdStub: sinon.SinonStub;
-      let updateTaxUnitStub: sinon.SinonStub;
+      let taxGetByIdStub: MockInstance;
+      let updateTaxUnitStub: MockInstance;
 
       beforeEach(function () {
-        donorStub = sinon.stub(DAO.donors, "getByID");
+        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
         donorStub.withArgs(237).resolves(jack);
-        taxGetByIdStub = sinon.stub(DAO.tax, "getById");
-        updateTaxUnitStub = sinon.stub(DAO.tax, "updateTaxUnit").resolves(1);
+        taxGetByIdStub = vi.spyOn(DAO.tax, "getById").mockReturnValue(undefined as any);
+        updateTaxUnitStub = vi.spyOn(DAO.tax, "updateTaxUnit").mockResolvedValue(1);
       });
 
       const body = { taxUnit: { name: "Jack Torrance", ssn: "999999999" } };
@@ -228,29 +229,31 @@ describe("donors", () => {
       it("Should update a tax unit owned by the donor", async function () {
         taxGetByIdStub.withArgs(10).resolves({ id: 10, donorId: 237, name: "x", ssn: "1" });
         const response = await request(server).put("/donors/237/taxunits/10").send(body);
-        expect(response.status).to.equal(200);
-        expect(updateTaxUnitStub.calledOnceWith(10)).to.be.true;
+        expect(response.status).toBe(200);
+        expect(updateTaxUnitStub).toHaveBeenCalledExactlyOnceWith(10);
       });
 
       it("Should return 404 and not update a tax unit owned by another donor", async function () {
         taxGetByIdStub.withArgs(11).resolves({ id: 11, donorId: 999, name: "x", ssn: "1" });
         const response = await request(server).put("/donors/237/taxunits/11").send(body);
-        expect(response.status).to.equal(404);
-        expect(updateTaxUnitStub.called).to.be.false;
+        expect(response.status).toBe(404);
+        expect(updateTaxUnitStub).not.toHaveBeenCalled();
       });
 
       it("Should return 404 when the tax unit does not exist", async function () {
-        taxGetByIdStub.resolves(null);
+        taxGetByIdStub.mockResolvedValue(null);
         const response = await request(server).put("/donors/237/taxunits/12").send(body);
-        expect(response.status).to.equal(404);
-        expect(updateTaxUnitStub.called).to.be.false;
+        expect(response.status).toBe(404);
+        expect(updateTaxUnitStub).not.toHaveBeenCalled();
       });
     });
 
     describe("GET /donors/:id/recurring/avtalegiro", function () {
       beforeEach(function () {
-        agreementStub = sinon.stub(DAO.avtalegiroagreements, "getByDonorId");
-        agreementStub.resolves(mockAgreements);
+        agreementStub = vi
+          .spyOn(DAO.avtalegiroagreements, "getByDonorId")
+          .mockReturnValue(undefined as any);
+        agreementStub.mockResolvedValue(mockAgreements);
       });
 
       it("Should return 200 OK", async function () {
@@ -259,14 +262,16 @@ describe("donors", () => {
 
       it("Should return the agreements", async function () {
         const response = await request(server).get("/donors/237/recurring/avtalegiro");
-        expect(response.body.content).to.deep.equal(mockAgreements);
+        expect(response.body.content).toStrictEqual(mockAgreements);
       });
     });
 
     describe("GET /donors/:id/recurring/vipps", function () {
       beforeEach(function () {
-        agreementStub = sinon.stub(DAO.vipps, "getAgreementsByDonorId");
-        agreementStub.resolves(mockAgreementsVipps);
+        agreementStub = vi
+          .spyOn(DAO.vipps, "getAgreementsByDonorId")
+          .mockReturnValue(undefined as any);
+        agreementStub.mockResolvedValue(mockAgreementsVipps);
       });
 
       it("Should return 200 OK", async function () {
@@ -275,14 +280,14 @@ describe("donors", () => {
 
       it("Should return the agreements without their url codes", async function () {
         const response = await request(server).get("/donors/237/recurring/vipps");
-        expect(response.body.content).to.deep.equal(
+        expect(response.body.content).toStrictEqual(
           mockAgreementsVipps.map(({ agreement_url_code, ...agreement }) => agreement),
         );
       });
     });
 
     describe("GET /donors/:id/donations/aggregated", function () {
-      let aggregatedByIdStub: sinon.SinonStub;
+      let aggregatedByIdStub: MockInstance;
 
       const mockDonations = [
         {
@@ -333,24 +338,24 @@ describe("donors", () => {
       ];
 
       beforeEach(() => {
-        aggregatedByIdStub = sinon
-          .stub(DAO.donations, "getYearlyAggregateByDonorId")
-          .resolves(mockDonations);
+        aggregatedByIdStub = vi
+          .spyOn(DAO.donations, "getYearlyAggregateByDonorId")
+          .mockResolvedValue(mockDonations);
       });
 
       it("Gets all the donations of a donor by ID", async function () {
-        aggregatedByIdStub.resolves(mockDonations);
+        aggregatedByIdStub.mockResolvedValue(mockDonations);
 
         const response = await request(server).get("/donors/2349/donations/aggregated").expect(200);
 
         let donations = response.body.content;
-        expect(donations).to.have.length(5);
+        expect(donations).toHaveLength(5);
         for (var i = 0; i < donations.length; i++) {
-          expect(donations[i].ID).to.be.a("number");
-          expect(donations[i].organization).to.be.a("string");
-          expect(donations[i].abbriv).to.be.a("string");
-          expect(donations[i].value).to.be.a("string");
-          expect(donations[i].year).to.be.a("number");
+          expect(donations[i].ID).toBeTypeOf("number");
+          expect(donations[i].organization).toBeTypeOf("string");
+          expect(donations[i].abbriv).toBeTypeOf("string");
+          expect(donations[i].value).toBeTypeOf("string");
+          expect(donations[i].year).toBeTypeOf("number");
         }
       });
 
@@ -364,13 +369,13 @@ describe("donors", () => {
 
       it("Donor ID doesn't exist", async function () {
         try {
-          sinon.stub(authMiddleware, "checkAdminOrTheDonor").callsFake(() => {
+          vi.spyOn(authMiddleware, "checkAdminOrTheDonor").mockImplementation(() => {
             throw new InvalidTokenError("Unexpected 'https://gieffektivt.no/user-id' value");
           });
 
           await request(server).get("/donors/1/donations/aggregated").expect(401);
         } catch (ex) {
-          expect(ex).to.not.be.undefined;
+          expect(ex).not.toBeUndefined();
         }
       });
     });
@@ -396,7 +401,7 @@ describe("donors", () => {
       });
 
       beforeEach(function () {
-        sinon.stub(DAO.tax, "getByDonorId").resolves([
+        vi.spyOn(DAO.tax, "getByDonorId").mockResolvedValue([
           {
             id: 10,
             donorId: jack.id,
@@ -411,16 +416,14 @@ describe("donors", () => {
         ] as any);
 
         // Owner 2 (EA Norge) donations are returned by both getByDonorId and getEAFundsDonations
-        sinon
-          .stub(DAO.donations, "getByDonorId")
-          .resolves([
-            donation(1, "1000.00", 10, 3),
-            donation(2, "2000.00", 10, 2),
-            donation(3, "300.00", null, 3),
-            donation(4, "500.00", null, 2),
-          ] as any);
+        vi.spyOn(DAO.donations, "getByDonorId").mockResolvedValue([
+          donation(1, "1000.00", 10, 3),
+          donation(2, "2000.00", 10, 2),
+          donation(3, "300.00", null, 3),
+          donation(4, "500.00", null, 2),
+        ] as any);
 
-        sinon.stub(DAO.donations, "getEAFundsDonations").resolves([
+        vi.spyOn(DAO.donations, "getEAFundsDonations").mockResolvedValue([
           {
             id: 2,
             donorId: jack.id,
@@ -444,17 +447,17 @@ describe("donors", () => {
         const reports = await getYearlyTaxReports(237, RequestLocale.NO);
 
         const report = reports.find((r) => r.year === 2024)!;
-        expect(report).to.not.be.undefined;
+        expect(report).not.toBeUndefined();
 
-        expect(report.units).to.have.length(1);
-        expect(report.units[0].sumDonations).to.equal(3000);
-        expect(report.units[0].channels).to.deep.equal([
+        expect(report.units).toHaveLength(1);
+        expect(report.units[0].sumDonations).toBe(3000);
+        expect(report.units[0].channels).toStrictEqual([
           { channel: "Gi Effektivt", sumDonations: 1000 },
           { channel: "EAN Giverportal", sumDonations: 2000 },
         ]);
-        expect(report.sumDonations).to.equal(3000);
+        expect(report.sumDonations).toBe(3000);
 
-        expect(report.sumDonationsWithoutTaxUnit).to.deep.equal({
+        expect(report.sumDonationsWithoutTaxUnit).toStrictEqual({
           sumDonations: 800,
           channels: [
             { channel: "Gi Effektivt", sumDonations: 300 },
@@ -482,16 +485,16 @@ describe("donors", () => {
         registered: "1921-07-04T23:00:00.000Z",
       };
 
-      let getByIDStub: sinon.SinonStub;
-      let mergeStub: sinon.SinonStub;
-      let repointStub: sinon.SinonStub;
+      let getByIDStub: MockInstance;
+      let mergeStub: MockInstance;
+      let repointStub: MockInstance;
 
       beforeEach(function () {
-        getByIDStub = sinon.stub(DAO.donors, "getByID");
+        getByIDStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
         getByIDStub.withArgs(100).resolves(origin);
         getByIDStub.withArgs(200).resolves(destination);
-        mergeStub = sinon.stub(DAO.donors, "mergeDonors").resolves();
-        repointStub = sinon.stub(auth0, "repointAuth0DonorIdOnMerge").resolves({
+        mergeStub = vi.spyOn(DAO.donors, "mergeDonors").mockResolvedValue(undefined);
+        repointStub = vi.spyOn(auth0, "repointAuth0DonorIdOnMerge").mockResolvedValue({
           updated: [],
           skipped: [],
         });
@@ -500,27 +503,27 @@ describe("donors", () => {
       it("re-points Auth0 before merging the donors", async function () {
         const response = await request(server).post("/donors/100/merge/200").expect(200);
 
-        expect(response.body.content).to.equal(true);
-        expect(repointStub.calledOnceWithExactly(100, 200, origin.email)).to.equal(true);
-        expect(mergeStub.calledOnceWithExactly(100, 200)).to.equal(true);
-        expect(repointStub.calledBefore(mergeStub)).to.equal(true);
+        expect(response.body.content).toBe(true);
+        expect(repointStub).toHaveBeenCalledExactlyOnceWith(100, 200, origin.email);
+        expect(mergeStub).toHaveBeenCalledExactlyOnceWith(100, 200);
+        expect(repointStub).toHaveBeenCalledBefore(mergeStub);
       });
 
       it("still merges when Auth0 re-pointing fails", async function () {
-        sinon.stub(console, "error");
-        repointStub.rejects(new Error("Auth0 unavailable"));
+        vi.spyOn(console, "error").mockReturnValue(undefined);
+        repointStub.mockRejectedValue(new Error("Auth0 unavailable"));
 
         const response = await request(server).post("/donors/100/merge/200").expect(200);
 
-        expect(response.body.content).to.equal(true);
-        expect(mergeStub.calledOnce).to.equal(true);
+        expect(response.body.content).toBe(true);
+        expect(mergeStub).toHaveBeenCalledOnce();
       });
 
       it("returns 400 when merging a donor into itself", async function () {
         await request(server).post("/donors/100/merge/100").expect(400);
 
-        expect(mergeStub.called).to.equal(false);
-        expect(repointStub.called).to.equal(false);
+        expect(mergeStub).not.toHaveBeenCalled();
+        expect(repointStub).not.toHaveBeenCalled();
       });
 
       it("returns 404 when a donor is missing", async function () {
@@ -528,13 +531,13 @@ describe("donors", () => {
 
         await request(server).post("/donors/100/merge/200").expect(404);
 
-        expect(mergeStub.called).to.equal(false);
-        expect(repointStub.called).to.equal(false);
+        expect(mergeStub).not.toHaveBeenCalled();
+        expect(repointStub).not.toHaveBeenCalled();
       });
     });
   });
 
   afterEach(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 });

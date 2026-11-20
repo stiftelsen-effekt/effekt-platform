@@ -1,10 +1,9 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express, { type Request, type Response } from "express";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import request from "supertest";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import * as mail from "../custom_modules/mail";
@@ -29,10 +28,10 @@ const anonymous = () =>
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
-    if (message) expect(err.message).to.equal(message);
+    expect(err.code).toBe(code);
+    if (message) expect(err.message).toBe(message);
   }
 };
 
@@ -88,13 +87,13 @@ const tokenFor = (kid: string, method: number, donorId = 42, amount = 500) =>
 
 describe("tRPC widget router", () => {
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
     resetBankPendingMail();
   });
 
   describe("causeAreas", () => {
     it("returns the cause areas with their organizations, only the declared fields", async () => {
-      sinon.stub(DAO.causeareas, "getAll").resolves([
+      vi.spyOn(DAO.causeareas, "getAll").mockResolvedValue([
         {
           id: 1,
           name: "Global health",
@@ -108,7 +107,7 @@ describe("tRPC widget router", () => {
           standardPercentageShare: 100,
         },
       ] as any);
-      sinon.stub(DAO.organizations, "getAll").resolves([
+      vi.spyOn(DAO.organizations, "getAll").mockResolvedValue([
         {
           id: 3,
           name: "Against Malaria Foundation",
@@ -128,8 +127,8 @@ describe("tRPC widget router", () => {
       ] as any);
 
       const causeAreas = await anonymous().causeAreas();
-      expect(causeAreas).to.have.length(1);
-      expect(causeAreas[0].organizations).to.deep.equal([
+      expect(causeAreas).toHaveLength(1);
+      expect(causeAreas[0].organizations).toStrictEqual([
         {
           id: 3,
           causeAreaId: 1,
@@ -145,7 +144,7 @@ describe("tRPC widget router", () => {
           ordering: 2,
         },
       ]);
-      expect(causeAreas[0].standardPercentageShare).to.equal(100);
+      expect(causeAreas[0].standardPercentageShare).toBe(100);
     });
 
     it("accepts the Danish backend's cause areas (null descriptions, no abbreviation)", async () => {
@@ -179,45 +178,49 @@ describe("tRPC widget router", () => {
           ],
         },
       ]);
-      expect(parsed.success).to.equal(true);
+      expect(parsed.success).toBe(true);
     });
   });
 
   describe("referralTypes", () => {
     it("returns the active referral types", async () => {
-      const getTypes = sinon
-        .stub(DAO.referrals, "getTypes")
-        .resolves([{ id: 1, name: "Friend", ordering: 1 }]);
-      expect(await anonymous().referralTypes()).to.deep.equal([
+      const getTypes = vi
+        .spyOn(DAO.referrals, "getTypes")
+        .mockResolvedValue([{ id: 1, name: "Friend", ordering: 1 }]);
+      expect(await anonymous().referralTypes()).toStrictEqual([
         { id: 1, name: "Friend", ordering: 1 },
       ]);
-      expect(getTypes.calledOnce).to.equal(true);
+      expect(getTypes).toHaveBeenCalledOnce();
     });
   });
 
   describe("registerDonation", () => {
-    let getIDbyEmail: sinon.SinonStub;
-    let addDonor: sinon.SinonStub;
-    let getByID: sinon.SinonStub;
-    let addTaxUnit: sinon.SinonStub;
-    let getByDonorIdAndSsn: sinon.SinonStub;
-    let updateNewsletter: sinon.SinonStub;
-    let addDistribution: sinon.SinonStub;
-    let addPaymentIntent: sinon.SinonStub;
+    let getIDbyEmail: MockInstance;
+    let addDonor: MockInstance;
+    let getByID: MockInstance;
+    let addTaxUnit: MockInstance;
+    let getByDonorIdAndSsn: MockInstance;
+    let updateNewsletter: MockInstance;
+    let addDistribution: MockInstance;
+    let addPaymentIntent: MockInstance;
 
     beforeEach(() => {
-      getIDbyEmail = sinon.stub(DAO.donors, "getIDbyEmail").resolves(null);
-      addDonor = sinon.stub(DAO.donors, "add").resolves(42);
-      getByID = sinon.stub(DAO.donors, "getByID").resolves(null);
-      updateNewsletter = sinon.stub(DAO.donors, "updateNewsletter").resolves();
-      addTaxUnit = sinon.stub(DAO.tax, "addTaxUnit").resolves(5);
-      getByDonorIdAndSsn = sinon.stub(DAO.tax, "getByDonorIdAndSsn").resolves(null);
-      sinon.stub(DAO.distributions, "getStandardDistributionByCauseAreaID").resolves([]);
-      sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null);
-      addDistribution = sinon.stub(DAO.distributions, "add").resolves();
-      sinon.stub(donationHelpers, "createKID").resolves("12345678");
-      addPaymentIntent = sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent").resolves();
-      sinon.stub(DAO.donationReferralCodes, "add").resolves();
+      getIDbyEmail = vi.spyOn(DAO.donors, "getIDbyEmail").mockResolvedValue(null);
+      addDonor = vi.spyOn(DAO.donors, "add").mockResolvedValue(42);
+      getByID = vi.spyOn(DAO.donors, "getByID").mockResolvedValue(null);
+      updateNewsletter = vi
+        .spyOn(DAO.donors, "updateNewsletter")
+        .mockResolvedValue(undefined as any);
+      addTaxUnit = vi.spyOn(DAO.tax, "addTaxUnit").mockResolvedValue(5);
+      getByDonorIdAndSsn = vi.spyOn(DAO.tax, "getByDonorIdAndSsn").mockResolvedValue(null);
+      vi.spyOn(DAO.distributions, "getStandardDistributionByCauseAreaID").mockResolvedValue([]);
+      vi.spyOn(DAO.distributions, "getKIDbySplit").mockResolvedValue(null);
+      addDistribution = vi.spyOn(DAO.distributions, "add").mockResolvedValue(undefined as any);
+      vi.spyOn(donationHelpers, "createKID").mockResolvedValue("12345678");
+      addPaymentIntent = vi
+        .spyOn(DAO.initialpaymentmethod, "addPaymentIntent")
+        .mockResolvedValue(undefined);
+      vi.spyOn(DAO.donationReferralCodes, "add").mockResolvedValue(undefined);
     });
 
     for (const [name, change] of attacks) {
@@ -225,33 +228,33 @@ describe("tRPC widget router", () => {
         const body = widgetBody();
         change(body);
         await expectTrpcError(anonymous().registerDonation(body as any), "BAD_REQUEST");
-        expect(getIDbyEmail.called).to.equal(false);
+        expect(getIDbyEmail).not.toHaveBeenCalled();
       });
     }
 
     it("registers a bank donation and returns the KID with a registration token", async () => {
       const { registrationToken, ...result } = await anonymous().registerDonation(widgetBody());
-      expect(result).to.deep.equal({
+      expect(result).toStrictEqual({
         KID: "12345678",
         hasAnsweredReferral: false,
         paymentProviderUrl: "",
       });
-      expect(verifyRegistrationToken(registrationToken)).to.include({
-        kid: "12345678",
-        method: methods.BANK,
-        donorId: 42,
-        amount: 500,
-      });
-      expect(
-        addDonor.calledOnceWith({
-          email: "donor@example.com",
-          full_name: "Dina Donor",
-          newsletter: false,
+      expect(verifyRegistrationToken(registrationToken)).toEqual(
+        expect.objectContaining({
+          kid: "12345678",
+          method: methods.BANK,
+          donorId: 42,
+          amount: 500,
         }),
-      ).to.equal(true);
-      expect(addDistribution.calledOnce).to.equal(true);
-      expect(addDistribution.firstCall.args[0].kid).to.equal("12345678");
-      expect(addPaymentIntent.calledOnceWith(500, methods.BANK, "12345678")).to.equal(true);
+      );
+      expect(addDonor).toHaveBeenCalledExactlyOnceWith({
+        email: "donor@example.com",
+        full_name: "Dina Donor",
+        newsletter: false,
+      });
+      expect(addDistribution).toHaveBeenCalledOnce();
+      expect(addDistribution.mock.calls[0][0].kid).toBe("12345678");
+      expect(addPaymentIntent).toHaveBeenCalledExactlyOnceWith(500, methods.BANK, "12345678");
     });
 
     it("does exactly what POST /donations/register does", async () => {
@@ -263,24 +266,24 @@ describe("tRPC widget router", () => {
       const restCalls = [addDonor, addDistribution, addPaymentIntent].map((s) =>
         s.getCalls().map((c) => c.args),
       );
-      sinon.resetHistory();
+      vi.clearAllMocks();
 
       const trpc = await anonymous().registerDonation(widgetBody());
-      expect(trpc).to.deep.equal(rest.body.content);
+      expect(trpc).toStrictEqual(rest.body.content);
       expect(
         [addDonor, addDistribution, addPaymentIntent].map((s) => s.getCalls().map((c) => c.args)),
-      ).to.deep.equal(restCalls);
+      ).toStrictEqual(restCalls);
     });
 
     it("starts a one-off Vipps payment and returns its URL", async () => {
-      const initiateOrder = sinon
-        .stub(vipps, "initiateOrder")
-        .resolves({ orderId: "order-1", externalPaymentUrl: "https://vipps.example/pay" });
-      const pollOrder = sinon.stub(vipps, "pollOrder");
+      const initiateOrder = vi
+        .spyOn(vipps, "initiateOrder")
+        .mockResolvedValue({ orderId: "order-1", externalPaymentUrl: "https://vipps.example/pay" });
+      const pollOrder = vi.spyOn(vipps, "pollOrder").mockReturnValue(undefined);
       const result = await anonymous().registerDonation({ ...widgetBody(), method: methods.VIPPS });
-      expect(initiateOrder.calledOnceWith("12345678", 500)).to.equal(true);
-      expect(pollOrder.calledOnceWith("order-1")).to.equal(true);
-      expect(result.paymentProviderUrl).to.equal("https://vipps.example/pay");
+      expect(initiateOrder).toHaveBeenCalledExactlyOnceWith("12345678", 500);
+      expect(pollOrder).toHaveBeenCalledExactlyOnceWith("order-1");
+      expect(result.paymentProviderUrl).toBe("https://vipps.example/pay");
     });
 
     it("refuses the discontinued Swish and AutoGiro methods before any donor is created", async () => {
@@ -291,7 +294,7 @@ describe("tRPC widget router", () => {
           "Payment method not supported",
         );
       }
-      expect(getIDbyEmail.called).to.equal(false);
+      expect(getIDbyEmail).not.toHaveBeenCalled();
     });
 
     it("refuses a referral code that is not a string or too long", async () => {
@@ -305,58 +308,71 @@ describe("tRPC widget router", () => {
         "BAD_REQUEST",
         "Referral code is too long",
       );
-      expect(getIDbyEmail.called).to.equal(false);
+      expect(getIDbyEmail).not.toHaveBeenCalled();
     });
 
     it("never says who the donor is or whether they answered before", async () => {
-      getIDbyEmail.resolves(7);
-      getByID.resolves({ id: 7, name: "Someone Else", registered: new Date("2020-01-01") });
+      getIDbyEmail.mockResolvedValue(7);
+      getByID.mockResolvedValue({
+        id: 7,
+        name: "Someone Else",
+        registered: new Date("2020-01-01"),
+      });
       const result = await anonymous().registerDonation(widgetBody());
-      expect(result).to.not.have.property("donorID");
-      expect(result.hasAnsweredReferral).to.equal(false);
+      expect(result).not.toHaveProperty("donorID");
+      expect(result.hasAnsweredReferral).toBe(false);
     });
 
     it("leaves an existing donor's name, newsletter and tax units alone", async () => {
-      getIDbyEmail.resolves(7);
-      getByID.resolves({ id: 7, name: "", newsletter: false, registered: new Date("2020-01-01") });
+      getIDbyEmail.mockResolvedValue(7);
+      getByID.mockResolvedValue({
+        id: 7,
+        name: "",
+        newsletter: false,
+        registered: new Date("2020-01-01"),
+      });
       const body = widgetBody();
       body.donor = { email: "victim@example.com", name: "Mallory", newsletter: true, ssn: SSN };
 
       const result = await anonymous().registerDonation(body);
 
-      expect(updateNewsletter.called).to.equal(false);
-      expect(addTaxUnit.called).to.equal(false);
-      expect(addDonor.called).to.equal(false);
+      expect(updateNewsletter).not.toHaveBeenCalled();
+      expect(addTaxUnit).not.toHaveBeenCalled();
+      expect(addDonor).not.toHaveBeenCalled();
       // The donation is still registered, without a tax unit
-      expect(addDistribution.firstCall.args[0].taxUnitId).to.equal(null);
-      expect(result.KID).to.equal("12345678");
+      expect(addDistribution.mock.calls[0][0].taxUnitId).toBe(null);
+      expect(result.KID).toBe("12345678");
     });
 
     it("uses an existing donor's own tax unit for the same ssn", async () => {
-      getIDbyEmail.resolves(7);
-      getByDonorIdAndSsn.resolves({ id: 99 });
+      getIDbyEmail.mockResolvedValue(7);
+      getByDonorIdAndSsn.mockResolvedValue({ id: 99 });
       const body = widgetBody();
       body.donor.ssn = SSN;
       await anonymous().registerDonation(body);
-      expect(getByDonorIdAndSsn.calledOnceWith(7, SSN)).to.equal(true);
-      expect(addTaxUnit.called).to.equal(false);
-      expect(addDistribution.firstCall.args[0].taxUnitId).to.equal(99);
+      expect(getByDonorIdAndSsn).toHaveBeenCalledExactlyOnceWith(7, SSN);
+      expect(addTaxUnit).not.toHaveBeenCalled();
+      expect(addDistribution.mock.calls[0][0].taxUnitId).toBe(99);
     });
 
     it("adds the tax unit for a donor created moments ago (going back to add the ssn)", async () => {
-      getIDbyEmail.resolves(7);
-      getByID.resolves({ id: 7, name: "Dina Donor", registered: new Date(Date.now() - 60_000) });
+      getIDbyEmail.mockResolvedValue(7);
+      getByID.mockResolvedValue({
+        id: 7,
+        name: "Dina Donor",
+        registered: new Date(Date.now() - 60_000),
+      });
       const body = widgetBody();
       body.donor.ssn = ` ${SSN} `;
       await anonymous().registerDonation(body);
-      expect(addTaxUnit.calledOnceWith(7, SSN, "Dina Donor")).to.equal(true);
+      expect(addTaxUnit).toHaveBeenCalledExactlyOnceWith(7, SSN, "Dina Donor");
     });
 
     it("adds the tax unit for a new donor", async () => {
       const body = widgetBody();
       body.donor.ssn = SSN;
       await anonymous().registerDonation(body);
-      expect(addTaxUnit.calledOnceWith(42, SSN, "Dina Donor")).to.equal(true);
+      expect(addTaxUnit).toHaveBeenCalledExactlyOnceWith(42, SSN, "Dina Donor");
     });
 
     for (const ssn of ["12345678901", "123456789", "1234567890", "abc", "15019010064"]) {
@@ -364,7 +380,7 @@ describe("tRPC widget router", () => {
         const body = widgetBody();
         body.donor.ssn = ssn;
         await expectTrpcError(anonymous().registerDonation(body), "BAD_REQUEST", "Invalid ssn");
-        expect(getIDbyEmail.called).to.equal(false);
+        expect(getIDbyEmail).not.toHaveBeenCalled();
       });
     }
 
@@ -373,22 +389,22 @@ describe("tRPC widget router", () => {
         const body = widgetBody();
         body.donor.ssn = ssn;
         await anonymous().registerDonation(body);
-        expect(addTaxUnit.calledOnce).to.equal(true);
+        expect(addTaxUnit).toHaveBeenCalledOnce();
       });
     }
 
     it("answers INTERNAL_SERVER_ERROR without details when the database fails", async () => {
-      addDistribution.rejects(new Error("connection lost"));
+      addDistribution.mockRejectedValue(new Error("connection lost"));
       await expectTrpcError(anonymous().registerDonation(widgetBody()), "INTERNAL_SERVER_ERROR");
     });
   });
 
   describe("registerBankPending", () => {
-    let send: sinon.SinonStub;
+    let send: MockInstance;
     const KID = "12345678";
 
     beforeEach(() => {
-      send = sinon.stub(mail, "sendDonationRegistered").resolves(true);
+      send = vi.spyOn(mail, "sendDonationRegistered").mockResolvedValue(true);
     });
 
     for (const input of [
@@ -411,31 +427,31 @@ describe("tRPC widget router", () => {
           anonymous().registerBankPending({ ...input, registrationToken } as any),
           "BAD_REQUEST",
         );
-        expect(send.called).to.equal(false);
+        expect(send).not.toHaveBeenCalled();
       });
     }
 
     it("sends the bank donation email with the amount registered", async () => {
       const registrationToken = tokenFor(KID, methods.BANK, 42, 350);
-      expect(await anonymous().registerBankPending({ KID, sum: 350, registrationToken })).to.equal(
+      expect(await anonymous().registerBankPending({ KID, sum: 350, registrationToken })).toBe(
         true,
       );
-      expect(send.calledOnceWith(KID, 350)).to.equal(true);
+      expect(send).toHaveBeenCalledExactlyOnceWith(KID, 350);
     });
 
     it("states the registered amount, not the one sent", async () => {
       const registrationToken = tokenFor(KID, methods.BANK, 42, 350);
       await anonymous().registerBankPending({ KID, sum: 9_999_999, registrationToken });
-      expect(send.calledOnceWith(KID, 350)).to.equal(true);
+      expect(send).toHaveBeenCalledExactlyOnceWith(KID, 350);
     });
 
     it("sends the email once per KID", async () => {
       const registrationToken = tokenFor(KID, methods.BANK);
       await anonymous().registerBankPending({ KID, sum: 500, registrationToken });
-      expect(await anonymous().registerBankPending({ KID, sum: 500, registrationToken })).to.equal(
+      expect(await anonymous().registerBankPending({ KID, sum: 500, registrationToken })).toBe(
         true,
       );
-      expect(send.calledOnce).to.equal(true);
+      expect(send).toHaveBeenCalledOnce();
     });
 
     for (const [what, token] of [
@@ -462,25 +478,25 @@ describe("tRPC widget router", () => {
           "BAD_REQUEST",
           token() === "" ? undefined : "Invalid or expired registration",
         );
-        expect(send.called).to.equal(false);
+        expect(send).not.toHaveBeenCalled();
       });
     }
 
     it("fails when the email could not be sent, and lets the donor retry", async () => {
-      send.resolves(false);
+      send.mockResolvedValue(false);
       const registrationToken = tokenFor(KID, methods.BANK);
       await expectTrpcError(
         anonymous().registerBankPending({ KID, sum: 500, registrationToken }),
         "INTERNAL_SERVER_ERROR",
       );
-      send.resolves(true);
+      send.mockResolvedValue(true);
       await anonymous().registerBankPending({ KID, sum: 500, registrationToken });
-      expect(send.calledTwice).to.equal(true);
+      expect(send).toHaveBeenCalledTimes(2);
     });
   });
 
   describe("submitReferral", () => {
-    let query: sinon.SinonStub;
+    let query: MockInstance;
     const valid = {
       referralID: 1,
       registrationToken: tokenFor("12345678", methods.BANK, 2),
@@ -489,7 +505,7 @@ describe("tRPC widget router", () => {
     };
 
     beforeEach(() => {
-      query = sinon.stub(DAO, "query").rejects(new Error("unexpected query"));
+      query = vi.spyOn(DAO, "query").mockRejectedValue(new Error("unexpected query"));
     });
 
     for (const [field, value] of [
@@ -513,56 +529,56 @@ describe("tRPC widget router", () => {
           anonymous().submitReferral({ ...valid, [field]: value } as any),
           "BAD_REQUEST",
         );
-        expect(query.called).to.equal(false);
+        expect(query).not.toHaveBeenCalled();
       });
     }
 
     it("answers for the donor of the registration token, not one sent by the client", async () => {
-      sinon.stub(DAO.referrals, "checkRecordExist").resolves(false);
-      sinon.stub(DAO.referrals, "hasAnsweredInOtherSession").resolves(false);
-      const add = sinon.stub(DAO.referrals, "addRecord").resolves(true);
+      vi.spyOn(DAO.referrals, "checkRecordExist").mockResolvedValue(false);
+      vi.spyOn(DAO.referrals, "hasAnsweredInOtherSession").mockResolvedValue(false);
+      const add = vi.spyOn(DAO.referrals, "addRecord").mockResolvedValue(true);
       await anonymous().submitReferral({ ...valid, donorID: 999 } as any);
-      expect(add.calledOnceWith(1, 2, "1730000000000", null)).to.equal(true);
+      expect(add).toHaveBeenCalledExactlyOnceWith(1, 2, "1730000000000", null);
     });
 
     it("accepts but doesn't store a new answer from a donor who answered before", async () => {
-      sinon.stub(DAO.referrals, "checkRecordExist").resolves(false);
-      sinon.stub(DAO.referrals, "hasAnsweredInOtherSession").resolves(true);
-      const add = sinon.stub(DAO.referrals, "addRecord").resolves(true);
-      expect(await anonymous().submitReferral(valid)).to.equal(true);
-      expect(add.called).to.equal(false);
+      vi.spyOn(DAO.referrals, "checkRecordExist").mockResolvedValue(false);
+      vi.spyOn(DAO.referrals, "hasAnsweredInOtherSession").mockResolvedValue(true);
+      const add = vi.spyOn(DAO.referrals, "addRecord").mockResolvedValue(true);
+      expect(await anonymous().submitReferral(valid)).toBe(true);
+      expect(add).not.toHaveBeenCalled();
     });
 
     it("adds a new answer", async () => {
-      sinon.stub(DAO.referrals, "hasAnsweredInOtherSession").resolves(false);
-      sinon.stub(DAO.referrals, "checkRecordExist").resolves(false);
-      const add = sinon.stub(DAO.referrals, "addRecord").resolves(true);
-      expect(await anonymous().submitReferral({ ...valid, comment: "Podcast" })).to.equal(true);
-      expect(add.calledOnceWith(1, 2, "1730000000000", "Podcast")).to.equal(true);
+      vi.spyOn(DAO.referrals, "hasAnsweredInOtherSession").mockResolvedValue(false);
+      vi.spyOn(DAO.referrals, "checkRecordExist").mockResolvedValue(false);
+      const add = vi.spyOn(DAO.referrals, "addRecord").mockResolvedValue(true);
+      expect(await anonymous().submitReferral({ ...valid, comment: "Podcast" })).toBe(true);
+      expect(add).toHaveBeenCalledExactlyOnceWith(1, 2, "1730000000000", "Podcast");
     });
 
     it("stores a missing comment as null", async () => {
-      sinon.stub(DAO.referrals, "hasAnsweredInOtherSession").resolves(false);
-      sinon.stub(DAO.referrals, "checkRecordExist").resolves(false);
-      const add = sinon.stub(DAO.referrals, "addRecord").resolves(true);
+      vi.spyOn(DAO.referrals, "hasAnsweredInOtherSession").mockResolvedValue(false);
+      vi.spyOn(DAO.referrals, "checkRecordExist").mockResolvedValue(false);
+      const add = vi.spyOn(DAO.referrals, "addRecord").mockResolvedValue(true);
       await anonymous().submitReferral(valid);
-      expect(add.calledOnceWith(1, 2, "1730000000000", null)).to.equal(true);
+      expect(add).toHaveBeenCalledExactlyOnceWith(1, 2, "1730000000000", null);
     });
 
     it("only updates the comment of an existing 'other' answer", async () => {
-      sinon.stub(DAO.referrals, "checkRecordExist").resolves(true);
-      const add = sinon.stub(DAO.referrals, "addRecord").resolves(true);
-      const update = sinon.stub(DAO.referrals, "updateRecordComment").resolves(true);
+      vi.spyOn(DAO.referrals, "checkRecordExist").mockResolvedValue(true);
+      const add = vi.spyOn(DAO.referrals, "addRecord").mockResolvedValue(true);
+      const update = vi.spyOn(DAO.referrals, "updateRecordComment").mockResolvedValue(true);
       await anonymous().submitReferral({ ...valid, referralID: 10, comment: "Blog" });
       await anonymous().submitReferral(valid);
-      expect(update.calledOnceWith(10, 2, "1730000000000", "Blog")).to.equal(true);
-      expect(add.called).to.equal(false);
+      expect(update).toHaveBeenCalledExactlyOnceWith(10, 2, "1730000000000", "Blog");
+      expect(add).not.toHaveBeenCalled();
     });
 
     it("removes an answer that is no longer selected", async () => {
-      const remove = sinon.stub(DAO.referrals, "deleteRecord").resolves(true);
+      const remove = vi.spyOn(DAO.referrals, "deleteRecord").mockResolvedValue(true);
       await anonymous().submitReferral({ ...valid, active: false });
-      expect(remove.calledOnceWith(1, 2, "1730000000000")).to.equal(true);
+      expect(remove).toHaveBeenCalledExactlyOnceWith(1, 2, "1730000000000");
     });
   });
 
@@ -575,21 +591,23 @@ describe("tRPC widget router", () => {
     });
 
     it("answers the public queries without a token", async () => {
-      sinon.stub(DAO.referrals, "getTypes").resolves([{ id: 1, name: "Friend", ordering: null }]);
+      vi.spyOn(DAO.referrals, "getTypes").mockResolvedValue([
+        { id: 1, name: "Friend", ordering: null },
+      ]);
       const res = await request(app).get("/trpc/widget.referralTypes").expect(200);
-      expect(res.body.result.data).to.deep.equal([{ id: 1, name: "Friend", ordering: null }]);
+      expect(res.body.result.data).toStrictEqual([{ id: 1, name: "Friend", ordering: null }]);
     });
 
     it("answers 400 to invalid mutation input without touching the database", async () => {
-      const getIDbyEmail = sinon.stub(DAO.donors, "getIDbyEmail").resolves(null);
+      const getIDbyEmail = vi.spyOn(DAO.donors, "getIDbyEmail").mockResolvedValue(null);
       const body = widgetBody();
       (body.distributionCauseAreas[0] as any).id = { id: 1 };
       await request(app).post("/trpc/widget.registerDonation").send(body).expect(400);
-      expect(getIDbyEmail.called).to.equal(false);
+      expect(getIDbyEmail).not.toHaveBeenCalled();
     });
 
     it("refuses widget mutations in a batch", async () => {
-      const send = sinon.stub(mail, "sendDonationRegistered").resolves(true);
+      const send = vi.spyOn(mail, "sendDonationRegistered").mockResolvedValue(true);
       const input = { KID: "12345", sum: 100, registrationToken: tokenFor("12345", methods.BANK) };
       await request(app)
         .post("/trpc/widget.registerBankPending,widget.registerBankPending?batch=1")
@@ -599,16 +617,16 @@ describe("tRPC widget router", () => {
         .post("/trpc/widget.registerBankPending%2Cwidget.registerBankPending?batch=1")
         .send({ 0: input, 1: input })
         .expect(400);
-      expect(send.called).to.equal(false);
+      expect(send).not.toHaveBeenCalled();
 
       await request(app).post("/trpc/widget.registerBankPending").send(input).expect(200);
-      expect(send.calledOnce).to.equal(true);
+      expect(send).toHaveBeenCalledOnce();
     });
 
     it("still batches queries", async () => {
-      sinon.stub(DAO.referrals, "getTypes").resolves([]);
-      sinon.stub(DAO.causeareas, "getAll").resolves([]);
-      sinon.stub(DAO.organizations, "getAll").resolves([]);
+      vi.spyOn(DAO.referrals, "getTypes").mockResolvedValue([]);
+      vi.spyOn(DAO.causeareas, "getAll").mockResolvedValue([]);
+      vi.spyOn(DAO.organizations, "getAll").mockResolvedValue([]);
       await request(app)
         .get("/trpc/widget.referralTypes,widget.causeAreas?batch=1&input={}")
         .expect(200);
@@ -620,7 +638,7 @@ describe("tRPC widget router", () => {
     const imports = [...source.matchAll(/(?:from|import|require\()\s*["']([^"']+)["']/g)].map(
       (m) => m[1],
     );
-    expect(imports).to.deep.equal(["zod"]);
+    expect(imports).toStrictEqual(["zod"]);
   });
 });
 

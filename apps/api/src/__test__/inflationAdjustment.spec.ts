@@ -1,9 +1,7 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { DateTime } from "luxon";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import type {
   InflationCandidate,
@@ -24,7 +22,7 @@ const NOW = DateTime.fromISO("2026-10-31T12:00:00", { zone: "Europe/Oslo" });
 
 /** SSB's calculator: `change` for valid months, an error for months not published yet */
 const ssbFetch = (rates: Record<string, number>, latest = "2026-09") =>
-  sinon.spy(async (url: string) => {
+  vi.fn(async (url: string) => {
     const p = new URL(url).searchParams;
     const start = `${p.get("startYear")}-${p.get("startMonth")}`;
     const end = `${p.get("endYear")}-${p.get("endMonth")}`;
@@ -51,7 +49,7 @@ const fixedInflation = (rates: Record<string, number>): InflationSource =>
   createSsbInflation(ssbFetch(rates));
 
 describe("inflation adjustment", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   describe("last amount change", () => {
     it("is the month after the latest donation with a different sum, in Oslo time", () => {
@@ -61,48 +59,48 @@ describe("inflation adjustment", () => {
           created: new Date("2020-01-01T00:00:00Z"),
           lastDifferentDonation: new Date("2026-01-31T23:30:00Z"),
         }),
-      ).to.deep.equal({ year: 2026, month: 3 });
+      ).toStrictEqual({ year: 2026, month: 3 });
       expect(
         lastChangeMonth({
           created: null,
           lastDifferentDonation: new Date("2025-12-20T00:00:00Z"),
         }),
-      ).to.deep.equal({ year: 2026, month: 1 });
+      ).toStrictEqual({ year: 2026, month: 1 });
     });
 
     it("is the creation month when every donation had the current amount", () => {
       expect(
         lastChangeMonth({ created: new Date("2023-05-31T22:30:00Z"), lastDifferentDonation: null }),
-      ).to.deep.equal({ year: 2023, month: 6 });
-      expect(lastChangeMonth({ created: null, lastDifferentDonation: null })).to.equal(null);
+      ).toStrictEqual({ year: 2023, month: 6 });
+      expect(lastChangeMonth({ created: null, lastDifferentDonation: null })).toBe(null);
     });
 
     it("compares AvtaleGiro amounts in øre with donation sums in kroner, by payment method", async () => {
-      const query = sinon.stub(DAO, "query").resolves([[], []] as any);
+      const query = vi.spyOn(DAO, "query").mockResolvedValue([[], []] as any);
       await DAO.inflationadjustments.getCandidates();
-      const sql = query.firstCall.args[0] as string;
-      expect(sql).to.contain("Don.sum_confirmed * 100 <> AG.amount");
-      expect(sql).to.contain("Don.Payment_ID = 7");
-      expect(sql).to.contain("Don.sum_confirmed <> VA.amount");
-      expect(sql).to.contain("Don.Payment_ID = 8");
-      expect(sql).to.contain("VA.amount * 100 AS amountOre");
+      const sql = query.mock.calls[0][0] as string;
+      expect(sql).toContain("Don.sum_confirmed * 100 <> AG.amount");
+      expect(sql).toContain("Don.Payment_ID = 7");
+      expect(sql).toContain("Don.sum_confirmed <> VA.amount");
+      expect(sql).toContain("Don.Payment_ID = 8");
+      expect(sql).toContain("VA.amount * 100 AS amountOre");
       // The anonymous donor never gets an offer
-      expect(sql).to.contain("D.Donor_ID <> 1464");
-      expect(sql).to.contain("VA.donorID <> 1464");
+      expect(sql).toContain("D.Donor_ID <> 1464");
+      expect(sql).toContain("VA.donorID <> 1464");
       // Open or recent offers block; old expired ones don't
-      expect(sql).to.contain("A.status IN ('new', 'sending')");
-      expect(sql).to.contain("A.status = 'pending' AND A.expires > UTC_TIMESTAMP()");
-      expect(sql).to.contain("A.created > NOW() - INTERVAL 12 MONTH");
+      expect(sql).toContain("A.status IN ('new', 'sending')");
+      expect(sql).toContain("A.status = 'pending' AND A.expires > UTC_TIMESTAMP()");
+      expect(sql).toContain("A.created > NOW() - INTERVAL 12 MONTH");
     });
   });
 
   describe("amount rules", () => {
     it("needs at least 5 % inflation", () => {
-      expect(evaluateAmount(30000, 0.049)).to.deep.equal({
+      expect(evaluateAmount(30000, 0.049)).toStrictEqual({
         eligible: false,
         reason: "lowInflation",
       });
-      expect(evaluateAmount(30000, 0.05)).to.deep.equal({
+      expect(evaluateAmount(30000, 0.05)).toStrictEqual({
         eligible: true,
         proposedOre: 32000, // 315 kr rounds to 320 kr
         increaseOre: 2000,
@@ -110,19 +108,23 @@ describe("inflation adjustment", () => {
     });
 
     it("rounds the new amount to the nearest 10 kr", () => {
-      expect(evaluateAmount(50000, 0.064)).to.deep.include({ proposedOre: 53000 }); // 532
-      expect(evaluateAmount(50000, 0.07)).to.deep.include({ proposedOre: 54000 }); // 535
-      expect(evaluateAmount(100000, 0.0644)).to.deep.include({ proposedOre: 106000 }); // 1064.4
+      expect(evaluateAmount(50000, 0.064)).toEqual(expect.objectContaining({ proposedOre: 53000 })); // 532
+      expect(evaluateAmount(50000, 0.07)).toEqual(expect.objectContaining({ proposedOre: 54000 })); // 535
+      expect(evaluateAmount(100000, 0.0644)).toEqual(
+        expect.objectContaining({ proposedOre: 106000 }),
+      ); // 1064.4
     });
 
     it("needs an increase of at least 10 kr after rounding", () => {
       // 50 kr * 1.06 = 53 kr, rounds to 50 kr: no increase
-      expect(evaluateAmount(5000, 0.06)).to.deep.equal({
+      expect(evaluateAmount(5000, 0.06)).toStrictEqual({
         eligible: false,
         reason: "smallIncrease",
       });
       // 100 kr * 1.06 = 106 kr, rounds to 110 kr
-      expect(evaluateAmount(10000, 0.06)).to.deep.include({ eligible: true, increaseOre: 1000 });
+      expect(evaluateAmount(10000, 0.06)).toEqual(
+        expect.objectContaining({ eligible: true, increaseOre: 1000 }),
+      );
     });
   });
 
@@ -132,7 +134,7 @@ describe("inflation adjustment", () => {
       const ssb = createSsbInflation(fetch);
 
       const end = await ssb.latestMonth(NOW);
-      expect(end).to.deep.equal({ year: 2026, month: 9 });
+      expect(end).toStrictEqual({ year: 2026, month: 9 });
       const rates = await ssb.since(
         [
           { year: 2024, month: 10 },
@@ -141,32 +143,32 @@ describe("inflation adjustment", () => {
         ],
         end,
       );
-      expect(rates.get("2024-10")).to.equal(0.0645);
-      expect(rates.get("2025-01")).to.equal(0.06);
+      expect(rates.get("2024-10")).toBe(0.0645);
+      expect(rates.get("2025-01")).toBe(0.06);
       // 2026-09/2026-09 for the latest month, then one per start month
-      expect(fetch.callCount).to.equal(3);
+      expect(fetch).toHaveBeenCalledTimes(3);
 
       await ssb.latestMonth(NOW);
       await ssb.since([{ year: 2024, month: 10 }], end);
-      expect(fetch.callCount).to.equal(3);
+      expect(fetch).toHaveBeenCalledTimes(3);
     });
 
     it("falls back to earlier months until SSB has one", async () => {
       const fetch = ssbFetch({}, "2026-07");
-      expect(await createSsbInflation(fetch).latestMonth(NOW)).to.deep.equal({
+      expect(await createSsbInflation(fetch).latestMonth(NOW)).toStrictEqual({
         year: 2026,
         month: 7,
       });
-      expect(fetch.callCount).to.equal(3); // 09, 08, 07
+      expect(fetch).toHaveBeenCalledTimes(3); // 09, 08, 07
     });
 
     it("fails when SSB has nothing for a year", async () => {
       const fetch = ssbFetch({}, "2020-01");
       try {
         await createSsbInflation(fetch).latestMonth(NOW);
-        expect.fail("expected an error");
+        expect.unreachable("expected an error");
       } catch (err: any) {
-        expect(err.message).to.contain("SSB");
+        expect(err.message).toContain("SSB");
       }
     });
 
@@ -176,14 +178,14 @@ describe("inflation adjustment", () => {
         year: 2026,
         month: 9,
       });
-      expect(rates.get("2026-10")).to.equal(0);
-      expect(fetch.called).to.be.false;
+      expect(rates.get("2026-10")).toBe(0);
+      expect(fetch).not.toHaveBeenCalled();
     });
   });
 
   describe("preview", () => {
     it("applies the 12-month rule from the last change and the amount rules", async () => {
-      sinon.stub(DAO.inflationadjustments, "getCandidates").resolves([
+      vi.spyOn(DAO.inflationadjustments, "getCandidates").mockResolvedValue([
         // Created in 2022, never changed: inflation since 2022-03
         candidate({ agreementId: "1" }),
         // Changed in March 2026: too recent
@@ -218,19 +220,21 @@ describe("inflation adjustment", () => {
         inflation: fixedInflation({ "2022-03": 0.2, "2025-10": 0.03, "2024-10": 0.0645 }),
       });
 
-      expect(preview.inflationUntil).to.equal("2026-09");
-      expect(preview.proposals.map((p) => [p.type, p.agreementId, p.proposedOre])).to.deep.equal([
+      expect(preview.inflationUntil).toBe("2026-09");
+      expect(preview.proposals.map((p) => [p.type, p.agreementId, p.proposedOre])).toStrictEqual([
         ["avtaleGiro", "1", 36000],
         ["vipps", "abc", 21000],
       ]);
-      expect(preview.proposals[0]).to.deep.include({
-        currentOre: 30000,
-        increaseOre: 6000,
-        inflation: 0.2,
-        lastChange: "2022-03",
-        monthsSinceChange: 55,
-      });
-      expect(preview.skipped).to.deep.equal({
+      expect(preview.proposals[0]).toEqual(
+        expect.objectContaining({
+          currentOre: 30000,
+          increaseOre: 6000,
+          inflation: 0.2,
+          lastChange: "2022-03",
+          monthsSinceChange: 55,
+        }),
+      );
+      expect(preview.skipped).toStrictEqual({
         unknownStart: 0,
         changedRecently: 2,
         lowInflation: 1,
@@ -240,35 +244,40 @@ describe("inflation adjustment", () => {
     });
 
     it("reads only", async () => {
-      sinon.stub(DAO.inflationadjustments, "getCandidates").resolves([candidate()]);
-      const create = sinon.stub(DAO.inflationadjustments, "createIfNoOpenOffer");
+      vi.spyOn(DAO.inflationadjustments, "getCandidates").mockResolvedValue([candidate()]);
+      const create = vi
+        .spyOn(DAO.inflationadjustments, "createIfNoOpenOffer")
+        .mockReturnValue(undefined as any);
       await previewInflationRound({ now: NOW, inflation: fixedInflation({ "2022-03": 0.2 }) });
-      expect(create.called).to.be.false;
+      expect(create).not.toHaveBeenCalled();
     });
   });
 
   describe("prepare", () => {
     it("adds a new offer per eligible agreement, and none twice", async () => {
-      sinon.stub(DAO.inflationadjustments, "expirePending").resolves(2);
-      sinon
-        .stub(DAO.inflationadjustments, "getCandidates")
-        .resolves([candidate({ agreementId: "1" }), candidate({ agreementId: "2" })]);
-      const create = sinon.stub(DAO.inflationadjustments, "createIfNoOpenOffer");
-      create.onFirstCall().resolves(true);
-      create.onSecondCall().resolves(false); // prepared concurrently: the INSERT skips it
+      vi.spyOn(DAO.inflationadjustments, "expirePending").mockResolvedValue(2);
+      vi.spyOn(DAO.inflationadjustments, "getCandidates").mockResolvedValue([
+        candidate({ agreementId: "1" }),
+        candidate({ agreementId: "2" }),
+      ]);
+      const create = vi
+        .spyOn(DAO.inflationadjustments, "createIfNoOpenOffer")
+        .mockReturnValue(undefined as any);
+      create.mockResolvedValueOnce(true);
+      create.mockResolvedValueOnce(false); // prepared concurrently: the INSERT skips it
 
       const result = await prepareInflationOffers({
         now: NOW,
         inflation: fixedInflation({ "2022-03": 0.2 }),
       });
 
-      expect(result).to.deep.equal({
+      expect(result).toStrictEqual({
         created: 1,
         alreadyOpen: 1,
         expired: 2,
         inflationUntil: "2026-09",
       });
-      expect(create.firstCall.args[0]).to.deep.equal({
+      expect(create.mock.calls[0][0]).toStrictEqual({
         agreementId: "1",
         agreementType: "avtaleGiro",
         currentAmount: 30000,
@@ -278,7 +287,7 @@ describe("inflation adjustment", () => {
     });
 
     it("only inserts when no blocking offer exists, in the same statement", async () => {
-      const query = sinon.stub(DAO, "query").resolves([{ affectedRows: 0 }, []] as any);
+      const query = vi.spyOn(DAO, "query").mockResolvedValue([{ affectedRows: 0 }, []] as any);
       const added = await DAO.inflationadjustments.createIfNoOpenOffer({
         agreementId: 5,
         agreementType: "vipps",
@@ -286,10 +295,10 @@ describe("inflation adjustment", () => {
         proposedAmount: 11000,
         inflationPercentage: 0.06,
       });
-      expect(added).to.equal(false);
-      const sql = (query.firstCall.args[0] as string).replace(/\s+/g, " ");
-      expect(sql).to.contain("SELECT ?, ?, ?, ?, ?, ?, 'new', ? FROM DUAL WHERE NOT EXISTS");
-      expect(sql).to.contain("A.status IN ('new', 'sending')");
+      expect(added).toBe(false);
+      const sql = (query.mock.calls[0][0] as string).replace(/\s+/g, " ");
+      expect(sql).toContain("SELECT ?, ?, ?, ?, ?, ?, 'new', ? FROM DUAL WHERE NOT EXISTS");
+      expect(sql).toContain("A.status IN ('new', 'sending')");
     });
   });
 
@@ -309,17 +318,17 @@ describe("inflation adjustment", () => {
     });
 
     const stubSend = (rows: UnsentInflationAdjustment[], claimed: (id: number) => boolean) => {
-      const getUnsent = sinon
-        .stub(DAO.inflationadjustments, "getUnsent")
-        .callsFake(async (limit?: number) => rows.slice(0, limit));
-      const claim = sinon
-        .stub(DAO.inflationadjustments, "claimForSending")
-        .callsFake(async (id: number) => claimed(id));
-      const finish = sinon.stub(DAO.inflationadjustments, "finishSending").resolves(true);
-      const cancel = sinon.stub(DAO.inflationadjustments, "cancelUnsent").resolves(true);
-      sinon
-        .stub(DAO.inflationadjustments, "getStatusCounts")
-        .resolves([{ status: "new", count: 7, monthlyIncreaseOre: 0 }]);
+      const getUnsent = vi
+        .spyOn(DAO.inflationadjustments, "getUnsent")
+        .mockImplementation(async (limit?: number) => rows.slice(0, limit));
+      const claim = vi
+        .spyOn(DAO.inflationadjustments, "claimForSending")
+        .mockImplementation(async (id: number) => claimed(id));
+      const finish = vi.spyOn(DAO.inflationadjustments, "finishSending").mockResolvedValue(true);
+      const cancel = vi.spyOn(DAO.inflationadjustments, "cancelUnsent").mockResolvedValue(true);
+      vi.spyOn(DAO.inflationadjustments, "getStatusCounts").mockResolvedValue([
+        { status: "new", count: 7, monthlyIncreaseOre: 0 },
+      ]);
       return { getUnsent, claim, finish, cancel };
     };
 
@@ -328,55 +337,57 @@ describe("inflation adjustment", () => {
         [unsent(1), unsent(2), unsent(3, false), unsent(4)],
         () => true,
       );
-      const sendEmail = sinon.stub();
+      const sendEmail = vi.fn();
       sendEmail.withArgs(1).resolves(true);
       sendEmail.withArgs(2).resolves(false);
       sendEmail.withArgs(4).rejects(new Error("MailerSend down"));
 
       const result = await sendInflationOffers({ batchSize: 10, sendEmail, pauseMs: 0 });
 
-      expect(result).to.deep.equal({ sent: 1, failed: 2, cancelled: 1, remaining: 7 });
-      expect(claim.args.map((a) => a[0])).to.deep.equal([1, 2, 4]);
+      expect(result).toStrictEqual({ sent: 1, failed: 2, cancelled: 1, remaining: 7 });
+      expect(claim.mock.calls.map((a) => a[0])).toStrictEqual([1, 2, 4]);
       // The offer is valid for 30 days from the send
-      const expires = claim.firstCall.args[1] as Date;
-      expect(expires.getTime() - Date.now()).to.be.closeTo(30 * 24 * 3600 * 1000, 60_000);
+      const expires = claim.mock.calls[0][1] as Date;
+      expect(Math.abs(expires.getTime() - Date.now() - 30 * 24 * 3600 * 1000)).toBeLessThanOrEqual(
+        60_000,
+      );
       expect(claim.firstCall.calledBefore(sendEmail.firstCall)).to.be.true;
-      expect(finish.args).to.deep.equal([
+      expect(finish.mock.calls).toStrictEqual([
         [1, true],
         [2, false],
         [4, false],
       ]);
-      expect(cancel.calledOnceWith(3)).to.be.true;
+      expect(cancel).toHaveBeenCalledExactlyOnceWith(3);
       expect(sendEmail.neverCalledWith(3)).to.be.true;
     });
 
     it("never emails an offer another run already claimed", async () => {
       stubSend([unsent(1), unsent(2)], (id) => id !== 1);
-      const sendEmail = sinon.stub().resolves(true);
+      const sendEmail = vi.fn().mockResolvedValue(true);
 
       const result = await sendInflationOffers({ batchSize: 10, sendEmail, pauseMs: 0 });
 
-      expect(sendEmail.args).to.deep.equal([[2]]);
-      expect(result.sent).to.equal(1);
+      expect(sendEmail.mock.calls).toStrictEqual([[2]]);
+      expect(result.sent).toBe(1);
     });
 
     it("sends at most the batch size, capped per call", async () => {
       const rows = Array.from({ length: 40 }, (_, i) => unsent(i + 1));
       const { getUnsent } = stubSend(rows, () => true);
-      const sendEmail = sinon.stub().resolves(true);
+      const sendEmail = vi.fn().mockResolvedValue(true);
 
       await sendInflationOffers({ batchSize: 3, sendEmail, pauseMs: 0 });
-      expect(sendEmail.callCount).to.equal(3);
+      expect(sendEmail).toHaveBeenCalledTimes(3);
 
-      sendEmail.resetHistory();
+      sendEmail.mockClear();
       await sendInflationOffers({ batchSize: 100, sendEmail, pauseMs: 0 });
-      expect(getUnsent.lastCall.args[0]).to.equal(MAX_SEND_BATCH);
-      expect(sendEmail.callCount).to.equal(MAX_SEND_BATCH);
+      expect(getUnsent.mock.lastCall![0]).toBe(MAX_SEND_BATCH);
+      expect(sendEmail).toHaveBeenCalledTimes(MAX_SEND_BATCH);
     });
 
     it("stops starting emails when the time budget is used", async () => {
       stubSend([unsent(1), unsent(2), unsent(3)], () => true);
-      const sendEmail = sinon.stub().callsFake(async () => {
+      const sendEmail = vi.fn().mockImplementation(async () => {
         await new Promise((resolve) => setTimeout(resolve, 30));
         return true;
       });
@@ -388,7 +399,7 @@ describe("inflation adjustment", () => {
         timeBudgetMs: 20,
       });
 
-      expect(result.sent).to.equal(1);
+      expect(result.sent).toBe(1);
     });
   });
 });
@@ -408,7 +419,7 @@ describe("inflation adjustment expiry migration", () => {
     .filter(Boolean);
 
   it("only expires new and pending offers whose time ran out", () => {
-    expect(statements).to.deep.equal([
+    expect(statements).toStrictEqual([
       "UPDATE `Agreement_inflation_adjustments` SET `status` = 'expired' WHERE `status` IN ('new', 'pending') AND `expires` < UTC_TIMESTAMP()",
     ]);
   });

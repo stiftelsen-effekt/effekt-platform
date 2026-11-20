@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { parse } from "csv-parse/sync";
 import { parseDirectAmfDonationsReport } from "../custom_modules/parsers/amf";
 import { parseEanTaxUnits } from "../custom_modules/parsers/eanTaxUnits";
@@ -22,35 +21,35 @@ describe("csv-parse characterization", () => {
   describe("the options the parsers use", () => {
     it("strips a BOM, skips empty lines and reads CRLF and quoted fields", () => {
       const text = `${BOM}a;"b;c";"say ""hi"""\r\n\r\n1;2;3\r\n`;
-      expect(parse(text, plain(";"))).to.deep.equal([
+      expect(parse(text, plain(";"))).toStrictEqual([
         ["a", "b;c", 'say "hi"'],
         ["1", "2", "3"],
       ]);
       // The line ending is taken from the first line, so a later bare \n stays in the field
-      expect(parse("a;b\r\n1;2\n\n", plain(";"))).to.deep.equal([
+      expect(parse("a;b\r\n1;2\n\n", plain(";"))).toStrictEqual([
         ["a", "b"],
         ["1", "2\n\n"],
       ]);
     });
 
     it("keeps surrounding spaces and a lone field per line without trim", () => {
-      expect(parse(" a , b \nc,d", plain(","))).to.deep.equal([
+      expect(parse(" a , b \nc,d", plain(","))).toStrictEqual([
         [" a ", " b "],
         ["c", "d"],
       ]);
-      expect(parse("a,b\nc,d", plain(";"))).to.deep.equal([["a,b"], ["c,d"]]);
+      expect(parse("a,b\nc,d", plain(";"))).toStrictEqual([["a,b"], ["c,d"]]);
     });
 
     it("throws on rows of different lengths unless relaxed", () => {
-      expect(() => parse("a;b\n1;2;3", plain(";"))).to.throw(
+      expect(() => parse("a;b\n1;2;3", plain(";"))).toThrow(
         "Invalid Record Length: expect 2, got 3 on line 2",
       );
-      expect(() => parse('a;"b\n1;2', plain(";"))).to.throw(/Quote Not Closed/);
+      expect(() => parse('a;"b\n1;2', plain(";"))).toThrow(/Quote Not Closed/);
     });
 
     it("maps headers, relaxes column counts and trims with columns", () => {
       const text = `${BOM}First Name ; Sum (NOK)\n Ada ; 1,000 \nBob\n\nCy;2;extra`;
-      expect(parse(text, withHeader(";"))).to.deep.equal([
+      expect(parse(text, withHeader(";"))).toStrictEqual([
         { FirstName: "Ada", SumNOK: "1,000" },
         { FirstName: "Bob" },
         { FirstName: "Cy", SumNOK: "2" },
@@ -58,15 +57,15 @@ describe("csv-parse characterization", () => {
     });
 
     it("returns nothing for an empty file", () => {
-      expect(parse("", plain(";"))).to.deep.equal([]);
-      expect(parse(`${BOM}\n\n`, withHeader(","))).to.deep.equal([]);
+      expect(parse("", plain(";"))).toStrictEqual([]);
+      expect(parse(`${BOM}\n\n`, withHeader(","))).toStrictEqual([]);
     });
   });
 
   describe("parsers", () => {
     it("reads tax deduction rows with semicolons", () => {
       const report = Buffer.from(`${BOM}Ada Lovelace;Ada ;ada@example.org;01010112345;1000\n\n`);
-      expect(parseTaxReport(report)).to.deep.equal([
+      expect(parseTaxReport(report)).toStrictEqual([
         {
           fullname: "Ada Lovelace",
           firstname: "Ada",
@@ -83,10 +82,10 @@ describe("csv-parse characterization", () => {
         parseEanTaxUnits(
           Buffer.from('Name,ssn,Sum,Gieffektivt\nAda , 01010112345,"1,500.50",TRUE\n,,,\n'),
         ),
-      ).to.deep.equal(expected);
+      ).toStrictEqual(expected);
       expect(
         parseEanTaxUnits(Buffer.from('Name;ssn;Sum;Gieffektivt\nAda;01010112345;"1,500.50";TRUE')),
-      ).to.deep.equal(expected);
+      ).toStrictEqual(expected);
     });
 
     it("reads AMF reports with semicolons, falling back to commas", () => {
@@ -110,11 +109,11 @@ describe("csv-parse characterization", () => {
       for (const delimiter of [";", ","]) {
         const quoted = row.map((field) => (field.includes(",") ? `"${field}"` : field));
         const result = parseDirectAmfDonationsReport(Buffer.from(quoted.join(delimiter)));
-        expect(result, delimiter).to.have.length(1);
+        expect(result, delimiter).toHaveLength(1);
         const [transaction] = result as Exclude<typeof result, false>;
-        expect(transaction.amountNOK, delimiter).to.equal(1000);
-        expect(transaction.date.toISODate(), delimiter).to.equal("2026-10-24");
-        expect(transaction.email, delimiter).to.equal("ada@example.org");
+        expect(transaction.amountNOK, delimiter).toBe(1000);
+        expect(transaction.date.toISODate(), delimiter).toBe("2026-10-24");
+        expect(transaction.email, delimiter).toBe("ada@example.org");
       }
     });
   });

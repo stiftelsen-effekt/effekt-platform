@@ -1,6 +1,4 @@
-import { describe, it, afterEach, expect as vexpect } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, afterEach, expect as vexpect, expect, vi } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 const vipps = require("../custom_modules/vipps");
 
@@ -13,151 +11,149 @@ describe("scheduledChargeDueDate", () => {
 
   it("charges on the regular day, three days ahead", () => {
     const due = vipps.scheduledChargeDueDate({ monthly_charge_day: 15 }, at(2026, 11, 12));
-    expect(due?.getTime()).to.equal(day(2026, 11, 15).getTime());
+    expect(due?.getTime()).toBe(day(2026, 11, 15).getTime());
   });
 
   it("treats charge day 0 as the last day of the month", () => {
-    expect(vipps.scheduledChargeDueDate({ monthly_charge_day: 0 }, at(2026, 11, 27))).to.not.equal(
+    expect(vipps.scheduledChargeDueDate({ monthly_charge_day: 0 }, at(2026, 11, 27))).not.toBe(
       null,
     );
-    expect(vipps.scheduledChargeDueDate({ monthly_charge_day: 0 }, at(2026, 11, 26))).to.equal(
-      null,
-    );
+    expect(vipps.scheduledChargeDueDate({ monthly_charge_day: 0 }, at(2026, 11, 26))).toBe(null);
   });
 
   it("catches up a charge day missed in the last three days for an existing agreement", () => {
     const agreement = { monthly_charge_day: 15, timestamp_created: longAgo };
     // Should have been created on the 12th; the job did not run until the 14th
     const due = vipps.scheduledChargeDueDate(agreement, at(2026, 11, 14));
-    expect(due?.getTime()).to.equal(day(2026, 11, 17).getTime());
+    expect(due?.getTime()).toBe(day(2026, 11, 17).getTime());
     // Too late to catch up
-    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 16))).to.equal(null);
+    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 16))).toBe(null);
   });
 
   it("does not charge a new agreement before its first regular run", () => {
     const agreement = { monthly_charge_day: 15, timestamp_created: "2026-11-13T10:00:00" };
-    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 14))).to.equal(null);
-    expect(vipps.scheduledChargeDueDate({ monthly_charge_day: 15 }, at(2026, 11, 14))).to.equal(
-      null,
-    );
+    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 14))).toBe(null);
+    expect(vipps.scheduledChargeDueDate({ monthly_charge_day: 15 }, at(2026, 11, 14))).toBe(null);
   });
 
   it("charges on (or catches up) a force charge date", () => {
     const agreement = { monthly_charge_day: 1, force_charge_date: "2026-11-20" };
-    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 17))).to.not.equal(null);
-    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 19))).to.not.equal(null);
-    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 16))).to.equal(null);
-    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 21))).to.equal(null);
+    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 17))).not.toBe(null);
+    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 19))).not.toBe(null);
+    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 16))).toBe(null);
+    expect(vipps.scheduledChargeDueDate(agreement, at(2026, 11, 21))).toBe(null);
   });
 });
 
 describe("scheduledChargeIdempotencyKey", () => {
   it("is stable per agreement and due date", () => {
     const key = vipps.scheduledChargeIdempotencyKey("agr_1", "2026-11-15");
-    expect(key).to.match(/^[0-9a-f]{32}$/);
-    expect(vipps.scheduledChargeIdempotencyKey("agr_1", "2026-11-15")).to.equal(key);
-    expect(vipps.scheduledChargeIdempotencyKey("agr_1", "2026-12-15")).to.not.equal(key);
-    expect(vipps.scheduledChargeIdempotencyKey("agr_2", "2026-11-15")).to.not.equal(key);
+    expect(key).toMatch(/^[0-9a-f]{32}$/);
+    expect(vipps.scheduledChargeIdempotencyKey("agr_1", "2026-11-15")).toBe(key);
+    expect(vipps.scheduledChargeIdempotencyKey("agr_1", "2026-12-15")).not.toBe(key);
+    expect(vipps.scheduledChargeIdempotencyKey("agr_2", "2026-11-15")).not.toBe(key);
   });
 });
 
 describe("hasChargedDueMonth", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
   const due = day(2026, 11, 15);
 
   it("counts charges that are still pending or due, not only charged ones", async () => {
     for (const status of ["PENDING", "DUE", "RESERVED", "PROCESSING", "CHARGED"]) {
-      sinon.restore();
-      sinon.stub(vipps, "getCharges").resolves([{ due: "2026-11-15", status }]);
-      expect(await vipps.hasChargedDueMonth("agr_1", due), status).to.equal(true);
+      vi.restoreAllMocks();
+      vi.spyOn(vipps, "getCharges").mockResolvedValue([{ due: "2026-11-15", status }]);
+      expect(await vipps.hasChargedDueMonth("agr_1", due), status).toBe(true);
     }
   });
 
   it("leaves the month open after a failed or cancelled charge, or one in another month", async () => {
-    sinon.stub(vipps, "getCharges").resolves([
+    vi.spyOn(vipps, "getCharges").mockResolvedValue([
       { due: "2026-11-01", status: "FAILED" },
       { due: "2026-11-02", status: "CANCELLED" },
       { due: "2026-10-15", status: "CHARGED" },
     ]);
-    expect(await vipps.hasChargedDueMonth("agr_1", due)).to.equal(false);
+    expect(await vipps.hasChargedDueMonth("agr_1", due)).toBe(false);
   });
 
   it("throws when the charges cannot be fetched", async () => {
-    sinon.stub(vipps, "getCharges").resolves(false);
+    vi.spyOn(vipps, "getCharges").mockResolvedValue(false);
     await vexpect(vipps.hasChargedDueMonth("agr_1", due)).rejects.toThrow();
   });
 });
 
 describe("createFutureDueCharges", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
   const now = at(2026, 11, 12);
   const agreement = (ID: string) => ({ ID, monthly_charge_day: 15, paused_until_date: null });
   const vippsAgreement = (id: string) => ({ id, status: "ACTIVE", pricing: { amount: 30000 } });
 
   it("continues past failing agreements, counts only created charges and reports failures", async () => {
-    sinon.stub(console, "error");
-    sinon.stub(console, "log");
-    sinon
-      .stub(DAO.vipps, "getActiveAgreements")
-      .resolves([agreement("agr_1"), agreement("agr_2"), agreement("agr_3")] as any);
-    const getAgreement = sinon.stub(vipps, "getAgreement");
+    vi.spyOn(console, "error").mockReturnValue(undefined);
+    vi.spyOn(console, "log").mockReturnValue(undefined);
+    vi.spyOn(DAO.vipps, "getActiveAgreements").mockResolvedValue([
+      agreement("agr_1"),
+      agreement("agr_2"),
+      agreement("agr_3"),
+    ] as any);
+    const getAgreement = vi.spyOn(vipps, "getAgreement").mockReturnValue(undefined);
     getAgreement.withArgs("agr_1").rejects(new Error("network"));
     getAgreement.withArgs("agr_2").resolves(vippsAgreement("agr_2"));
     getAgreement.withArgs("agr_3").resolves(vippsAgreement("agr_3"));
-    sinon.stub(vipps, "hasChargedDueMonth").resolves(false);
-    const createCharge = sinon.stub(vipps, "createCharge");
+    vi.spyOn(vipps, "hasChargedDueMonth").mockResolvedValue(false);
+    const createCharge = vi.spyOn(vipps, "createCharge").mockReturnValue(undefined);
     createCharge.withArgs("agr_2").resolves(false);
     createCharge.withArgs("agr_3").resolves("chr_3");
 
     const result = await vipps.createFutureDueCharges(now);
 
-    expect(result.activeAgreements).to.equal(3);
-    expect(result.createdCharges).to.equal(1);
-    expect(result.failed.map((f) => f.agreementId)).to.deep.equal(["agr_1", "agr_2"]);
+    expect(result.activeAgreements).toBe(3);
+    expect(result.createdCharges).toBe(1);
+    expect(result.failed.map((f) => f.agreementId)).toStrictEqual(["agr_1", "agr_2"]);
 
-    const [, amount, , dueDate, key] = createCharge.withArgs("agr_3").firstCall.args;
-    expect(amount).to.equal(300);
-    expect(dueDate.getTime()).to.equal(day(2026, 11, 15).getTime());
-    expect(key).to.equal(vipps.scheduledChargeIdempotencyKey("agr_3", "2026-11-15"));
+    const [, amount, , dueDate, key] = createCharge.withArgs("agr_3").mock.calls[0];
+    expect(amount).toBe(300);
+    expect(dueDate.getTime()).toBe(day(2026, 11, 15).getTime());
+    expect(key).toBe(vipps.scheduledChargeIdempotencyKey("agr_3", "2026-11-15"));
   });
 
   it("does not create a second charge when the month already has a pending one", async () => {
-    sinon.stub(DAO.vipps, "getActiveAgreements").resolves([agreement("agr_1")] as any);
-    sinon.stub(vipps, "getAgreement").resolves(vippsAgreement("agr_1"));
-    sinon.stub(vipps, "getCharges").resolves([{ due: "2026-11-15", status: "PENDING" }]);
-    const createCharge = sinon.stub(vipps, "createCharge");
+    vi.spyOn(DAO.vipps, "getActiveAgreements").mockResolvedValue([agreement("agr_1")] as any);
+    vi.spyOn(vipps, "getAgreement").mockResolvedValue(vippsAgreement("agr_1"));
+    vi.spyOn(vipps, "getCharges").mockResolvedValue([{ due: "2026-11-15", status: "PENDING" }]);
+    const createCharge = vi.spyOn(vipps, "createCharge").mockReturnValue(undefined);
 
     const result = await vipps.createFutureDueCharges(now);
 
-    expect(createCharge.called).to.equal(false);
-    expect(result.failed).to.deep.equal([]);
+    expect(createCharge).not.toHaveBeenCalled();
+    expect(result.failed).toStrictEqual([]);
   });
 });
 
 describe("synchronizeVippsAgreementDatabase", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("continues past a failing agreement and reports it", async () => {
-    sinon.stub(console, "error");
-    const getAgreements = sinon.stub(vipps, "getAgreements").resolves([]);
+    vi.spyOn(console, "error").mockReturnValue(undefined);
+    const getAgreements = vi.spyOn(vipps, "getAgreements").mockResolvedValue([]);
     getAgreements.withArgs("ACTIVE").resolves([
       { id: "agr_1", status: "ACTIVE", pricing: { amount: 10000 } },
       { id: "agr_2", status: "ACTIVE", pricing: { amount: 10000 } },
     ]);
     getAgreements.withArgs("EXPIRED").resolves(false);
-    sinon.stub(DAO.vipps, "addAgreement").resolves(true);
-    sinon.stub(DAO.vipps, "updateAgreementPrice").resolves(true);
-    sinon.stub(DAO.vipps, "updateAgreementStatus").resolves(true);
-    sinon.stub(DAO.vipps, "getAgreement").resolves({ KID: "123" } as any);
-    const getCharges = sinon.stub(vipps, "getCharges");
+    vi.spyOn(DAO.vipps, "addAgreement").mockResolvedValue(true);
+    vi.spyOn(DAO.vipps, "updateAgreementPrice").mockResolvedValue(true);
+    vi.spyOn(DAO.vipps, "updateAgreementStatus").mockResolvedValue(true);
+    vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue({ KID: "123" } as any);
+    const getCharges = vi.spyOn(vipps, "getCharges").mockReturnValue(undefined);
     getCharges.withArgs("agr_1").resolves(false);
     getCharges.withArgs("agr_2").resolves([]);
 
     const result = await vipps.synchronizeVippsAgreementDatabase();
 
-    expect(result.agreements).to.equal(2);
-    expect(getCharges.calledWith("agr_2")).to.equal(true);
-    expect(result.failed).to.deep.equal([
+    expect(result.agreements).toBe(2);
+    expect(getCharges).toHaveBeenCalledWith("agr_2");
+    expect(result.failed).toStrictEqual([
       { status: "EXPIRED", error: "Could not fetch EXPIRED agreements" },
       { agreementId: "agr_1", error: "Could not fetch charges" },
     ]);

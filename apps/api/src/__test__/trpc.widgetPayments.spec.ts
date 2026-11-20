@@ -1,8 +1,7 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express, { type Request, type Response } from "express";
 import request from "supertest";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { mountTrpc, publicMutations } from "../trpc/express";
 import { appRouter } from "../trpc/router";
@@ -25,10 +24,10 @@ const anonymous = () =>
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
-    if (message) expect(err.message).to.equal(message);
+    expect(err.code).toBe(code);
+    if (message) expect(err.message).toBe(message);
   }
 };
 
@@ -117,14 +116,14 @@ const avtaleGiroAttacks: Array<[string, unknown]> = [
 
 describe("tRPC widget payment procedures", () => {
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("draftVippsAgreement", () => {
-    let draftAgreement: sinon.SinonStub;
+    let draftAgreement: MockInstance;
 
     beforeEach(() => {
-      draftAgreement = sinon.stub(vipps, "draftAgreement").resolves({ ...vippsDraft });
+      draftAgreement = vi.spyOn(vipps, "draftAgreement").mockResolvedValue({ ...vippsDraft });
     });
 
     for (const [what, input] of vippsAttacks) {
@@ -134,7 +133,7 @@ describe("tRPC widget payment procedures", () => {
             ? { ...input, registrationToken: vippsToken }
             : input;
         await expectTrpcError(anonymous().draftVippsAgreement(withToken as any), "BAD_REQUEST");
-        expect(draftAgreement.called).to.equal(false);
+        expect(draftAgreement).not.toHaveBeenCalled();
       });
     }
 
@@ -150,7 +149,7 @@ describe("tRPC widget payment procedures", () => {
           }),
           "BAD_REQUEST",
         );
-        expect(draftAgreement.called).to.equal(false);
+        expect(draftAgreement).not.toHaveBeenCalled();
       });
     }
 
@@ -162,8 +161,8 @@ describe("tRPC widget payment procedures", () => {
         monthlyChargeDay: 5,
         registrationToken: vippsToken,
       });
-      expect(result).to.deep.equal({ vippsConfirmationUrl: vippsDraft.vippsConfirmationUrl });
-      expect(draftAgreement.firstCall.args).to.deep.equal([KID, 300, true, 5]);
+      expect(result).toStrictEqual({ vippsConfirmationUrl: vippsDraft.vippsConfirmationUrl });
+      expect(draftAgreement.mock.calls[0]).toStrictEqual([KID, 300, true, 5]);
     });
 
     it("caps the charge day at 28, like REST", async () => {
@@ -174,17 +173,17 @@ describe("tRPC widget payment procedures", () => {
         monthlyChargeDay: 31,
         registrationToken: vippsToken,
       });
-      expect(draftAgreement.firstCall.args).to.deep.equal([KID, 300, false, 28]);
+      expect(draftAgreement.mock.calls[0]).toStrictEqual([KID, 300, false, 28]);
     });
 
     it("has no unauthenticated REST route any more", async () => {
       const body = { KID, amount: 450, initialCharge: true, monthlyChargeDay: 30 };
       await request(restApp()).post("/vipps/agreement/draft").send(body).expect(404);
-      expect(draftAgreement.called).to.equal(false);
+      expect(draftAgreement).not.toHaveBeenCalled();
     });
 
     it("fails when Vipps or the database refused the draft (REST answers 200 with false)", async () => {
-      draftAgreement.resolves(false);
+      draftAgreement.mockResolvedValue(false);
       await expectTrpcError(
         anonymous().draftVippsAgreement({
           KID,
@@ -200,27 +199,29 @@ describe("tRPC widget payment procedures", () => {
   });
 
   describe("draftAvtaleGiro", () => {
-    let getDraftState: sinon.SinonStub;
-    let addDraftIfNone: sinon.SinonStub;
-    let updateDraft: sinon.SinonStub;
-    let add: sinon.SinonStub;
-    let setActive: sinon.SinonStub;
+    let getDraftState: MockInstance;
+    let addDraftIfNone: MockInstance;
+    let updateDraft: MockInstance;
+    let add: MockInstance;
+    let setActive: MockInstance;
 
     beforeEach(() => {
-      getDraftState = sinon
-        .stub(DAO.avtalegiroagreements, "getDraftState")
-        .resolves({ rows: 0, draft: false });
-      addDraftIfNone = sinon.stub(DAO.avtalegiroagreements, "addDraftIfNone").resolves(true);
-      updateDraft = sinon.stub(DAO.avtalegiroagreements, "updateDraft").resolves(true);
-      add = sinon.stub(DAO.avtalegiroagreements, "add").resolves();
-      setActive = sinon.stub(DAO.avtalegiroagreements, "setActive").resolves();
+      getDraftState = vi
+        .spyOn(DAO.avtalegiroagreements, "getDraftState")
+        .mockResolvedValue({ rows: 0, draft: false });
+      addDraftIfNone = vi.spyOn(DAO.avtalegiroagreements, "addDraftIfNone").mockResolvedValue(true);
+      updateDraft = vi.spyOn(DAO.avtalegiroagreements, "updateDraft").mockResolvedValue(true);
+      add = vi.spyOn(DAO.avtalegiroagreements, "add").mockResolvedValue(undefined);
+      setActive = vi
+        .spyOn(DAO.avtalegiroagreements, "setActive")
+        .mockResolvedValue(undefined as any);
     });
 
     const noWrites = () => {
-      expect(addDraftIfNone.called).to.equal(false);
-      expect(updateDraft.called).to.equal(false);
-      expect(add.called).to.equal(false);
-      expect(setActive.called).to.equal(false);
+      expect(addDraftIfNone).not.toHaveBeenCalled();
+      expect(updateDraft).not.toHaveBeenCalled();
+      expect(add).not.toHaveBeenCalled();
+      expect(setActive).not.toHaveBeenCalled();
     };
 
     for (const [what, input] of avtaleGiroAttacks) {
@@ -229,7 +230,7 @@ describe("tRPC widget payment procedures", () => {
           anonymous().draftAvtaleGiro({ ...(input as any), registrationToken: avtaleGiroToken }),
           "BAD_REQUEST",
         );
-        expect(getDraftState.called).to.equal(false);
+        expect(getDraftState).not.toHaveBeenCalled();
         noWrites();
       });
     }
@@ -240,7 +241,7 @@ describe("tRPC widget payment procedures", () => {
           anonymous().draftAvtaleGiro({ KID, amount: 300, dueDay: 5, registrationToken }),
           "BAD_REQUEST",
         );
-        expect(getDraftState.called).to.equal(false);
+        expect(getDraftState).not.toHaveBeenCalled();
         noWrites();
       });
     }
@@ -253,8 +254,8 @@ describe("tRPC widget payment procedures", () => {
           dueDay: 20,
           registrationToken: avtaleGiroToken,
         }),
-      ).to.equal(true);
-      expect(addDraftIfNone.firstCall.args).to.deep.equal([KID, 30000, 20]);
+      ).toBe(true);
+      expect(addDraftIfNone.mock.calls[0]).toStrictEqual([KID, 30000, 20]);
     });
 
     it("stores whole øre", async () => {
@@ -264,12 +265,12 @@ describe("tRPC widget payment procedures", () => {
         dueDay: 20,
         registrationToken: avtaleGiroToken,
       });
-      expect(addDraftIfNone.firstCall.args).to.deep.equal([KID, 12555, 20]);
+      expect(addDraftIfNone.mock.calls[0]).toStrictEqual([KID, 12555, 20]);
     });
 
     it("uses the last day of the month without a due day", async () => {
       await anonymous().draftAvtaleGiro({ KID, amount: 300, registrationToken: avtaleGiroToken });
-      expect(addDraftIfNone.firstCall.args).to.deep.equal([KID, 30000, 0]);
+      expect(addDraftIfNone.mock.calls[0]).toStrictEqual([KID, 30000, 0]);
     });
 
     it("refuses a KID that has an active or ended agreement, without writing", async () => {
@@ -277,7 +278,7 @@ describe("tRPC widget payment procedures", () => {
         { rows: 1, draft: false },
         { rows: 2, draft: false },
       ]) {
-        getDraftState.resolves(state);
+        getDraftState.mockResolvedValue(state);
         await expectTrpcError(
           anonymous().draftAvtaleGiro({ KID, amount: 300, registrationToken: avtaleGiroToken }),
           "BAD_REQUEST",
@@ -288,33 +289,35 @@ describe("tRPC widget payment procedures", () => {
     });
 
     it("updates its own draft when the widget sends it again, never adding a second row", async () => {
-      getDraftState.resolves({ rows: 1, draft: true });
+      getDraftState.mockResolvedValue({ rows: 1, draft: true });
       const input = { KID, amount: 300, dueDay: 15, registrationToken: avtaleGiroToken };
-      expect(await anonymous().draftAvtaleGiro(input)).to.equal(true);
-      expect(await anonymous().draftAvtaleGiro({ ...input, dueDay: 20 })).to.equal(true);
-      expect(updateDraft.getCalls().map((c) => c.args)).to.deep.equal([
+      expect(await anonymous().draftAvtaleGiro(input)).toBe(true);
+      expect(await anonymous().draftAvtaleGiro({ ...input, dueDay: 20 })).toBe(true);
+      expect(updateDraft.getCalls().map((c) => c.args)).toStrictEqual([
         [KID, 30000, 15],
         [KID, 30000, 20],
       ]);
-      expect(addDraftIfNone.called).to.equal(false);
-      expect(add.called).to.equal(false);
+      expect(addDraftIfNone).not.toHaveBeenCalled();
+      expect(add).not.toHaveBeenCalled();
     });
 
     it("treats losing a race with the same draft (a double click) as success", async () => {
-      addDraftIfNone.resolves(false);
-      getDraftState.onSecondCall().resolves({ rows: 1, draft: true });
+      addDraftIfNone.mockResolvedValue(false);
+      getDraftState.mockResolvedValueOnce({ rows: 1, draft: true });
       expect(
         await anonymous().draftAvtaleGiro({ KID, amount: 300, registrationToken: avtaleGiroToken }),
-      ).to.equal(true);
-      expect(addDraftIfNone.calledOnce).to.equal(true);
+      ).toBe(true);
+      expect(addDraftIfNone).toHaveBeenCalledOnce();
     });
 
     it("treats a lock conflict with a concurrent draft as success", async () => {
-      addDraftIfNone.rejects(Object.assign(new Error("Deadlock"), { code: "ER_LOCK_DEADLOCK" }));
-      getDraftState.onSecondCall().resolves({ rows: 1, draft: true });
+      addDraftIfNone.mockRejectedValue(
+        Object.assign(new Error("Deadlock"), { code: "ER_LOCK_DEADLOCK" }),
+      );
+      getDraftState.mockResolvedValueOnce({ rows: 1, draft: true });
       expect(
         await anonymous().draftAvtaleGiro({ KID, amount: 300, registrationToken: avtaleGiroToken }),
-      ).to.equal(true);
+      ).toBe(true);
     });
 
     it("has no unauthenticated REST route any more", async () => {
@@ -328,15 +331,15 @@ describe("tRPC widget payment procedures", () => {
 
   describe("the widget flow: register, then draft or email", () => {
     beforeEach(() => {
-      sinon.stub(DAO.donors, "getIDbyEmail").resolves(null);
-      sinon.stub(DAO.donors, "add").resolves(42);
-      sinon.stub(DAO.distributions, "getStandardDistributionByCauseAreaID").resolves([]);
-      sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null);
-      sinon.stub(DAO.distributions, "add").resolves();
-      sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent").resolves();
-      sinon.stub(DAO.donationReferralCodes, "add").resolves();
-      sinon.stub(donationHelpers, "createKID").resolves("12345678");
-      sinon.stub(donationHelpers, "createAvtaleGiroKID").resolves(KID);
+      vi.spyOn(DAO.donors, "getIDbyEmail").mockResolvedValue(null);
+      vi.spyOn(DAO.donors, "add").mockResolvedValue(42);
+      vi.spyOn(DAO.distributions, "getStandardDistributionByCauseAreaID").mockResolvedValue([]);
+      vi.spyOn(DAO.distributions, "getKIDbySplit").mockResolvedValue(null);
+      vi.spyOn(DAO.distributions, "add").mockResolvedValue(undefined as any);
+      vi.spyOn(DAO.initialpaymentmethod, "addPaymentIntent").mockResolvedValue(undefined);
+      vi.spyOn(DAO.donationReferralCodes, "add").mockResolvedValue(undefined);
+      vi.spyOn(donationHelpers, "createKID").mockResolvedValue("12345678");
+      vi.spyOn(donationHelpers, "createAvtaleGiroKID").mockResolvedValue(KID);
     });
 
     afterEach(() => resetBankPendingMail());
@@ -358,18 +361,23 @@ describe("tRPC widget payment procedures", () => {
       });
 
     it("drafts the AvtaleGiro agreement for the KID it registered", async () => {
-      sinon.stub(DAO.avtalegiroagreements, "getDraftState").resolves({ rows: 0, draft: false });
-      const addDraftIfNone = sinon.stub(DAO.avtalegiroagreements, "addDraftIfNone").resolves(true);
+      vi.spyOn(DAO.avtalegiroagreements, "getDraftState").mockResolvedValue({
+        rows: 0,
+        draft: false,
+      });
+      const addDraftIfNone = vi
+        .spyOn(DAO.avtalegiroagreements, "addDraftIfNone")
+        .mockResolvedValue(true);
 
       const registered = await register(methods.AVTALEGIRO);
-      expect(registered.KID).to.equal(KID);
+      expect(registered.KID).toBe(KID);
       await anonymous().draftAvtaleGiro({
         KID: registered.KID!,
         amount: 300,
         dueDay: 20,
         registrationToken: registered.registrationToken!,
       });
-      expect(addDraftIfNone.calledOnceWith(KID, 30000, 20)).to.equal(true);
+      expect(addDraftIfNone).toHaveBeenCalledExactlyOnceWith(KID, 30000, 20);
 
       // The same token is no good for any other KID
       await expectTrpcError(
@@ -380,22 +388,22 @@ describe("tRPC widget payment procedures", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(addDraftIfNone.calledOnce).to.equal(true);
+      expect(addDraftIfNone).toHaveBeenCalledOnce();
     });
 
     it("emails the bank details for the KID it registered", async () => {
-      const send = sinon.stub(mail, "sendDonationRegistered").resolves(true);
+      const send = vi.spyOn(mail, "sendDonationRegistered").mockResolvedValue(true);
       const registered = await register(methods.BANK, 350);
       await anonymous().registerBankPending({
         KID: registered.KID!,
         sum: 350,
         registrationToken: registered.registrationToken!,
       });
-      expect(send.calledOnceWith("12345678", 350)).to.equal(true);
+      expect(send).toHaveBeenCalledExactlyOnceWith("12345678", 350);
     });
 
     it("drafts the Vipps agreement for the KID it registered", async () => {
-      const draftAgreement = sinon.stub(vipps, "draftAgreement").resolves({ ...vippsDraft });
+      const draftAgreement = vi.spyOn(vipps, "draftAgreement").mockResolvedValue({ ...vippsDraft });
       const registered = await register(methods.VIPPS);
       await anonymous().draftVippsAgreement({
         KID: registered.KID!,
@@ -404,7 +412,7 @@ describe("tRPC widget payment procedures", () => {
         monthlyChargeDay: 5,
         registrationToken: registered.registrationToken!,
       });
-      expect(draftAgreement.calledOnceWith("12345678", 300, true, 5)).to.equal(true);
+      expect(draftAgreement).toHaveBeenCalledExactlyOnceWith("12345678", 300, true, 5);
     });
   });
 
@@ -417,7 +425,7 @@ describe("tRPC widget payment procedures", () => {
     });
 
     it("counts every widget mutation as one that may not be batched", () => {
-      expect([...publicMutations].sort()).to.deep.equal([
+      expect([...publicMutations].sort()).toStrictEqual([
         "widget.draftAvtaleGiro",
         "widget.draftVippsAgreement",
         "widget.registerBankPending",
@@ -427,8 +435,8 @@ describe("tRPC widget payment procedures", () => {
     });
 
     it("refuses the drafts in a batch", async () => {
-      const draftAgreement = sinon.stub(vipps, "draftAgreement").resolves({ ...vippsDraft });
-      const add = sinon.stub(DAO.avtalegiroagreements, "addDraftIfNone").resolves(true);
+      const draftAgreement = vi.spyOn(vipps, "draftAgreement").mockResolvedValue({ ...vippsDraft });
+      const add = vi.spyOn(DAO.avtalegiroagreements, "addDraftIfNone").mockResolvedValue(true);
       const vippsInput = {
         KID,
         amount: 300,
@@ -447,25 +455,25 @@ describe("tRPC widget payment procedures", () => {
           1: { KID, amount: 1, registrationToken: avtaleGiroToken },
         })
         .expect(400);
-      expect(draftAgreement.called).to.equal(false);
-      expect(add.called).to.equal(false);
+      expect(draftAgreement).not.toHaveBeenCalled();
+      expect(add).not.toHaveBeenCalled();
 
       const res = await request(app)
         .post("/trpc/widget.draftVippsAgreement")
         .send(vippsInput)
         .expect(200);
-      expect(res.body.result.data).to.deep.equal({
+      expect(res.body.result.data).toStrictEqual({
         vippsConfirmationUrl: vippsDraft.vippsConfirmationUrl,
       });
     });
 
     it("answers 400 to an invalid draft without calling Vipps", async () => {
-      const draftAgreement = sinon.stub(vipps, "draftAgreement").resolves({ ...vippsDraft });
+      const draftAgreement = vi.spyOn(vipps, "draftAgreement").mockResolvedValue({ ...vippsDraft });
       await request(app)
         .post("/trpc/widget.draftVippsAgreement")
         .send({ KID: "1; DROP TABLE", amount: 1, initialCharge: true, monthlyChargeDay: 1 })
         .expect(400);
-      expect(draftAgreement.called).to.equal(false);
+      expect(draftAgreement).not.toHaveBeenCalled();
     });
   });
 });

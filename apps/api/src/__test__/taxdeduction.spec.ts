@@ -1,6 +1,4 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, beforeEach, afterEach, expect } from "vitest";
 import { getTaxUnitsWithDeductions, TaxDeductionDonation } from "../custom_modules/taxdeductions";
 import { Tax_unit } from "@prisma/client";
 import { SqlResult } from "../custom_modules/DAO";
@@ -48,14 +46,16 @@ describe("getTaxUnitsWithDeductions", () => {
     const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });
 
     // Assert
-    expect(result).to.be.an("array");
-    expect(result[0].taxDeductions).to.deep.include.members([
-      { year: 2016, sumDonations: 1000, deduction: 0, benefit: 0 }, // No tax deduction for 2016 for NO
-      { year: 2019, sumDonations: 1000, deduction: 1000, benefit: 220 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2020, sumDonations: 500, deduction: 500, benefit: 110 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2021, sumDonations: 78250, deduction: 50000, benefit: 11000 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2022, sumDonations: 79000, deduction: 25000, benefit: 5500 }, // Minimum 500, maximum 25000, base tax rate 22%
-    ]);
+    expect(result).toBeInstanceOf(Array);
+    expect(result[0].taxDeductions).toEqual(
+      expect.arrayContaining([
+        { year: 2016, sumDonations: 1000, deduction: 0, benefit: 0 }, // No tax deduction for 2016 for NO
+        { year: 2019, sumDonations: 1000, deduction: 1000, benefit: 220 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2020, sumDonations: 500, deduction: 500, benefit: 110 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2021, sumDonations: 78250, deduction: 50000, benefit: 11000 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2022, sumDonations: 79000, deduction: 25000, benefit: 5500 }, // Minimum 500, maximum 25000, base tax rate 22%
+      ]),
+    );
   });
 
   it("should calculate deductions correctly for multiple tax units for NO locale", async () => {
@@ -102,21 +102,25 @@ describe("getTaxUnitsWithDeductions", () => {
     const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });
 
     // Assert
-    expect(result).to.be.an("array");
-    expect(result[0].taxDeductions).to.deep.include.members([
-      { year: 2016, sumDonations: 1000, deduction: 0, benefit: 0 }, // No tax deduction for 2016 for NO
-      { year: 2019, sumDonations: 1000, deduction: 1000, benefit: 220 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2020, sumDonations: 500, deduction: 500, benefit: 110 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2021, sumDonations: 78250, deduction: 50000, benefit: 11000 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2022, sumDonations: 79000, deduction: 25000, benefit: 5500 }, // Minimum 500, maximum 25000, base tax rate 22%
-    ]);
-    expect(result[1].taxDeductions).to.deep.include.members([
-      { year: 2016, sumDonations: 1000, deduction: 0, benefit: 0 }, // No tax deduction for 2016 for NO
-      { year: 2019, sumDonations: 1000, deduction: 1000, benefit: 220 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2020, sumDonations: 500, deduction: 500, benefit: 110 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2021, sumDonations: 78250, deduction: 50000, benefit: 11000 }, // Minimum 500, maximum 50000, base tax rate 22%
-      { year: 2022, sumDonations: 13000, deduction: 13000, benefit: 2860 }, // Minimum 500, maximum 25000, base tax rate 22%
-    ]);
+    expect(result).toBeInstanceOf(Array);
+    expect(result[0].taxDeductions).toEqual(
+      expect.arrayContaining([
+        { year: 2016, sumDonations: 1000, deduction: 0, benefit: 0 }, // No tax deduction for 2016 for NO
+        { year: 2019, sumDonations: 1000, deduction: 1000, benefit: 220 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2020, sumDonations: 500, deduction: 500, benefit: 110 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2021, sumDonations: 78250, deduction: 50000, benefit: 11000 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2022, sumDonations: 79000, deduction: 25000, benefit: 5500 }, // Minimum 500, maximum 25000, base tax rate 22%
+      ]),
+    );
+    expect(result[1].taxDeductions).toEqual(
+      expect.arrayContaining([
+        { year: 2016, sumDonations: 1000, deduction: 0, benefit: 0 }, // No tax deduction for 2016 for NO
+        { year: 2019, sumDonations: 1000, deduction: 1000, benefit: 220 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2020, sumDonations: 500, deduction: 500, benefit: 110 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2021, sumDonations: 78250, deduction: 50000, benefit: 11000 }, // Minimum 500, maximum 50000, base tax rate 22%
+        { year: 2022, sumDonations: 13000, deduction: 13000, benefit: 2860 }, // Minimum 500, maximum 25000, base tax rate 22%
+      ]),
+    );
   });
 
   it("should handle empty donations array", async () => {
@@ -140,17 +144,19 @@ describe("getTaxUnitsWithDeductions", () => {
 
     // Assert
     // We expect all the tax units to be returned, and the taxDeductions array to be filled with 0 values for all years
-    expect(result).to.be.an("array");
-    expect(result[0].taxDeductions).to.deep.include.members([
-      { year: 2016, sumDonations: 0, deduction: 0, benefit: 0 },
-      { year: 2017, sumDonations: 0, deduction: 0, benefit: 0 },
-      { year: 2018, sumDonations: 0, deduction: 0, benefit: 0 },
-      { year: 2019, sumDonations: 0, deduction: 0, benefit: 0 },
-      { year: 2020, sumDonations: 0, deduction: 0, benefit: 0 },
-      { year: 2021, sumDonations: 0, deduction: 0, benefit: 0 },
-      { year: 2022, sumDonations: 0, deduction: 0, benefit: 0 },
-      { year: 2023, sumDonations: 0, deduction: 0, benefit: 0 },
-    ]);
+    expect(result).toBeInstanceOf(Array);
+    expect(result[0].taxDeductions).toEqual(
+      expect.arrayContaining([
+        { year: 2016, sumDonations: 0, deduction: 0, benefit: 0 },
+        { year: 2017, sumDonations: 0, deduction: 0, benefit: 0 },
+        { year: 2018, sumDonations: 0, deduction: 0, benefit: 0 },
+        { year: 2019, sumDonations: 0, deduction: 0, benefit: 0 },
+        { year: 2020, sumDonations: 0, deduction: 0, benefit: 0 },
+        { year: 2021, sumDonations: 0, deduction: 0, benefit: 0 },
+        { year: 2022, sumDonations: 0, deduction: 0, benefit: 0 },
+        { year: 2023, sumDonations: 0, deduction: 0, benefit: 0 },
+      ]),
+    );
   });
 
   it("should throw an error for missing yearly mapping", async () => {
@@ -179,7 +185,7 @@ describe("getTaxUnitsWithDeductions", () => {
     try {
       getTaxUnitsWithDeductions({ donations, taxUnits, locale });
     } catch (ex) {
-      expect(ex.message).to.contain(`Missing yearly mapping for year`);
+      expect(ex.message).toContain(`Missing yearly mapping for year`);
     }
   });
 
@@ -209,13 +215,15 @@ describe("getTaxUnitsWithDeductions", () => {
     const result = getTaxUnitsWithDeductions({ donations, taxUnits, locale });
 
     // Assert
-    expect(result).to.be.an("array");
-    expect(result[0].taxDeductions).to.deep.include.members([
-      { year: 2020, sumDonations: 500, deduction: 0, benefit: 0 }, // Minimum 2000, maximum 12 000, base tax rate 30%
-      { year: 2021, sumDonations: 8050, deduction: 8050, benefit: 2012.5 }, // Minimum 2000, maximum 12 000, base tax rate 25%
-      { year: 2022, sumDonations: 7800, deduction: 7800, benefit: 1950 }, // Minimum 2000, maximum 12 000, base tax rate 25%
-      { year: 2023, sumDonations: 78000, deduction: 12000, benefit: 3000 }, // Minimum 2000, maximum 12 000, base tax rate 25%
-    ]);
+    expect(result).toBeInstanceOf(Array);
+    expect(result[0].taxDeductions).toEqual(
+      expect.arrayContaining([
+        { year: 2020, sumDonations: 500, deduction: 0, benefit: 0 }, // Minimum 2000, maximum 12 000, base tax rate 30%
+        { year: 2021, sumDonations: 8050, deduction: 8050, benefit: 2012.5 }, // Minimum 2000, maximum 12 000, base tax rate 25%
+        { year: 2022, sumDonations: 7800, deduction: 7800, benefit: 1950 }, // Minimum 2000, maximum 12 000, base tax rate 25%
+        { year: 2023, sumDonations: 78000, deduction: 12000, benefit: 3000 }, // Minimum 2000, maximum 12 000, base tax rate 25%
+      ]),
+    );
   });
 
   it("should throw for invalid locale", async () => {
@@ -237,7 +245,7 @@ describe("getTaxUnitsWithDeductions", () => {
     try {
       getTaxUnitsWithDeductions({ donations, taxUnits, locale });
     } catch (ex) {
-      expect(ex.message).to.contain(`Invalid locale`);
+      expect(ex.message).toContain(`Invalid locale`);
     }
   });
 });

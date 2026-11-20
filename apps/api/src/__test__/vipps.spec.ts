@@ -1,9 +1,7 @@
-import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, beforeAll, afterAll, beforeEach, expect, vi } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import sinon from "sinon";
 import express from "express";
-import { expect } from "chai";
 import request from "supertest";
 import * as mail from "../custom_modules/mail";
 
@@ -136,41 +134,51 @@ describe("POST /scheduled/vipps", function () {
   let donationRecieptStub;
 
   beforeAll(function () {
-    sinon.replace(authMiddleware, "isAdmin", []);
+    vi.spyOn(authMiddleware, "isAdmin", "get").mockReturnValue([]);
 
-    getAgreementsStub = sinon.stub(vipps, "getAgreements");
+    getAgreementsStub = vi.spyOn(vipps, "getAgreements").mockReturnValue(undefined);
 
-    getChargesStub = sinon.stub(vipps, "getCharges");
+    getChargesStub = vi.spyOn(vipps, "getCharges").mockReturnValue(undefined);
 
-    getVippsAgreementStub = sinon.stub(vipps, "getAgreement");
+    getVippsAgreementStub = vi.spyOn(vipps, "getAgreement").mockReturnValue(undefined);
 
-    getAgreementStub = sinon.stub(DAO.vipps, "getAgreement");
+    getAgreementStub = vi.spyOn(DAO.vipps, "getAgreement").mockReturnValue(undefined as any);
 
-    getActiveAgreementStub = sinon.stub(DAO.vipps, "getActiveAgreements");
+    getActiveAgreementStub = vi
+      .spyOn(DAO.vipps, "getActiveAgreements")
+      .mockReturnValue(undefined as any);
 
-    addAgreementStub = sinon.stub(DAO.vipps, "addAgreement");
+    addAgreementStub = vi.spyOn(DAO.vipps, "addAgreement").mockReturnValue(undefined as any);
 
-    updateAgreementPriceStub = sinon.stub(DAO.vipps, "updateAgreementPrice");
+    updateAgreementPriceStub = vi
+      .spyOn(DAO.vipps, "updateAgreementPrice")
+      .mockReturnValue(undefined as any);
 
-    updateAgreementStatusStub = sinon.stub(DAO.vipps, "updateAgreementStatus");
+    updateAgreementStatusStub = vi
+      .spyOn(DAO.vipps, "updateAgreementStatus")
+      .mockReturnValue(undefined as any);
 
-    addChargeStub = sinon.stub(DAO.vipps, "addCharge");
+    addChargeStub = vi.spyOn(DAO.vipps, "addCharge").mockReturnValue(undefined as any);
 
-    getChargeStub = sinon.stub(DAO.vipps, "getCharge");
+    getChargeStub = vi.spyOn(DAO.vipps, "getCharge").mockReturnValue(undefined as any);
 
-    updateChargeStatusStub = sinon.stub(DAO.vipps, "updateChargeStatus");
+    updateChargeStatusStub = vi
+      .spyOn(DAO.vipps, "updateChargeStatus")
+      .mockReturnValue(undefined as any);
 
-    externalPaymentIDExistsStub = sinon.stub(DAO.donations, "externalPaymentIDExists");
+    externalPaymentIDExistsStub = vi
+      .spyOn(DAO.donations, "externalPaymentIDExists")
+      .mockReturnValue(undefined as any);
 
-    hasChargedDueMonthStub = sinon.stub(vipps, "hasChargedDueMonth");
+    hasChargedDueMonthStub = vi.spyOn(vipps, "hasChargedDueMonth").mockReturnValue(undefined);
 
-    createChargeStub = sinon.stub(vipps, "createCharge");
+    createChargeStub = vi.spyOn(vipps, "createCharge").mockReturnValue(undefined);
 
-    addDonationStub = sinon.stub(DAO.donations, "add");
+    addDonationStub = vi.spyOn(DAO.donations, "add").mockReturnValue(undefined as any);
 
-    loggingStub = sinon.stub(DAO.logging, "add");
+    loggingStub = vi.spyOn(DAO.logging, "add").mockReturnValue(undefined as any);
 
-    donationRecieptStub = sinon.stub(mail, "sendDonationReceipt");
+    donationRecieptStub = vi.spyOn(mail, "sendDonationReceipt").mockReturnValue(undefined as any);
 
     const scheduledRoute = require("../routes/scheduled");
     server = express();
@@ -178,7 +186,7 @@ describe("POST /scheduled/vipps", function () {
   });
 
   beforeEach(function () {
-    sinon.resetHistory();
+    vi.clearAllMocks();
   });
 
   it("No agreements test", async function () {
@@ -191,17 +199,17 @@ describe("POST /scheduled/vipps", function () {
 
     await request(server).post("/scheduled/vipps").expect(200);
 
-    expect(addAgreementStub.called).to.be.false;
-    expect(addChargeStub.called).to.be.false;
-    expect(updateAgreementPriceStub.called).to.be.false;
-    expect(updateAgreementStatusStub.called).to.be.false;
-    expect(getAgreementStub.called).to.be.false;
-    expect(getChargesStub.called).to.be.false;
-    expect(getChargeStub.called).to.be.false;
-    expect(createChargeStub.called).to.be.false;
-    expect(loggingStub.calledOnce).to.be.true;
-    expect(externalPaymentIDExistsStub.called).to.be.false;
-    expect(addDonationStub.called).to.be.false;
+    expect(addAgreementStub).not.toHaveBeenCalled();
+    expect(addChargeStub).not.toHaveBeenCalled();
+    expect(updateAgreementPriceStub).not.toHaveBeenCalled();
+    expect(updateAgreementStatusStub).not.toHaveBeenCalled();
+    expect(getAgreementStub).not.toHaveBeenCalled();
+    expect(getChargesStub).not.toHaveBeenCalled();
+    expect(getChargeStub).not.toHaveBeenCalled();
+    expect(createChargeStub).not.toHaveBeenCalled();
+    expect(loggingStub).toHaveBeenCalledOnce();
+    expect(externalPaymentIDExistsStub).not.toHaveBeenCalled();
+    expect(addDonationStub).not.toHaveBeenCalled();
   });
 
   it("Synchronize agreements and charges", async function () {
@@ -226,22 +234,22 @@ describe("POST /scheduled/vipps", function () {
     externalPaymentIDExistsStub.withArgs("agr_3.chr-3").resolves(false);
 
     // Resolve for charge 3 agreement 3
-    addDonationStub.resolves(123);
+    addDonationStub.mockResolvedValue(123);
 
     await request(server).post("/scheduled/vipps").expect(200);
 
-    expect(addAgreementStub.callCount).to.be.equal(3);
-    expect(addChargeStub.callCount).to.be.equal(3);
-    expect(updateAgreementPriceStub.callCount).to.be.equal(3);
-    expect(updateAgreementStatusStub.callCount).to.be.equal(3);
-    expect(updateChargeStatusStub.callCount).to.be.equal(3);
-    expect(getAgreementStub.callCount).to.be.equal(3);
-    expect(getChargesStub.callCount).to.be.equal(3);
-    expect(getChargeStub.callCount).to.be.equal(2); // Only 2 of the charges has status "CHARGED"
-    expect(loggingStub.calledOnce).to.be.true;
-    expect(externalPaymentIDExistsStub.callCount).to.be.equal(2);
-    expect(addDonationStub.calledOnce).to.be.true;
-    expect(donationRecieptStub.calledOnce).to.be.true;
+    expect(addAgreementStub).toHaveBeenCalledTimes(3);
+    expect(addChargeStub).toHaveBeenCalledTimes(3);
+    expect(updateAgreementPriceStub).toHaveBeenCalledTimes(3);
+    expect(updateAgreementStatusStub).toHaveBeenCalledTimes(3);
+    expect(updateChargeStatusStub).toHaveBeenCalledTimes(3);
+    expect(getAgreementStub).toHaveBeenCalledTimes(3);
+    expect(getChargesStub).toHaveBeenCalledTimes(3);
+    expect(getChargeStub).toHaveBeenCalledTimes(2); // Only 2 of the charges has status "CHARGED"
+    expect(loggingStub).toHaveBeenCalledOnce();
+    expect(externalPaymentIDExistsStub).toHaveBeenCalledTimes(2);
+    expect(addDonationStub).toHaveBeenCalledOnce();
+    expect(donationRecieptStub).toHaveBeenCalledOnce();
   });
 
   it("Create future due charges", async function () {
@@ -257,15 +265,15 @@ describe("POST /scheduled/vipps", function () {
 
     hasChargedDueMonthStub.withArgs("agr_1").resolves(false);
     hasChargedDueMonthStub.withArgs("agr_2").resolves(true);
-    createChargeStub.resolves("chr-new");
+    createChargeStub.mockResolvedValue("chr-new");
 
     await request(server).post("/scheduled/vipps").expect(200);
 
-    expect(getActiveAgreementStub.calledOnce).to.be.true;
-    expect(getVippsAgreementStub.callCount).to.be.equal(2);
-    expect(hasChargedDueMonthStub.callCount).to.be.equal(2);
-    expect(createChargeStub.callCount).to.be.equal(1); // One of the agreements have already been charged this month
-    expect(loggingStub.calledOnce).to.be.true;
+    expect(getActiveAgreementStub).toHaveBeenCalledOnce();
+    expect(getVippsAgreementStub).toHaveBeenCalledTimes(2);
+    expect(hasChargedDueMonthStub).toHaveBeenCalledTimes(2);
+    expect(createChargeStub).toHaveBeenCalledTimes(1); // One of the agreements have already been charged this month
+    expect(loggingStub).toHaveBeenCalledOnce();
   });
 
   it("Responds 500 and still logs when part of the run failed", async function () {
@@ -275,11 +283,11 @@ describe("POST /scheduled/vipps", function () {
 
     const response = await request(server).post("/scheduled/vipps").expect(500);
 
-    expect(response.body.sync.failed).to.have.length(1);
-    expect(loggingStub.calledOnce).to.be.true;
+    expect(response.body.sync.failed).toHaveLength(1);
+    expect(loggingStub).toHaveBeenCalledOnce();
   });
 
   afterAll(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 });

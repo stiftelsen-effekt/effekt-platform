@@ -1,7 +1,5 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import {
   buildCohorts,
@@ -27,9 +25,9 @@ const admin = () => callerWith(["admin"]);
 const expectCode = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
+    expect(err.code).toBe(code);
   }
 };
 
@@ -46,13 +44,13 @@ const types = [
 
 describe("analysis: donor cohorts", () => {
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
     clearAnalysisCache();
   });
 
   describe("monthsEndingWith", () => {
     it("counts back across year ends", () => {
-      expect(monthsEndingWith("2026-02", 4)).to.deep.equal([
+      expect(monthsEndingWith("2026-02", 4)).toStrictEqual([
         "2025-11",
         "2025-12",
         "2026-01",
@@ -79,10 +77,10 @@ describe("analysis: donor cohorts", () => {
         row("2026-07", 1, 99, "1"), // before the window
       ];
       const result = buildNewDonors(rows, types, { currentMonth: "2026-10", months: 2 });
-      expect(result.partialMonth).to.equal("2026-10");
-      expect(result.months.map((m) => m.month)).to.deep.equal(["2026-09", "2026-10"]);
+      expect(result.partialMonth).toBe("2026-10");
+      expect(result.months.map((m) => m.month)).toStrictEqual(["2026-09", "2026-10"]);
       // Annet is never a named source; Sommer i P2 is the seventh, so it's in Other
-      expect(result.sources.map((s) => s.label)).to.deep.equal([
+      expect(result.sources.map((s) => s.label)).toStrictEqual([
         "Bekjent",
         "Internettsøk",
         "Effektiv altruisme",
@@ -92,11 +90,11 @@ describe("analysis: donor cohorts", () => {
         "Other / unknown",
       ]);
       const [september, october] = result.months;
-      expect(september!.donors).to.equal(96);
-      expect(september!.volume).to.equal("1000000000106.31");
-      expect(september!.bySource).to.include({ "ref-1": 10, other: 51 });
-      expect(october).to.deep.include({ donors: 0, volume: "0.00" });
-      expect(Object.values(october!.bySource).every((n) => n === 0)).to.be.true;
+      expect(september!.donors).toBe(96);
+      expect(september!.volume).toBe("1000000000106.31");
+      expect(september!.bySource).toEqual(expect.objectContaining({ "ref-1": 10, other: 51 }));
+      expect(october).toEqual(expect.objectContaining({ donors: 0, volume: "0.00" }));
+      expect(Object.values(october!.bySource).every((n) => n === 0)).toBe(true);
     });
   });
 
@@ -111,13 +109,13 @@ describe("analysis: donor cohorts", () => {
         ],
         2026,
       );
-      expect(result.years).to.deep.equal([2024, 2025, 2026]);
-      expect(result.partialYear).to.equal(2026);
+      expect(result.years).toStrictEqual([2024, 2025, 2026]);
+      expect(result.partialYear).toBe(2026);
       // 2026 has no first-time donors here, so no row
-      expect(result.cohorts.map((c) => c.year)).to.deep.equal([2024, 2025]);
+      expect(result.cohorts.map((c) => c.year)).toStrictEqual([2024, 2025]);
       const [c2024] = result.cohorts;
-      expect(c2024).to.deep.include({ size: 200, firstYearVolume: "1000.50" });
-      expect(c2024!.cells).to.deep.equal([
+      expect(c2024).toEqual(expect.objectContaining({ size: 200, firstYearVolume: "1000.50" }));
+      expect(c2024!.cells).toStrictEqual([
         { year: 2024, donors: 200, share: 1, volume: "1000.50" },
         { year: 2025, donors: 0, share: 0, volume: "0.00" },
         { year: 2026, donors: 50, share: 0.25, volume: "300.00" },
@@ -127,8 +125,8 @@ describe("analysis: donor cohorts", () => {
     it("starts at 2016 at the earliest and handles no data", () => {
       expect(
         buildCohorts([{ cohort: 2015, year: 2015, donors: 1, volume: "1" }], 2017).years,
-      ).to.deep.equal([2016, 2017]);
-      expect(buildCohorts([], 2026)).to.deep.equal({
+      ).toStrictEqual([2016, 2017]);
+      expect(buildCohorts([], 2026)).toStrictEqual({
         years: [2026],
         partialYear: 2026,
         cohorts: [],
@@ -138,37 +136,37 @@ describe("analysis: donor cohorts", () => {
 
   describe("SQL", () => {
     it("groups per donor in MySQL, without payments 15 and 16, earliest referral per donor", async () => {
-      const query = sinon.stub(DAO, "query").resolves([[]] as any);
+      const query = vi.spyOn(DAO, "query").mockResolvedValue([[]] as any);
       await DAO.donorCohorts.getNewDonorRows("2024-11");
       await DAO.donorCohorts.getCohortRows(2016);
 
-      const [newSql, newParams] = query.firstCall.args as [string, unknown[]];
-      expect(newSql).to.match(/Payment_ID NOT IN \(15, 16\)/);
-      expect(newSql).to.match(/GROUP BY d\.Donor_ID, month/);
-      expect(newSql).to.match(/MIN\(month\) AS first_month/);
-      expect(newSql).to.match(
+      const [newSql, newParams] = query.mock.calls[0] as [string, unknown[]];
+      expect(newSql).toMatch(/Payment_ID NOT IN \(15, 16\)/);
+      expect(newSql).toMatch(/GROUP BY d\.Donor_ID, month/);
+      expect(newSql).toMatch(/MIN\(month\) AS first_month/);
+      expect(newSql).toMatch(
         /ROW_NUMBER\(\) OVER \(PARTITION BY DonorID ORDER BY Registered, ID\)/,
       );
-      expect(newSql).to.match(/dm\.month = f\.first_month/);
-      expect(newSql).not.to.match(/Donation_referral_codes/);
-      expect(newParams).to.deep.equal(["2024-11"]);
+      expect(newSql).toMatch(/dm\.month = f\.first_month/);
+      expect(newSql).not.toMatch(/Donation_referral_codes/);
+      expect(newParams).toStrictEqual(["2024-11"]);
 
-      const [cohortSql, cohortParams] = query.secondCall.args as [string, unknown[]];
-      expect(cohortSql).to.match(/Payment_ID NOT IN \(15, 16\)/);
-      expect(cohortSql).to.match(/MIN\(year\) AS cohort/);
-      expect(cohortSql).to.match(/GROUP BY c\.cohort, dy\.year/);
-      expect(cohortParams).to.deep.equal([2016]);
+      const [cohortSql, cohortParams] = query.mock.calls[1] as [string, unknown[]];
+      expect(cohortSql).toMatch(/Payment_ID NOT IN \(15, 16\)/);
+      expect(cohortSql).toMatch(/MIN\(year\) AS cohort/);
+      expect(cohortSql).toMatch(/GROUP BY c\.cohort, dy\.year/);
+      expect(cohortParams).toStrictEqual([2016]);
     });
   });
 
   describe("procedures", () => {
     it("rejects anonymous callers and non-admins before querying", async () => {
-      const rows = sinon.stub(DAO.donorCohorts, "getNewDonorRows").resolves([]);
-      const cohorts = sinon.stub(DAO.donorCohorts, "getCohortRows").resolves([]);
+      const rows = vi.spyOn(DAO.donorCohorts, "getNewDonorRows").mockResolvedValue([]);
+      const cohorts = vi.spyOn(DAO.donorCohorts, "getCohortRows").mockResolvedValue([]);
       await expectCode(callerWith().analysis.newDonors({ months: 12 }), "UNAUTHORIZED");
       await expectCode(callerWith(["read:profile"]).analysis.cohorts(), "FORBIDDEN");
-      expect(rows.called).to.be.false;
-      expect(cohorts.called).to.be.false;
+      expect(rows).not.toHaveBeenCalled();
+      expect(cohorts).not.toHaveBeenCalled();
     });
 
     it("rejects unknown fields and out-of-range months", async () => {
@@ -177,29 +175,31 @@ describe("analysis: donor cohorts", () => {
     });
 
     it("asks from the first month of the window and caches the result", async () => {
-      const rows = sinon.stub(DAO.donorCohorts, "getNewDonorRows").resolves([]);
-      sinon.stub(DAO.donorCohorts, "getReferralTypes").resolves(types);
+      const rows = vi.spyOn(DAO.donorCohorts, "getNewDonorRows").mockResolvedValue([]);
+      vi.spyOn(DAO.donorCohorts, "getReferralTypes").mockResolvedValue(types);
       const first = await admin().analysis.newDonors({ months: 24 });
-      expect(first.months).to.have.length(24);
-      expect(rows.firstCall.args[0]).to.equal(first.months[0]!.month);
+      expect(first.months).toHaveLength(24);
+      expect(rows.mock.calls[0][0]).toBe(first.months[0]!.month);
       await admin().analysis.newDonors({ months: 24 });
-      expect(rows.callCount).to.equal(1);
+      expect(rows).toHaveBeenCalledTimes(1);
       await admin().analysis.newDonors();
-      expect(rows.callCount, "the default is 24 months, same entry").to.equal(1);
+      expect(rows, "the default is 24 months, same entry").toHaveBeenCalledTimes(1);
     });
 
     it("returns cohorts from 2016 with money as decimal strings", async () => {
-      const stub = sinon
-        .stub(DAO.donorCohorts, "getCohortRows")
-        .resolves([{ cohort: 2016, year: 2016, donors: 3, volume: "1500" }]);
+      const stub = vi
+        .spyOn(DAO.donorCohorts, "getCohortRows")
+        .mockResolvedValue([{ cohort: 2016, year: 2016, donors: 3, volume: "1500" }]);
       const result = await admin().analysis.cohorts();
-      expect(stub.firstCall.args[0]).to.equal(2016);
-      expect(result.years[0]).to.equal(2016);
-      expect(result.cohorts[0]).to.deep.include({
-        year: 2016,
-        size: 3,
-        firstYearVolume: "1500.00",
-      });
+      expect(stub.mock.calls[0][0]).toBe(2016);
+      expect(result.years[0]).toBe(2016);
+      expect(result.cohorts[0]).toEqual(
+        expect.objectContaining({
+          year: 2016,
+          size: 3,
+          firstYearVolume: "1500.00",
+        }),
+      );
     });
   });
 });

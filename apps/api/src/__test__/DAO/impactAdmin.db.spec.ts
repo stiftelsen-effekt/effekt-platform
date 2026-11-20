@@ -1,8 +1,6 @@
-import { describe, it, beforeAll, afterAll, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, afterEach, expect, vi } from "vitest";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
-import sinon from "sinon";
 import { DAO } from "../../custom_modules/DAO";
 import { clearImpactDataCache, getImpactData } from "../../custom_modules/impact/data";
 import { effectiveEvaluation } from "../../custom_modules/impact/rules";
@@ -58,7 +56,7 @@ const admin = () =>
     clearImpactDataCache();
   });
 
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   afterAll(async () => {
     await cleanUp();
@@ -84,7 +82,7 @@ const admin = () =>
     });
     expect(
       effectiveEvaluation(await getImpactData(), charityId, "2026-10-01")!.centsPerOutput,
-    ).to.equal(500);
+    ).toBe(500);
 
     await admin().estimates.update({
       id,
@@ -102,7 +100,7 @@ const admin = () =>
     expect(row).to.include({ ID: id, cents_per_output: 550, updated_by: "ops@example.org" });
     expect(
       effectiveEvaluation(await getImpactData(), charityId, "2026-10-01")!.centsPerOutput,
-    ).to.equal(550);
+    ).toBe(550);
 
     // The same month twice is refused, by the router and by the unique key
     try {
@@ -114,28 +112,28 @@ const admin = () =>
         sourceName: "x",
         sourceUrl: "https://example.org",
       });
-      expect.fail("expected BAD_REQUEST");
+      expect.unreachable("expected BAD_REQUEST");
     } catch (err: any) {
-      expect(err.code).to.equal("BAD_REQUEST");
+      expect(err.code).toBe("BAD_REQUEST");
     }
 
     await admin().estimates.delete({ id });
-    expect(effectiveEvaluation(await getImpactData(), charityId, "2026-10-01")).to.equal(null);
+    expect(effectiveEvaluation(await getImpactData(), charityId, "2026-10-01")).toBe(null);
 
     // The history has the charity's creation and the estimate's three edits, newest first
     const history = await admin().changes.list({ charityId });
-    expect(history.map((c) => [c.entity, c.action])).to.deep.equal([
+    expect(history.map((c) => [c.entity, c.action])).toStrictEqual([
       ["estimate", "delete"],
       ["estimate", "update"],
       ["estimate", "create"],
       ["charity", "create"],
     ]);
-    expect(history[1]!.fields).to.deep.include({
+    expect(history[1]!.fields).toContainEqual({
       field: "centsPerOutput",
       before: 500,
       after: 550,
     });
-    expect(history[1]!.changedBy).to.equal("ops@example.org");
+    expect(history[1]!.changedBy).toBe("ops@example.org");
   });
 
   it("gives a new grant the fund's next legacy ID and keeps allotment IDs on edit", async () => {
@@ -159,8 +157,8 @@ const admin = () =>
       ],
     });
     const created = await admin().grants.get({ id });
-    expect(created.legacyId).to.equal(Number(maxLegacy) + 1);
-    expect(created.allotments.map((a) => a.share)).to.deep.equal([0.75, 0.25]);
+    expect(created.legacyId).toBe(Number(maxLegacy) + 1);
+    expect(created.allotments.map((a) => a.share)).toStrictEqual([0.75, 0.25]);
     const [first, second] = created.allotments;
 
     await admin().grants.update({
@@ -172,19 +170,21 @@ const admin = () =>
       ],
     });
     const edited = await admin().grants.get({ id });
-    expect(edited.validFrom).to.equal("2028-07-01");
-    expect(edited.legacyId).to.equal(created.legacyId);
-    expect(edited.allotments[0]).to.include({ id: first!.id, sumInCents: 1_000_000_000 });
-    expect(edited.allotments.map((a) => a.id)).to.not.include(second!.id);
-    expect(edited.allotments[1]!.id).to.be.greaterThan(second!.id);
+    expect(edited.validFrom).toBe("2028-07-01");
+    expect(edited.legacyId).toBe(created.legacyId);
+    expect(edited.allotments[0]).toEqual(
+      expect.objectContaining({ id: first!.id, sumInCents: 1_000_000_000 }),
+    );
+    expect(edited.allotments.map((a) => a.id)).not.toContain(second!.id);
+    expect(edited.allotments[1]!.id).toBeGreaterThan(second!.id);
   });
 
   it("rolls the whole grant edit back when a step fails", async () => {
     const [grant] = await admin().grants.list({ fund: "TCF" });
-    expect(grant!.validFrom).to.equal("2028-07-01");
+    expect(grant!.validFrom).toBe("2028-07-01");
     const before = await admin().grants.get({ id: grant!.id });
     const original = impactAdminDao.replaceAllotments;
-    sinon.stub(impactAdminDao, "replaceAllotments").callsFake(async (...args) => {
+    vi.spyOn(impactAdminDao, "replaceAllotments").mockImplementation(async (...args) => {
       await original(...args);
       throw new Error("lost connection");
     });
@@ -203,19 +203,19 @@ const admin = () =>
           },
         ],
       });
-      expect.fail("expected an error");
+      expect.unreachable("expected an error");
     } catch (err: any) {
-      expect(err.code).to.equal("INTERNAL_SERVER_ERROR");
+      expect(err.code).toBe("INTERNAL_SERVER_ERROR");
     }
-    sinon.restore();
+    vi.restoreAllMocks();
     const changes = await admin().changes.list({ entity: "grant", entityId: grant!.id });
     expect(
       changes.map((c) => c.action),
       "no history for the rolled-back edit",
-    ).to.deep.equal(["update", "create"]);
+    ).toStrictEqual(["update", "create"]);
     const after = await admin().grants.get({ id: grant!.id });
-    expect(after.validFrom).to.equal("2028-07-01");
-    expect(after.allotments.map((a) => a.id)).to.deep.equal(before.allotments.map((a) => a.id));
+    expect(after.validFrom).toBe("2028-07-01");
+    expect(after.allotments.map((a) => a.id)).toStrictEqual(before.allotments.map((a) => a.id));
     await admin().grants.delete({ id: grant!.id });
   });
 });

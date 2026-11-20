@@ -1,8 +1,7 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import crypto from "crypto";
 import express from "express";
-import sinon from "sinon";
 import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
 import * as mail from "../custom_modules/mail";
@@ -26,43 +25,43 @@ function buildServer(mountPath: string, routerPath: string) {
 }
 
 describe("webhook authentication", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   describe("POST /logging/auth0", () => {
-    let sendStub: sinon.SinonStub;
+    let sendStub: MockInstance;
     let app: express.Express;
     const body = {
       logs: [{ data: { type: "fcpr", details: { body: { email: "victim@example.test" } } } }],
     };
 
     beforeEach(() => {
-      sendStub = sinon.stub(mail, "sendPasswordResetNoUserEmail").resolves();
+      sendStub = vi.spyOn(mail, "sendPasswordResetNoUserEmail").mockResolvedValue(undefined);
       app = buildServer("/logging", "../routes/logging");
     });
 
     it("rejects requests when the token is not configured", async () => {
-      sinon.stub(config, "auth0_log_stream_token").value(undefined);
+      vi.spyOn(config, "auth0_log_stream_token", "get").mockReturnValue(undefined);
       await request(app)
         .post("/logging/auth0")
         .set("Authorization", "anything")
         .send(body)
         .expect(401);
-      expect(sendStub.called).to.be.false;
+      expect(sendStub).not.toHaveBeenCalled();
     });
 
     it("rejects requests without the correct token", async () => {
-      sinon.stub(config, "auth0_log_stream_token").value("s3cret");
+      vi.spyOn(config, "auth0_log_stream_token", "get").mockReturnValue("s3cret");
       await request(app).post("/logging/auth0").send(body).expect(401);
       await request(app)
         .post("/logging/auth0")
         .set("Authorization", "Bearer wrong")
         .send(body)
         .expect(401);
-      expect(sendStub.called).to.be.false;
+      expect(sendStub).not.toHaveBeenCalled();
     });
 
     it("accepts requests with the token, raw or as Bearer", async () => {
-      sinon.stub(config, "auth0_log_stream_token").value("s3cret");
+      vi.spyOn(config, "auth0_log_stream_token", "get").mockReturnValue("s3cret");
       await request(app)
         .post("/logging/auth0")
         .set("Authorization", "s3cret")
@@ -73,61 +72,63 @@ describe("webhook authentication", () => {
         .set("Authorization", "Bearer s3cret")
         .send(body)
         .expect(200);
-      expect(sendStub.callCount).to.equal(2);
-      expect(sendStub.firstCall.args[0]).to.equal("victim@example.test");
+      expect(sendStub).toHaveBeenCalledTimes(2);
+      expect(sendStub.mock.calls[0][0]).toBe("victim@example.test");
     });
   });
 
   describe("POST /donors/auth0/register", () => {
-    let lookupStub: sinon.SinonStub;
-    let addStub: sinon.SinonStub;
+    let lookupStub: MockInstance;
+    let addStub: MockInstance;
     let app: express.Express;
     const body = { email: "new@example.test" };
 
     beforeEach(() => {
-      lookupStub = sinon.stub(DAO.donors, "getIDbyEmail").resolves(42);
-      addStub = sinon.stub(DAO.donors, "add").resolves(43);
+      lookupStub = vi.spyOn(DAO.donors, "getIDbyEmail").mockResolvedValue(42);
+      addStub = vi.spyOn(DAO.donors, "add").mockResolvedValue(43);
       app = buildServer("/donors", "../routes/donors");
     });
 
     it("allows requests when the token is not configured (Swedish API)", async () => {
-      sinon.stub(config, "auth0_register_token").value(undefined);
+      vi.spyOn(config, "auth0_register_token", "get").mockReturnValue(undefined);
       await request(app).post("/donors/auth0/register").send(body).expect(200);
-      expect(lookupStub.calledOnce).to.be.true;
+      expect(lookupStub).toHaveBeenCalledOnce();
     });
 
     it("rejects requests without the correct token", async () => {
-      sinon.stub(config, "auth0_register_token").value("s3cret");
+      vi.spyOn(config, "auth0_register_token", "get").mockReturnValue("s3cret");
       await request(app).post("/donors/auth0/register").send(body).expect(401);
       await request(app)
         .post("/donors/auth0/register")
         .set("Authorization", "Bearer wrong")
         .send(body)
         .expect(401);
-      expect(lookupStub.called).to.be.false;
-      expect(addStub.called).to.be.false;
+      expect(lookupStub).not.toHaveBeenCalled();
+      expect(addStub).not.toHaveBeenCalled();
     });
 
     it("returns the donor ID with the correct token", async () => {
-      sinon.stub(config, "auth0_register_token").value("s3cret");
+      vi.spyOn(config, "auth0_register_token", "get").mockReturnValue("s3cret");
       const res = await request(app)
         .post("/donors/auth0/register")
         .set("Authorization", "Bearer s3cret")
         .send(body)
         .expect(200);
-      expect(res.body.content).to.equal(42);
-      expect(addStub.called).to.be.false;
+      expect(res.body.content).toBe(42);
+      expect(addStub).not.toHaveBeenCalled();
     });
   });
 
   describe("POST /mail/mailersend/survey/response", () => {
-    let saveStub: sinon.SinonStub;
+    let saveStub: MockInstance;
     let app: express.Express;
     const payload = JSON.stringify({ data: { recipient: "x@example.test" } });
 
     beforeEach(() => {
-      saveStub = sinon.stub(DAO.mail, "saveMailerSendSurveyResponse").resolves();
-      sinon.stub(DAO.donors, "getIDbyEmail").resolves(1);
+      saveStub = vi
+        .spyOn(DAO.mail, "saveMailerSendSurveyResponse")
+        .mockResolvedValue(undefined as any);
+      vi.spyOn(DAO.donors, "getIDbyEmail").mockResolvedValue(1);
       app = buildServer("/mail", "../routes/mail");
     });
 
@@ -135,17 +136,17 @@ describe("webhook authentication", () => {
       crypto.createHmac("sha256", secret).update(raw).digest("hex");
 
     it("rejects unsigned requests", async () => {
-      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
+      vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
       await request(app)
         .post("/mail/mailersend/survey/response")
         .set("Content-Type", "application/json")
         .send(payload)
         .expect(401);
-      expect(saveStub.called).to.be.false;
+      expect(saveStub).not.toHaveBeenCalled();
     });
 
     it("rejects requests with a wrong signature", async () => {
-      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
+      vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
       await request(app)
         .post("/mail/mailersend/survey/response")
         .set("Content-Type", "application/json")
@@ -155,7 +156,7 @@ describe("webhook authentication", () => {
     });
 
     it("rejects all requests when the secret is not configured", async () => {
-      sinon.stub(config, "mailersend_survey_webhook_secret").value(undefined);
+      vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue(undefined);
       await request(app)
         .post("/mail/mailersend/survey/response")
         .set("Content-Type", "application/json")
@@ -165,7 +166,7 @@ describe("webhook authentication", () => {
     });
 
     it("accepts correctly signed requests", async () => {
-      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
+      vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
       await request(app)
         .post("/mail/mailersend/survey/response")
         .set("Content-Type", "application/json")
@@ -195,26 +196,26 @@ describe("webhook authentication", () => {
         .expect(200);
 
     it("skips recent duplicates for a known donor", async () => {
-      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
+      vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
       await postAnswer(answerPayload("x@example.test"));
-      expect(saveStub.calledOnce).to.be.true;
-      expect(saveStub.firstCall.args[0]).to.include({ DonorID: 1, answer: "Fint" });
-      expect(saveStub.firstCall.args[1]).to.deep.equal({ skipRecentDuplicate: true });
+      expect(saveStub).toHaveBeenCalledOnce();
+      expect(saveStub.mock.calls[0][0]).to.include({ DonorID: 1, answer: "Fint" });
+      expect(saveStub.mock.calls[0][1]).toStrictEqual({ skipRecentDuplicate: true });
     });
 
     it("keeps every answer that falls back to the anonymous donor", async () => {
-      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
-      (DAO.donors.getIDbyEmail as sinon.SinonStub).resolves(null);
+      vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
+      vi.mocked(DAO.donors.getIDbyEmail).mockResolvedValue(null);
       await postAnswer(answerPayload("unknown@example.test"));
-      expect(saveStub.firstCall.args[0]).to.include({ DonorID: 1464 });
-      expect(saveStub.firstCall.args[1]).to.deep.equal({ skipRecentDuplicate: false });
+      expect(saveStub.mock.calls[0][0]).to.include({ DonorID: 1464 });
+      expect(saveStub.mock.calls[0][1]).toStrictEqual({ skipRecentDuplicate: false });
     });
 
     it("still answers 200 when every answer was a duplicate", async () => {
-      sinon.stub(config, "mailersend_survey_webhook_secret").value("whsec");
-      saveStub.resolves(false);
+      vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
+      saveStub.mockResolvedValue(false);
       const res = await postAnswer(answerPayload("x@example.test"));
-      expect(res.body.content).to.equal("OK");
+      expect(res.body.content).toBe("OK");
     });
   });
 });

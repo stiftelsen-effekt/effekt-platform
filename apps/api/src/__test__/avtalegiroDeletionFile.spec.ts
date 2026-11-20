@@ -1,7 +1,5 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
+import { describe, it, beforeAll, afterAll, expect, vi } from "vitest";
 import { DAO } from "../custom_modules/DAO";
-import sinon from "sinon";
-import { expect } from "chai";
 import { DateTime } from "luxon";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
@@ -22,7 +20,7 @@ describe("AvtaleGiro deletion file generation", () => {
     lines[row - 1].substr(start - 1, length);
 
   beforeAll(async function () {
-    const donorStub = sinon.stub(DAO.donors, "getByKID");
+    const donorStub = vi.spyOn(DAO.donors, "getByKID").mockReturnValue(undefined as any);
     donorStub.withArgs("002556289731589").resolves({ name: "Maria Brækkelie" } as any);
     donorStub.withArgs("000638723319577").resolves({ name: "Kristian Jørgensen" } as any);
 
@@ -35,75 +33,75 @@ describe("AvtaleGiro deletion file generation", () => {
   });
 
   afterAll(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   it("has a start record, one assignment of four records per deletion and an end record", () => {
-    expect(lines).to.have.length(1 + deletions.length * 4 + 1);
-    expect(field(1, 1, 8)).to.equal("NY000010");
-    expect(field(lines.length, 1, 8)).to.equal("NY000089");
+    expect(lines).toHaveLength(1 + deletions.length * 4 + 1);
+    expect(field(1, 1, 8)).toBe("NY000010");
+    expect(field(lines.length, 1, 8)).toBe("NY000089");
   });
 
   it("writes every record as 80 characters", () => {
     for (const line of lines) {
-      expect(line).to.have.length(80);
+      expect(line).toHaveLength(80);
     }
   });
 
   it("starts each assignment as a deletion request assignment", () => {
     // Oppdragstype 36, record type 20
-    expect(field(2, 1, 8)).to.equal("NY213620");
-    expect(field(6, 1, 8)).to.equal("NY213620");
+    expect(field(2, 1, 8)).toBe("NY213620");
+    expect(field(6, 1, 8)).toBe("NY213620");
   });
 
   it("numbers the assignments like payment assignments", () => {
     // Shipment 745 % 366 = 13, then the assignment number
-    expect(field(2, 18, 7)).to.equal("0130000");
-    expect(field(6, 18, 7)).to.equal("0130001");
+    expect(field(2, 18, 7)).toBe("0130000");
+    expect(field(6, 18, 7)).toBe("0130001");
   });
 
   it("includes the agreement account in the assignment start record", () => {
-    expect(field(2, 25, 11)).to.equal("15062995960");
+    expect(field(2, 25, 11)).toBe("15062995960");
   });
 
   it("writes the original claim with transaction type 93", () => {
     // Slettepost 1: transaction type 93, record type 30
-    expect(field(3, 1, 8)).to.equal("NY219330");
+    expect(field(3, 1, 8)).toBe("NY219330");
     // Slettepost 2: transaction type 93, record type 31
-    expect(field(4, 1, 8)).to.equal("NY219331");
+    expect(field(4, 1, 8)).toBe("NY219331");
   });
 
   it("identifies the claim by due date, amount and KID", () => {
-    expect(field(3, 16, 6)).to.equal("281026");
-    expect(field(3, 33, 17)).to.equal("00000000000050000");
-    expect(field(3, 50, 25).trim()).to.equal("002556289731589");
+    expect(field(3, 16, 6)).toBe("281026");
+    expect(field(3, 33, 17)).toBe("00000000000050000");
+    expect(field(3, 50, 25).trim()).toBe("002556289731589");
 
-    expect(field(7, 16, 6)).to.equal("271026");
-    expect(field(7, 33, 17)).to.equal("00000000000340000");
-    expect(field(7, 50, 25).trim()).to.equal("000638723319577");
+    expect(field(7, 16, 6)).toBe("271026");
+    expect(field(7, 33, 17)).toBe("00000000000340000");
+    expect(field(7, 50, 25).trim()).toBe("000638723319577");
   });
 
   it("uses the same transaction number in both records of a deletion", () => {
-    expect(field(3, 9, 7)).to.equal("0000001");
-    expect(field(4, 9, 7)).to.equal("0000001");
+    expect(field(3, 9, 7)).toBe("0000001");
+    expect(field(4, 9, 7)).toBe("0000001");
   });
 
   it("ends each assignment with its count, sum and due dates", () => {
-    expect(field(5, 1, 8)).to.equal("NY213688");
+    expect(field(5, 1, 8)).toBe("NY213688");
     // One transaction, four records including start and end
-    expect(field(5, 9, 8)).to.equal("00000001");
-    expect(field(5, 17, 8)).to.equal("00000004");
-    expect(field(5, 25, 17)).to.equal("00000000000050000");
-    expect(field(5, 42, 6)).to.equal("281026");
-    expect(field(5, 48, 6)).to.equal("281026");
+    expect(field(5, 9, 8)).toBe("00000001");
+    expect(field(5, 17, 8)).toBe("00000004");
+    expect(field(5, 25, 17)).toBe("00000000000050000");
+    expect(field(5, 42, 6)).toBe("281026");
+    expect(field(5, 48, 6)).toBe("281026");
   });
 
   it("ends the shipment with totals for all deletions and the earliest due date", () => {
     const end = lines.length;
-    expect(field(end, 9, 8)).to.equal("00000002");
-    expect(field(end, 17, 8)).to.equal("00000010");
-    expect(field(end, 25, 17)).to.equal("00000000000390000");
-    expect(field(end, 42, 6)).to.equal("271026");
+    expect(field(end, 9, 8)).toBe("00000002");
+    expect(field(end, 17, 8)).toBe("00000010");
+    expect(field(end, 25, 17)).toBe("00000000000390000");
+    expect(field(end, 42, 6)).toBe("271026");
   });
 
   it("refuses to generate a file without deletions", async () => {
@@ -113,6 +111,6 @@ describe("AvtaleGiro deletion file generation", () => {
     } catch (ex) {
       error = ex;
     }
-    expect(error?.message).to.contain("without deletions");
+    expect(error?.message).toContain("without deletions");
   });
 });

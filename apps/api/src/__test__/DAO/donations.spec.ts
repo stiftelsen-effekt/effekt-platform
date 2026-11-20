@@ -1,6 +1,5 @@
-import { describe, it, afterEach } from "vitest";
-import sinon from "sinon";
-import { expect } from "chai";
+import { describe, it, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import { DAO } from "../../custom_modules/DAO";
 import { RequestLocale } from "../../middleware/locale";
 
@@ -28,20 +27,20 @@ describe("DAO donations", () => {
       row: ReturnType<typeof donationRow>,
       totals: ReturnType<typeof totalsRow>,
     ) => {
-      const queryStub = sinon.stub(DAO, "query");
-      queryStub.onFirstCall().resolves([[row], []]);
-      queryStub.onSecondCall().resolves([[totals], []]);
+      const queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      queryStub.mockResolvedValueOnce([[row], []]);
+      queryStub.mockResolvedValueOnce([[totals], []]);
       return queryStub;
     };
 
-    const calls = (queryStub: sinon.SinonStub) => ({
-      pageSql: queryStub.firstCall.args[0] as string,
-      pageParams: queryStub.firstCall.args[1] as unknown[],
-      totalsSql: queryStub.secondCall.args[0] as string,
+    const calls = (queryStub: MockInstance) => ({
+      pageSql: queryStub.mock.calls[0][0] as string,
+      pageParams: queryStub.mock.calls[0][1] as unknown[],
+      totalsSql: queryStub.mock.calls[1][0] as string,
     });
 
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
 
     it("uses the full donation amount when no organization filter is set", async () => {
@@ -52,25 +51,25 @@ describe("DAO donations", () => {
 
       const result = await DAO.donations.getAll(sort, 0, 10, {}, RequestLocale.NO);
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub).toHaveBeenCalledTimes(2);
       const { pageSql, pageParams, totalsSql } = calls(queryStub);
-      expect(pageSql).to.contain("Donations.sum_confirmed as sum_confirmed");
-      expect(pageSql).to.match(
+      expect(pageSql).toContain("Donations.sum_confirmed as sum_confirmed");
+      expect(pageSql).toMatch(
         /ORDER BY timestamp_confirmed DESC, Donations\.ID DESC\s+LIMIT \? OFFSET \?/,
       );
-      expect(pageParams).to.deep.equal([10, 0]);
-      expect(totalsSql).to.contain("SUM(Donations.sum_confirmed) as full_sum");
-      expect(totalsSql).to.not.contain("LIMIT");
+      expect(pageParams).toStrictEqual([10, 0]);
+      expect(totalsSql).toContain("SUM(Donations.sum_confirmed) as full_sum");
+      expect(totalsSql).not.toContain("LIMIT");
       for (const sql of [pageSql, totalsSql]) {
-        expect(sql).to.not.contain("selected_org_shares");
-        expect(sql).to.not.match(/ROUND\(Donations\.sum_confirmed \* selected_org_shares/);
+        expect(sql).not.toContain("selected_org_shares");
+        expect(sql).not.toMatch(/ROUND\(Donations\.sum_confirmed \* selected_org_shares/);
       }
-      expect(result.statistics).to.deep.equal({
+      expect(result.statistics).toStrictEqual({
         numDonations: 1,
         sumDonations: 1000,
         avgDonation: 1000,
       });
-      expect(result.rows[0].sum).to.equal(1000);
+      expect(result.rows[0].sum).toBe(1000);
     });
 
     it("prorates table and stats amounts by selected organization shares", async () => {
@@ -87,27 +86,27 @@ describe("DAO donations", () => {
         RequestLocale.NO,
       );
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub).toHaveBeenCalledTimes(2);
       const { pageSql, pageParams, totalsSql } = calls(queryStub);
       const prorated = "ROUND(Donations.sum_confirmed * selected_org_shares.selected_share, 2)";
 
       // Both the table and the totals use the amount to the selected organizations
-      expect(pageSql).to.contain(`${prorated} as sum_confirmed`);
-      expect(totalsSql).to.contain(`SUM(${prorated}) as full_sum`);
-      expect(totalsSql).to.contain(`AVG(${prorated}) as full_avg`);
-      expect(pageParams).to.deep.equal([10, 0]);
+      expect(pageSql).toContain(`${prorated} as sum_confirmed`);
+      expect(totalsSql).toContain(`SUM(${prorated}) as full_sum`);
+      expect(totalsSql).toContain(`AVG(${prorated}) as full_avg`);
+      expect(pageParams).toStrictEqual([10, 0]);
       for (const sql of [pageSql, totalsSql]) {
-        expect(sql).to.contain("selected_org_shares AS");
-        expect(sql).to.contain("INNER JOIN selected_org_shares");
-        expect(sql).to.contain("Distribution_cause_areas.Percentage_share / 100");
-        expect(sql).to.contain("Distribution_cause_area_organizations.Percentage_share / 100");
-        expect(sql).to.contain("Organization_ID IN (12,17)");
-        expect(sql).to.not.contain("SELECT DISTINCT");
-        expect(sql).to.not.contain("LEFT JOIN Distribution_cause_areas");
+        expect(sql).toContain("selected_org_shares AS");
+        expect(sql).toContain("INNER JOIN selected_org_shares");
+        expect(sql).toContain("Distribution_cause_areas.Percentage_share / 100");
+        expect(sql).toContain("Distribution_cause_area_organizations.Percentage_share / 100");
+        expect(sql).toContain("Organization_ID IN (12,17)");
+        expect(sql).not.toContain("SELECT DISTINCT");
+        expect(sql).not.toContain("LEFT JOIN Distribution_cause_areas");
       }
 
-      expect(result.rows[0].sum).to.equal(400);
-      expect(result.statistics).to.deep.equal({
+      expect(result.rows[0].sum).toBe(400);
+      expect(result.statistics).toStrictEqual({
         numDonations: 1,
         sumDonations: 400,
         avgDonation: 400,
@@ -115,7 +114,7 @@ describe("DAO donations", () => {
     });
 
     it("returns empty statistics without querying when no organizations are selected", async () => {
-      const queryStub = sinon.stub(DAO, "query");
+      const queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
 
       const result = await DAO.donations.getAll(
         sort,
@@ -125,8 +124,8 @@ describe("DAO donations", () => {
         RequestLocale.NO,
       );
 
-      expect(queryStub.called).to.be.false;
-      expect(result).to.deep.equal({
+      expect(queryStub).not.toHaveBeenCalled();
+      expect(result).toStrictEqual({
         rows: [],
         statistics: {
           numDonations: 0,
@@ -145,10 +144,10 @@ describe("DAO donations", () => {
 
       await DAO.donations.getAll(sort, 0, 10, { dataOwnerIDs: [1, 3] }, RequestLocale.NO);
 
-      expect(queryStub.calledTwice).to.be.true;
+      expect(queryStub).toHaveBeenCalledTimes(2);
       const { pageSql, totalsSql } = calls(queryStub);
-      expect(pageSql).to.contain("Donations.Meta_owner_ID IN (1,3)");
-      expect(totalsSql).to.contain("Donations.Meta_owner_ID IN (1,3)");
+      expect(pageSql).toContain("Donations.Meta_owner_ID IN (1,3)");
+      expect(totalsSql).toContain("Donations.Meta_owner_ID IN (1,3)");
     });
 
     it("joins and filters on campaign code", async () => {
@@ -166,12 +165,12 @@ describe("DAO donations", () => {
       );
 
       const { pageSql } = calls(queryStub);
-      expect(pageSql).to.contain("FROM Donation_referral_codes");
-      expect(pageSql).to.contain("GROUP BY KID");
-      expect(pageSql).to.contain("CampaignCodes.campaign_codes");
-      expect(pageSql).to.contain("EXISTS (");
-      expect(pageSql).to.contain("DRC_F.Referral_code LIKE '%autumn%'");
-      expect(result.rows[0].campaignCode).to.equal("AUTUMN26");
+      expect(pageSql).toContain("FROM Donation_referral_codes");
+      expect(pageSql).toContain("GROUP BY KID");
+      expect(pageSql).toContain("CampaignCodes.campaign_codes");
+      expect(pageSql).toContain("EXISTS (");
+      expect(pageSql).toContain("DRC_F.Referral_code LIKE '%autumn%'");
+      expect(result.rows[0].campaignCode).toBe("AUTUMN26");
     });
 
     it("is null when the donation's KID has no campaign code", async () => {
@@ -182,11 +181,11 @@ describe("DAO donations", () => {
 
       const result = await DAO.donations.getAll(sort, 0, 10, {}, RequestLocale.NO);
 
-      expect(result.rows[0].campaignCode).to.be.null;
+      expect(result.rows[0].campaignCode).toBeNull();
     });
 
     it("returns empty statistics without querying when no data owners are selected", async () => {
-      const queryStub = sinon.stub(DAO, "query");
+      const queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
 
       const result = await DAO.donations.getAll(
         sort,
@@ -196,8 +195,8 @@ describe("DAO donations", () => {
         RequestLocale.NO,
       );
 
-      expect(queryStub.called).to.be.false;
-      expect(result).to.deep.equal({
+      expect(queryStub).not.toHaveBeenCalled();
+      expect(result).toStrictEqual({
         rows: [],
         statistics: {
           numDonations: 0,
@@ -211,12 +210,12 @@ describe("DAO donations", () => {
 
   describe("getEAFundsDonations", () => {
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
 
     it("reads EA Norge (owner 2) donations from Donations with the tax unit from the distribution", async () => {
       const timestamp = new Date("2024-05-01");
-      const queryStub = sinon.stub(DAO, "query").resolves([
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([
         [
           {
             ID: 11,
@@ -240,14 +239,14 @@ describe("DAO donations", () => {
 
       const result = await DAO.donations.getEAFundsDonations(237);
 
-      expect(queryStub.calledOnce).to.be.true;
-      const [sql, params] = queryStub.firstCall.args as unknown as [string, unknown[]];
-      expect(sql).to.not.contain("Funds_donations");
-      expect(sql).to.contain("FROM Donations");
-      expect(sql).to.contain("Distributions.Tax_unit_ID");
-      expect(sql).to.contain("Donations.Meta_owner_ID = ?");
-      expect(params).to.deep.equal([237, 2]);
-      expect(result).to.deep.equal([
+      expect(queryStub).toHaveBeenCalledOnce();
+      const [sql, params] = queryStub.mock.calls[0] as unknown as [string, unknown[]];
+      expect(sql).not.toContain("Funds_donations");
+      expect(sql).toContain("FROM Donations");
+      expect(sql).toContain("Distributions.Tax_unit_ID");
+      expect(sql).toContain("Donations.Meta_owner_ID = ?");
+      expect(params).toStrictEqual([237, 2]);
+      expect(result).toStrictEqual([
         {
           id: 11,
           donorId: 237,
@@ -270,13 +269,13 @@ describe("DAO donations", () => {
 
   describe("queries rewritten for the multiple cause area schema", () => {
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
 
     const expectCurrentSchema = (sql: string) => {
-      expect(sql).to.not.match(/Combining_table|JOIN Distribution\b|CALL/i);
-      expect(sql).to.contain("Distribution_cause_areas");
-      expect(sql).to.contain("Distribution_cause_area_organizations");
+      expect(sql).not.toMatch(/Combining_table|JOIN Distribution\b|CALL/i);
+      expect(sql).toContain("Distribution_cause_areas");
+      expect(sql).toContain("Distribution_cause_area_organizations");
     };
 
     it("getAggregateByTime sums each organization's share of the cause area share", async () => {
@@ -284,20 +283,20 @@ describe("DAO donations", () => {
         { id: 1, orgName: "Org", chartColor: "chart-3", sum: "12.50" },
         { id: 2, orgName: "Other org", chartColor: "teal", sum: "1.00" },
       ];
-      const queryStub = sinon.stub(DAO, "query").resolves([rows, []]);
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([rows, []]);
       const from = new Date("2024-01-01");
       const to = new Date("2024-12-31");
 
       // Stored chart colours pass through; values outside the palette read as null.
-      expect(await DAO.donations.getAggregateByTime(from, to)).to.deep.equal([
+      expect(await DAO.donations.getAggregateByTime(from, to)).toStrictEqual([
         rows[0],
         { ...rows[1], chartColor: null },
       ]);
 
-      const [sql, params] = queryStub.firstCall.args;
+      const [sql, params] = queryStub.mock.calls[0];
       expectCurrentSchema(sql);
-      expect(sql).to.match(/GROUP BY Organizations\.ID/);
-      expect(params).to.deep.equal([from, to]);
+      expect(sql).toMatch(/GROUP BY Organizations\.ID/);
+      expect(params).toStrictEqual([from, to]);
     });
 
     it("getFromRange groups organization rows per donation, sorted by time", async () => {
@@ -314,9 +313,9 @@ describe("DAO donations", () => {
         percentage_share: share,
         actual_share: amount,
       });
-      const queryStub = sinon
-        .stub(DAO, "query")
-        .resolves([
+      const queryStub = vi
+        .spyOn(DAO, "query")
+        .mockResolvedValue([
           [
             row(2, "2024-01-02", 1, "60.000000000000", "60.00"),
             row(2, "2024-01-02", 2, "40.000000000000", "40.00"),
@@ -331,27 +330,29 @@ describe("DAO donations", () => {
         [4],
       );
 
-      expectCurrentSchema(queryStub.firstCall.args[0]);
-      expect(queryStub.firstCall.args[0]).to.contain("Donations.Payment_ID IN (?)");
-      expect(result.map((d) => d.ID)).to.deep.equal([1, 2]);
-      expect(result[1]).to.deep.include({ sum: "100.00", transactionCost: "2.00", donorID: 7 });
-      expect(result[1].split).to.deep.equal([
+      expectCurrentSchema(queryStub.mock.calls[0][0]);
+      expect(queryStub.mock.calls[0][0]).toContain("Donations.Payment_ID IN (?)");
+      expect(result.map((d) => d.ID)).toStrictEqual([1, 2]);
+      expect(result[1]).toEqual(
+        expect.objectContaining({ sum: "100.00", transactionCost: "2.00", donorID: 7 }),
+      );
+      expect(result[1].split).toStrictEqual([
         { id: 1, name: "Org 1", percentage: "60.000000000000", amount: "60.00" },
         { id: 2, name: "Org 2", percentage: "40.000000000000", amount: "40.00" },
       ]);
     });
 
     it("externalRefExists checks every payment method", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([[{ ID: 1 }], []]);
-      expect(await DAO.donations.externalRefExists("abc")).to.be.true;
-      expect(queryStub.firstCall.args[0]).to.not.contain("Payment_ID");
-      expect(queryStub.firstCall.args[1]).to.deep.equal(["abc"]);
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([[{ ID: 1 }], []]);
+      expect(await DAO.donations.externalRefExists("abc")).toBe(true);
+      expect(queryStub.mock.calls[0][0]).not.toContain("Payment_ID");
+      expect(queryStub.mock.calls[0][1]).toStrictEqual(["abc"]);
     });
   });
 
   describe("getTransactionCostsReport", () => {
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
 
     it("keeps two decimals on the transaction cost sums", async () => {
@@ -364,23 +365,23 @@ describe("DAO donations", () => {
         costYTD: "45.60",
         costYTDPrevYear: "78.09",
       };
-      const queryStub = sinon.stub(DAO, "query").resolves([[report], []]);
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([[report], []]);
 
       const result = await DAO.donations.getTransactionCostsReport();
 
-      expect(queryStub.calledOnce).to.be.true;
-      const sql = queryStub.firstCall.args[0] as string;
-      expect(sql.match(/round\(sum\(transaction_cost\), 2\)/g)).to.have.lengthOf(6);
-      expect(sql).to.not.match(/round\(sum\(transaction_cost\)\)/);
-      expect(result).to.deep.equal(report);
+      expect(queryStub).toHaveBeenCalledOnce();
+      const sql = queryStub.mock.calls[0][0] as string;
+      expect(sql.match(/round\(sum\(transaction_cost\), 2\)/g)).toHaveLength(6);
+      expect(sql).not.toMatch(/round\(sum\(transaction_cost\)\)/);
+      expect(result).toStrictEqual(report);
     });
   });
 
   describe("getByDonorId", () => {
-    afterEach(() => sinon.restore());
+    afterEach(() => vi.restoreAllMocks());
 
     it("joins campaign codes by KID and maps them onto each donation", async () => {
-      const queryStub = sinon.stub(DAO, "query").resolves([
+      const queryStub = vi.spyOn(DAO, "query").mockResolvedValue([
         [
           {
             ID: 1,
@@ -402,15 +403,15 @@ describe("DAO donations", () => {
 
       const result = await DAO.donations.getByDonorId(7);
 
-      const sql = queryStub.firstCall.args[0] as string;
-      expect(sql).to.contain("FROM Donation_referral_codes");
-      expect(sql).to.contain("GROUP BY KID");
-      expect(sql).to.contain("ON CampaignCodes.KID = Donation.KID_fordeling");
-      expect(result[0].campaignCode).to.equal("AUTUMN, SPRING");
+      const sql = queryStub.mock.calls[0][0] as string;
+      expect(sql).toContain("FROM Donation_referral_codes");
+      expect(sql).toContain("GROUP BY KID");
+      expect(sql).toContain("ON CampaignCodes.KID = Donation.KID_fordeling");
+      expect(result[0].campaignCode).toBe("AUTUMN, SPRING");
     });
 
     it("is null when the KID has no campaign code", async () => {
-      sinon.stub(DAO, "query").resolves([
+      vi.spyOn(DAO, "query").mockResolvedValue([
         [
           {
             ID: 1,
@@ -432,7 +433,7 @@ describe("DAO donations", () => {
 
       const result = await DAO.donations.getByDonorId(7);
 
-      expect(result[0].campaignCode).to.be.null;
+      expect(result[0].campaignCode).toBeNull();
     });
   });
 });

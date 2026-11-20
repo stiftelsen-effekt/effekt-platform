@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { DateTime } from "luxon";
 import {
   excludeAgreementsClaimedThisMonth,
@@ -23,23 +22,23 @@ const utc = (isoDate: string) => DateTime.fromISO(isoDate, { zone: "utc" });
 describe("AvtaleGiro charges", () => {
   describe("getMonthBounds", () => {
     it("returns the first and last day of the month", () => {
-      expect(getMonthBounds(utc("2026-10-16"))).to.deep.equal({
+      expect(getMonthBounds(utc("2026-10-16"))).toStrictEqual({
         start: "2026-10-01",
         end: "2026-10-31",
       });
     });
 
     it("handles february in leap and non-leap years", () => {
-      expect(getMonthBounds(utc("2028-02-10")).end).to.equal("2028-02-29");
-      expect(getMonthBounds(utc("2027-02-10")).end).to.equal("2027-02-28");
+      expect(getMonthBounds(utc("2028-02-10")).end).toBe("2028-02-29");
+      expect(getMonthBounds(utc("2027-02-10")).end).toBe("2027-02-28");
     });
 
     it("returns the same month when given its first or last day", () => {
-      expect(getMonthBounds(utc("2026-12-01"))).to.deep.equal({
+      expect(getMonthBounds(utc("2026-12-01"))).toStrictEqual({
         start: "2026-12-01",
         end: "2026-12-31",
       });
-      expect(getMonthBounds(utc("2026-12-31"))).to.deep.equal({
+      expect(getMonthBounds(utc("2026-12-31"))).toStrictEqual({
         start: "2026-12-01",
         end: "2026-12-31",
       });
@@ -52,8 +51,8 @@ describe("AvtaleGiro charges", () => {
 
       const { toClaim, alreadyClaimed } = excludeAgreementsClaimedThisMonth(agreements, new Set());
 
-      expect(toClaim).to.deep.equal(agreements);
-      expect(alreadyClaimed).to.be.empty;
+      expect(toClaim).toStrictEqual(agreements);
+      expect(alreadyClaimed).toHaveLength(0);
     });
 
     it("skips agreements already claimed this month", () => {
@@ -65,8 +64,8 @@ describe("AvtaleGiro charges", () => {
         new Set(["222"]),
       );
 
-      expect(toClaim.map((a) => a.KID)).to.deep.equal(["111", "333"]);
-      expect(alreadyClaimed.map((a) => a.KID)).to.deep.equal(["222"]);
+      expect(toClaim.map((a) => a.KID)).toStrictEqual(["111", "333"]);
+      expect(alreadyClaimed.map((a) => a.KID)).toStrictEqual(["222"]);
     });
 
     it("skips everything when all agreements are claimed", () => {
@@ -77,8 +76,8 @@ describe("AvtaleGiro charges", () => {
         new Set(["111", "222"]),
       );
 
-      expect(toClaim).to.be.empty;
-      expect(alreadyClaimed).to.have.length(2);
+      expect(toClaim).toHaveLength(0);
+      expect(alreadyClaimed).toHaveLength(2);
     });
 
     it("claims a KID only once when it appears twice", () => {
@@ -86,8 +85,8 @@ describe("AvtaleGiro charges", () => {
 
       const { toClaim, alreadyClaimed } = excludeAgreementsClaimedThisMonth(agreements, new Set());
 
-      expect(toClaim).to.have.length(1);
-      expect(alreadyClaimed).to.have.length(1);
+      expect(toClaim).toHaveLength(1);
+      expect(alreadyClaimed).toHaveLength(1);
     });
 
     it("claims a KID with several active rows once, with its most recent row", () => {
@@ -101,8 +100,8 @@ describe("AvtaleGiro charges", () => {
           new Set(),
         );
 
-        expect(toClaim.map((a) => a.id).sort()).to.deep.equal([2, 9]);
-        expect(alreadyClaimed.map((a) => a.id)).to.deep.equal([4]);
+        expect(toClaim.map((a) => a.id).sort()).toStrictEqual([2, 9]);
+        expect(alreadyClaimed.map((a) => a.id)).toStrictEqual([4]);
       }
     });
 
@@ -111,7 +110,7 @@ describe("AvtaleGiro charges", () => {
 
       const { toClaim } = excludeAgreementsClaimedThisMonth(agreements, new Set(["999"]));
 
-      expect(toClaim).to.deep.equal(agreements);
+      expect(toClaim).toStrictEqual(agreements);
     });
 
     it("keeps the order of the agreements", () => {
@@ -119,48 +118,48 @@ describe("AvtaleGiro charges", () => {
 
       const { toClaim } = excludeAgreementsClaimedThisMonth(agreements, new Set(["111"]));
 
-      expect(toClaim.map((a) => a.id)).to.deep.equal([3, 2]);
+      expect(toClaim.map((a) => a.id)).toStrictEqual([3, 2]);
     });
   });
 
   describe("findChargeForPayment", () => {
     it("returns null when there are no open charges", () => {
-      expect(findChargeForPayment([], utc("2026-10-27"))).to.be.null;
+      expect(findChargeForPayment([], utc("2026-10-27"))).toBeNull();
     });
 
     it("matches a payment on the due date", () => {
       const charges = [{ id: 1, dueDate: "2026-10-27" }];
 
-      expect(findChargeForPayment(charges, utc("2026-10-27"))).to.deep.equal(charges[0]);
+      expect(findChargeForPayment(charges, utc("2026-10-27"))).toStrictEqual(charges[0]);
     });
 
     it("matches a weekend due date paid on the next banking day", () => {
       // Due Saturday 24 October, charged Monday 26 October
       const charges = [{ id: 1, dueDate: "2026-10-24" }];
 
-      expect(findChargeForPayment(charges, utc("2026-10-26"))?.id).to.equal(1);
+      expect(findChargeForPayment(charges, utc("2026-10-26"))?.id).toBe(1);
     });
 
     it("matches a payment that arrives after the bank's retries", () => {
       const charges = [{ id: 1, dueDate: "2026-10-05" }];
 
-      expect(findChargeForPayment(charges, utc("2026-10-12"))?.id).to.equal(1);
+      expect(findChargeForPayment(charges, utc("2026-10-12"))?.id).toBe(1);
     });
 
     it("matches up to the window after the due date, but not beyond", () => {
       const charges = [{ id: 1, dueDate: "2026-10-01" }];
       const lastDay = utc("2026-10-01").plus({ days: MAX_DAYS_PAYMENT_AFTER_DUE_DATE });
 
-      expect(findChargeForPayment(charges, lastDay)?.id).to.equal(1);
-      expect(findChargeForPayment(charges, lastDay.plus({ days: 1 }))).to.be.null;
+      expect(findChargeForPayment(charges, lastDay)?.id).toBe(1);
+      expect(findChargeForPayment(charges, lastDay.plus({ days: 1 }))).toBeNull();
     });
 
     it("matches a few days before the due date, but not further", () => {
       const charges = [{ id: 1, dueDate: "2026-10-20" }];
       const earliest = utc("2026-10-20").minus({ days: MAX_DAYS_PAYMENT_BEFORE_DUE_DATE });
 
-      expect(findChargeForPayment(charges, earliest)?.id).to.equal(1);
-      expect(findChargeForPayment(charges, earliest.minus({ days: 1 }))).to.be.null;
+      expect(findChargeForPayment(charges, earliest)?.id).toBe(1);
+      expect(findChargeForPayment(charges, earliest.minus({ days: 1 }))).toBeNull();
     });
 
     it("picks the charge with the closest due date", () => {
@@ -170,7 +169,7 @@ describe("AvtaleGiro charges", () => {
         { id: 2, dueDate: "2026-10-27" },
       ];
 
-      expect(findChargeForPayment(charges, utc("2026-10-27"))?.id).to.equal(2);
+      expect(findChargeForPayment(charges, utc("2026-10-27"))?.id).toBe(2);
     });
 
     it("prefers the earlier due date when two are equally close", () => {
@@ -179,7 +178,7 @@ describe("AvtaleGiro charges", () => {
         { id: 1, dueDate: "2026-10-08" },
       ];
 
-      expect(findChargeForPayment(charges, utc("2026-10-10"))?.id).to.equal(1);
+      expect(findChargeForPayment(charges, utc("2026-10-10"))?.id).toBe(1);
     });
 
     it("ignores charges with an invalid due date", () => {
@@ -188,7 +187,7 @@ describe("AvtaleGiro charges", () => {
         { id: 2, dueDate: "2026-10-27" },
       ];
 
-      expect(findChargeForPayment(charges, utc("2026-10-27"))?.id).to.equal(2);
+      expect(findChargeForPayment(charges, utc("2026-10-27"))?.id).toBe(2);
     });
 
     it("ignores the time of day of the payment", () => {
@@ -197,7 +196,7 @@ describe("AvtaleGiro charges", () => {
         .plus({ days: MAX_DAYS_PAYMENT_AFTER_DUE_DATE })
         .set({ hour: 23, minute: 59 });
 
-      expect(findChargeForPayment(charges, lateOnLastDay)?.id).to.equal(1);
+      expect(findChargeForPayment(charges, lateOnLastDay)?.id).toBe(1);
     });
   });
 });

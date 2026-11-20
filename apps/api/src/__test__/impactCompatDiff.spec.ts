@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import sinon from "sinon";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as impactData from "../custom_modules/impact/data";
 import * as legacyRates from "../custom_modules/impact/compat/legacyRates";
 import {
@@ -87,11 +86,11 @@ describe("impact compat diff: comparing answers", () => {
 describe("impact compat diff: the whole matrix", () => {
   beforeEach(() => {
     const { rates, currencies } = recordedRates();
-    sinon.stub(impactData, "getImpactData").resolves(frozenImpactData());
-    sinon.stub(legacyRates, "supportedCurrencies").resolves(currencies);
-    sinon.stub(legacyRates, "loadLegacyRates").resolves(rates);
+    vi.spyOn(impactData, "getImpactData").mockResolvedValue(frozenImpactData());
+    vi.spyOn(legacyRates, "supportedCurrencies").mockResolvedValue(currencies);
+    vi.spyOn(legacyRates, "loadLegacyRates").mockResolvedValue(rates);
   });
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   const recorded: LegacyFetch = async (endpoint, query) => {
     const hit = LEGACY.find((r) => r.endpoint === endpoint && r.query === query);

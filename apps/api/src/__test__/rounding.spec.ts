@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 
 const round = require("../custom_modules/rounding");
 
@@ -23,23 +22,23 @@ describe("round", function () {
     ];
 
     it("should be a function", function () {
-      expect(round.sumWithPrecision).to.be.a("function");
+      expect(round.sumWithPrecision).toBeTypeOf("function");
     });
 
     it("should return a string", function () {
-      expect(round.sumWithPrecision([50, 50])).to.be.a("string");
+      expect(round.sumWithPrecision([50, 50])).toBeTypeOf("string");
     });
 
     it("should return 100 when supplied with array that totals 100", function () {
       for (let i = 0; i < positiveTestCases.length; i++) {
         let res = round.sumWithPrecision(positiveTestCases[i]);
-        expect(res).to.equal("100");
+        expect(res).toBe("100");
       }
     });
 
     it("should not return 100 when supplied with array that does not total 100", function () {
       for (let i = 0; i < negativeTestCases.length; i++) {
-        expect(round.sumWithPrecision(negativeTestCases[i]).toString()).to.not.equal("100");
+        expect(round.sumWithPrecision(negativeTestCases[i]).toString()).not.toBe("100");
       }
     });
   });

@@ -1,7 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import * as mail from "../custom_modules/mail";
@@ -24,9 +23,9 @@ const admin = () => callerWith(["admin"]);
 const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
+    expect(err.code).toBe(code);
   }
 };
 
@@ -59,34 +58,34 @@ const distribution = {
 };
 
 describe("tRPC vipps router", () => {
-  let changeMailStub: sinon.SinonStub;
+  let changeMailStub: MockInstance;
 
   beforeEach(() => {
-    changeMailStub = sinon.stub(mail, "sendVippsAgreementChange").resolves(false);
+    changeMailStub = vi.spyOn(mail, "sendVippsAgreementChange").mockResolvedValue(false);
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("auth and validation", () => {
     it("rejects anonymous callers", async () => {
-      const stub = sinon.stub(DAO.vipps, "getAgreementReport");
+      const stub = vi.spyOn(DAO.vipps, "getAgreementReport").mockReturnValue(undefined as any);
       await expectTrpcError(callerWith().vipps.agreements.report(), "UNAUTHORIZED");
-      expect(stub.called).to.be.false;
+      expect(stub).not.toHaveBeenCalled();
     });
 
     it("rejects callers without the admin permission", async () => {
-      const stub = sinon.stub(vipps, "refundCharge");
+      const stub = vi.spyOn(vipps, "refundCharge").mockReturnValue(undefined);
       await expectTrpcError(
         callerWith(["read:profile"]).vipps.charges.refund({ agreementId: "a", chargeId: "c" }),
         "FORBIDDEN",
       );
-      expect(stub.called).to.be.false;
+      expect(stub).not.toHaveBeenCalled();
     });
 
     it("rejects invalid input", async () => {
-      const stub = sinon.stub(DAO.vipps, "getAgreement");
+      const stub = vi.spyOn(DAO.vipps, "getAgreement").mockReturnValue(undefined as any);
       await expectTrpcError(
         admin().vipps.agreements.updateChargeDay({ id: "agr_TEST1", chargeDay: 29 }),
         "BAD_REQUEST",
@@ -99,15 +98,15 @@ describe("tRPC vipps router", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(stub.called).to.be.false;
+      expect(stub).not.toHaveBeenCalled();
     });
   });
 
   describe("agreements", () => {
     it("lists an agreement's charges and donations across KIDs", async () => {
-      const query = sinon.stub(DAO, "query");
-      query.onCall(0).resolves([[{ KID: "200" }], []] as any);
-      query.onCall(1).resolves([
+      const query = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      query.mockResolvedValueOnce([[{ KID: "200" }], []] as any);
+      query.mockResolvedValueOnce([
         [
           {
             chargeID: "chr-2",
@@ -130,7 +129,7 @@ describe("tRPC vipps router", () => {
         ],
         [],
       ] as any);
-      query.onCall(2).resolves([
+      query.mockResolvedValueOnce([
         [
           {
             ID: 2,
@@ -156,25 +155,25 @@ describe("tRPC vipps router", () => {
 
       const result = await admin().vipps.agreements.payments({ id: "agr_1" });
 
-      expect(result.KIDs).to.deep.equal(["200", "100"]);
-      expect(query.thirdCall.args[1]).to.deep.equal([["200", "100"], "agr\\_1.%"]);
-      expect(result.donations.map((d) => [d.id, d.chargeId])).to.deep.equal([
+      expect(result.KIDs).toStrictEqual(["200", "100"]);
+      expect(query.mock.calls[2][1]).toStrictEqual([["200", "100"], "agr\\_1.%"]);
+      expect(result.donations.map((d) => [d.id, d.chargeId])).toStrictEqual([
         [2, "chr-2"],
         [1, null],
       ]);
-      expect(result.charges.map((c) => [c.chargeId, c.donationId])).to.deep.equal([
+      expect(result.charges.map((c) => [c.chargeId, c.donationId])).toStrictEqual([
         ["chr-2", 2],
         ["chr-1", null],
       ]);
 
-      query.reset();
-      query.resolves([[], []] as any);
+      query.mockReset();
+      query.mockResolvedValue([[], []] as any);
       await expectTrpcError(admin().vipps.agreements.payments({ id: "agr_x" }), "NOT_FOUND");
     });
 
     it("lists agreements with the filter converted for the DAO", async () => {
       const result = { rows: [], statistics: {}, pages: 0 } as any;
-      const stub = sinon.stub(DAO.vipps, "getAgreements").resolves(result);
+      const stub = vi.spyOn(DAO.vipps, "getAgreements").mockResolvedValue(result);
 
       const res = await admin().vipps.agreements.list({
         page: 1,
@@ -188,21 +187,21 @@ describe("tRPC vipps router", () => {
         },
       });
 
-      expect(res).to.equal(result);
-      const [sort, page, limit, filter] = stub.firstCall.args;
-      expect(sort).to.deep.equal({ id: "created", desc: true });
-      expect(page).to.equal(1);
-      expect(limit).to.equal(25);
-      expect(filter!.createdRange).to.deep.equal({
+      expect(res).toBe(result);
+      const [sort, page, limit, filter] = stub.mock.calls[0];
+      expect(sort).toStrictEqual({ id: "created", desc: true });
+      expect(page).toBe(1);
+      expect(limit).toBe(25);
+      expect(filter!.createdRange).toStrictEqual({
         from: new Date("2025-12-31T23:00:00Z"),
         before: new Date("2026-01-31T23:00:00Z"),
       });
-      expect(filter!.statuses).to.deep.equal(["ACTIVE"]);
-      expect(filter!.donor).to.equal("Ola");
+      expect(filter!.statuses).toStrictEqual(["ACTIVE"]);
+      expect(filter!.donor).toBe("Ola");
     });
 
     it("exports agreements as CSV", async () => {
-      sinon.stub(DAO.vipps, "getAgreements").resolves({
+      vi.spyOn(DAO.vipps, "getAgreements").mockResolvedValue({
         rows: [{ ID: "agr_1", full_name: "Ola Nordmann", amount: 300 } as any],
         statistics: {} as any,
         pages: 1,
@@ -210,99 +209,107 @@ describe("tRPC vipps router", () => {
 
       const res = await admin().vipps.agreements.export({});
 
-      expect(res.filename).to.match(/^vipps-agreements-.*\.csv$/);
-      expect(res.csv).to.equal("\uFEFFID,full_name,amount\nagr_1,Ola Nordmann,300");
+      expect(res.filename).toMatch(/^vipps-agreements-.*\.csv$/);
+      expect(res.csv).toBe("\uFEFFID,full_name,amount\nagr_1,Ola Nordmann,300");
     });
 
     it("gets an agreement synced with Vipps", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon
-        .stub(vipps, "getAgreement")
-        .resolves({ id: "agr_TEST1", status: "ACTIVE", pricing: { amount: 30000 } });
-      const statusStub = sinon.stub(DAO.vipps, "updateAgreementStatus").resolves(true);
-      const priceStub = sinon.stub(DAO.vipps, "updateAgreementPrice").resolves(true);
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      vi.spyOn(vipps, "getAgreement").mockResolvedValue({
+        id: "agr_TEST1",
+        status: "ACTIVE",
+        pricing: { amount: 30000 },
+      });
+      const statusStub = vi.spyOn(DAO.vipps, "updateAgreementStatus").mockResolvedValue(true);
+      const priceStub = vi.spyOn(DAO.vipps, "updateAgreementPrice").mockResolvedValue(true);
 
       const res = await admin().vipps.agreements.get({ id: "agr_TEST1" });
 
-      expect(statusStub.calledWith("agr_TEST1", "ACTIVE")).to.be.true;
-      expect(priceStub.calledWith("agr_TEST1", 300)).to.be.true;
-      expect(res.agreement_url_code).to.equal("urlcode-abc");
-      expect(res.pricing.amount).to.equal(30000);
+      expect(statusStub).toHaveBeenCalledWith("agr_TEST1", "ACTIVE");
+      expect(priceStub).toHaveBeenCalledWith("agr_TEST1", 300);
+      expect(res.agreement_url_code).toBe("urlcode-abc");
+      expect(res.pricing.amount).toBe(30000);
     });
 
     it("returns NOT_FOUND for unknown agreements without calling Vipps", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(false);
-      const vippsStub = sinon.stub(vipps, "getAgreement");
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(false);
+      const vippsStub = vi.spyOn(vipps, "getAgreement").mockReturnValue(undefined);
 
       await expectTrpcError(admin().vipps.agreements.get({ id: "agr_NOPE" }), "NOT_FOUND");
-      expect(vippsStub.called).to.be.false;
+      expect(vippsStub).not.toHaveBeenCalled();
     });
 
     it("does not touch the DB when Vipps cannot be reached", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon.stub(vipps, "getAgreement").resolves(false);
-      const statusStub = sinon.stub(DAO.vipps, "updateAgreementStatus");
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      vi.spyOn(vipps, "getAgreement").mockResolvedValue(false);
+      const statusStub = vi
+        .spyOn(DAO.vipps, "updateAgreementStatus")
+        .mockReturnValue(undefined as any);
 
       await expectTrpcError(admin().vipps.agreements.get({ id: "agr_TEST1" }), "BAD_GATEWAY");
-      expect(statusStub.called).to.be.false;
+      expect(statusStub).not.toHaveBeenCalled();
     });
 
     it("returns BAD_GATEWAY without the upstream error text when Vipps fails", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon.stub(console, "error");
-      sinon.stub(vipps, "getAgreement").rejects(new Error("401 client_secret=hunter2"));
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      vi.spyOn(vipps, "getAgreement").mockRejectedValue(new Error("401 client_secret=hunter2"));
 
       try {
         await admin().vipps.agreements.get({ id: "agr_TEST1" });
-        expect.fail("expected BAD_GATEWAY");
+        expect.unreachable("expected BAD_GATEWAY");
       } catch (err: any) {
-        expect(err.code).to.equal("BAD_GATEWAY");
-        expect(err.message).to.equal("Vipps could not fetch the agreement");
+        expect(err.code).toBe("BAD_GATEWAY");
+        expect(err.message).toBe("Vipps could not fetch the agreement");
       }
     });
 
     it("returns the agreement report", async () => {
-      sinon.stub(DAO.vipps, "getAgreementReport").resolves({ activeAgreementCount: 3 } as any);
+      vi.spyOn(DAO.vipps, "getAgreementReport").mockResolvedValue({
+        activeAgreementCount: 3,
+      } as any);
       const res = await admin().vipps.agreements.report();
-      expect(res).to.deep.equal({ activeAgreementCount: 3 });
+      expect(res).toStrictEqual({ activeAgreementCount: 3 });
     });
 
     it("returns the agreement histogram", async () => {
       const buckets = [{ bucket: 0, items: 2, bar: 69 }];
-      sinon.stub(DAO.vipps, "getAgreementSumHistogram").resolves(buckets);
+      vi.spyOn(DAO.vipps, "getAgreementSumHistogram").mockResolvedValue(buckets);
       const res = await admin().vipps.agreements.histogram();
-      expect(res).to.deep.equal(buckets);
+      expect(res).toStrictEqual(buckets);
     });
 
     it("updates the price in øre with Vipps and in NOK in the DB", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      const vippsStub = sinon.stub(vipps, "updateAgreementPrice").resolves(true);
-      const dbStub = sinon.stub(DAO.vipps, "updateAgreementPrice").resolves(true);
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      const vippsStub = vi.spyOn(vipps, "updateAgreementPrice").mockResolvedValue(true);
+      const dbStub = vi.spyOn(DAO.vipps, "updateAgreementPrice").mockResolvedValue(true);
 
       await admin().vipps.agreements.updatePrice({ id: "agr_TEST1", amountNok: 250 });
 
-      expect(vippsStub.calledWith("agr_TEST1", 25000)).to.be.true;
-      expect(dbStub.calledWith("agr_TEST1", 250)).to.be.true;
-      expect(changeMailStub.calledWith("agr_TEST1", "AMOUNT", 250)).to.be.true;
+      expect(vippsStub).toHaveBeenCalledWith("agr_TEST1", 25000);
+      expect(dbStub).toHaveBeenCalledWith("agr_TEST1", 250);
+      expect(changeMailStub).toHaveBeenCalledWith("agr_TEST1", "AMOUNT", 250);
     });
 
     it("does not update the DB price when Vipps rejects it", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon.stub(vipps, "updateAgreementPrice").resolves(false);
-      const dbStub = sinon.stub(DAO.vipps, "updateAgreementPrice");
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      vi.spyOn(vipps, "updateAgreementPrice").mockResolvedValue(false);
+      const dbStub = vi.spyOn(DAO.vipps, "updateAgreementPrice").mockReturnValue(undefined as any);
 
       await expectTrpcError(
         admin().vipps.agreements.updatePrice({ id: "agr_TEST1", amountNok: 250 }),
         "BAD_GATEWAY",
       );
-      expect(dbStub.called).to.be.false;
-      expect(changeMailStub.called).to.be.false;
+      expect(dbStub).not.toHaveBeenCalled();
+      expect(changeMailStub).not.toHaveBeenCalled();
     });
 
     it("returns BAD_GATEWAY when Vipps throws on a price update", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon.stub(console, "error");
-      sinon.stub(vipps, "updateAgreementPrice").rejects(new Error("Vipps is not configured"));
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      vi.spyOn(vipps, "updateAgreementPrice").mockRejectedValue(
+        new Error("Vipps is not configured"),
+      );
 
       await expectTrpcError(
         admin().vipps.agreements.updatePrice({ id: "agr_TEST1", amountNok: 250 }),
@@ -311,81 +318,85 @@ describe("tRPC vipps router", () => {
     });
 
     it("rejects cancelling an agreement that is already stopped", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves({ ...dbAgreement, status: "STOPPED" });
-      const vippsStub = sinon.stub(vipps, "updateAgreementStatus");
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue({ ...dbAgreement, status: "STOPPED" });
+      const vippsStub = vi.spyOn(vipps, "updateAgreementStatus").mockReturnValue(undefined);
 
       await expectTrpcError(admin().vipps.agreements.cancel({ id: "agr_TEST1" }), "BAD_REQUEST");
-      expect(vippsStub.called).to.be.false;
+      expect(vippsStub).not.toHaveBeenCalled();
     });
 
     it("returns BAD_GATEWAY when Vipps does not cancel", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon.stub(vipps, "updateAgreementStatus").resolves(false);
-      const statusStub = sinon.stub(DAO.vipps, "updateAgreementStatus");
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      vi.spyOn(vipps, "updateAgreementStatus").mockResolvedValue(false);
+      const statusStub = vi
+        .spyOn(DAO.vipps, "updateAgreementStatus")
+        .mockReturnValue(undefined as any);
 
       await expectTrpcError(admin().vipps.agreements.cancel({ id: "agr_TEST1" }), "BAD_GATEWAY");
-      expect(statusStub.called).to.be.false;
+      expect(statusStub).not.toHaveBeenCalled();
     });
 
     it("cancels an agreement", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      const vippsStub = sinon.stub(vipps, "updateAgreementStatus").resolves(true);
-      const statusStub = sinon.stub(DAO.vipps, "updateAgreementStatus").resolves(true);
-      const cancelDateStub = sinon
-        .stub(DAO.vipps, "updateAgreementCancellationDate")
-        .resolves(true);
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      const vippsStub = vi.spyOn(vipps, "updateAgreementStatus").mockResolvedValue(true);
+      const statusStub = vi.spyOn(DAO.vipps, "updateAgreementStatus").mockResolvedValue(true);
+      const cancelDateStub = vi
+        .spyOn(DAO.vipps, "updateAgreementCancellationDate")
+        .mockResolvedValue(true);
 
       await admin().vipps.agreements.cancel({ id: "agr_TEST1" });
 
-      expect(vippsStub.calledWith("agr_TEST1", "STOPPED")).to.be.true;
-      expect(statusStub.calledWith("agr_TEST1", "STOPPED")).to.be.true;
-      expect(cancelDateStub.calledWith("agr_TEST1")).to.be.true;
-      expect(changeMailStub.calledWith("agr_TEST1", "STOPPED")).to.be.true;
+      expect(vippsStub).toHaveBeenCalledWith("agr_TEST1", "STOPPED");
+      expect(statusStub).toHaveBeenCalledWith("agr_TEST1", "STOPPED");
+      expect(cancelDateStub).toHaveBeenCalledWith("agr_TEST1");
+      expect(changeMailStub).toHaveBeenCalledWith("agr_TEST1", "STOPPED");
     });
 
     it("updates the charge day", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      const stub = sinon.stub(DAO.vipps, "updateAgreementChargeDay").resolves(true);
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      const stub = vi.spyOn(DAO.vipps, "updateAgreementChargeDay").mockResolvedValue(true);
 
       await admin().vipps.agreements.updateChargeDay({ id: "agr_TEST1", chargeDay: 0 });
 
-      expect(stub.calledWith("agr_TEST1", 0)).to.be.true;
-      expect(changeMailStub.calledWith("agr_TEST1", "CHARGEDAY", 0)).to.be.true;
+      expect(stub).toHaveBeenCalledWith("agr_TEST1", 0);
+      expect(changeMailStub).toHaveBeenCalledWith("agr_TEST1", "CHARGEDAY", 0);
     });
 
     const stubReferences = () => {
-      sinon.stub(DAO.donors, "getByID").resolves({ id: 42 } as any);
-      sinon.stub(DAO.organizations, "getByIDs").resolves([
+      vi.spyOn(DAO.donors, "getByID").mockResolvedValue({ id: 42 } as any);
+      vi.spyOn(DAO.organizations, "getByIDs").mockResolvedValue([
         { ID: 5, cause_area_ID: 1 },
         { ID: 6, cause_area_ID: 1 },
       ] as any);
     };
 
     it("updates the distribution, creating a new KID for the agreement's donor", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
       stubReferences();
-      sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null);
-      sinon.stub(donationHelpers, "createKID").resolves("87654321");
-      const addStub = sinon.stub(DAO.distributions, "add").resolves(true as any);
-      const kidStub = sinon.stub(DAO.vipps, "updateAgreementKID").resolves(true);
+      vi.spyOn(DAO.distributions, "getKIDbySplit").mockResolvedValue(null);
+      vi.spyOn(donationHelpers, "createKID").mockResolvedValue("87654321");
+      const addStub = vi.spyOn(DAO.distributions, "add").mockResolvedValue(true as any);
+      const kidStub = vi.spyOn(DAO.vipps, "updateAgreementKID").mockResolvedValue(true);
 
       const res = await admin().vipps.agreements.updateDistribution({
         id: "agr_TEST1",
         distribution,
       });
 
-      expect(res).to.deep.equal({ KID: "87654321" });
-      expect(addStub.firstCall.args[0]).to.include({ donorId: 42, kid: "87654321" });
-      expect(kidStub.calledWith("agr_TEST1", "87654321")).to.be.true;
-      expect(changeMailStub.calledWith("agr_TEST1", "SHARES", "87654321")).to.be.true;
+      expect(res).toStrictEqual({ KID: "87654321" });
+      expect(addStub.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ donorId: 42, kid: "87654321" }),
+      );
+      expect(kidStub).toHaveBeenCalledWith("agr_TEST1", "87654321");
+      expect(changeMailStub).toHaveBeenCalledWith("agr_TEST1", "SHARES", "87654321");
     });
 
     it("rejects another donor's tax unit", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
       stubReferences();
-      sinon.stub(DAO.tax, "getById").resolves({ id: 9, donorId: 7, archived: null } as any);
-      const kidStub = sinon.stub(DAO.vipps, "updateAgreementKID");
-      const addStub = sinon.stub(DAO.distributions, "add");
+      vi.spyOn(DAO.tax, "getById").mockResolvedValue({ id: 9, donorId: 7, archived: null } as any);
+      const kidStub = vi.spyOn(DAO.vipps, "updateAgreementKID").mockReturnValue(undefined as any);
+      const addStub = vi.spyOn(DAO.distributions, "add").mockReturnValue(undefined as any);
 
       await expectTrpcError(
         admin().vipps.agreements.updateDistribution({
@@ -394,29 +405,29 @@ describe("tRPC vipps router", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(kidStub.called).to.be.false;
-      expect(addStub.called).to.be.false;
+      expect(kidStub).not.toHaveBeenCalled();
+      expect(addStub).not.toHaveBeenCalled();
     });
 
     it("rejects an organization outside its cause area", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      sinon.stub(DAO.donors, "getByID").resolves({ id: 42 } as any);
-      sinon.stub(DAO.organizations, "getByIDs").resolves([
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      vi.spyOn(DAO.donors, "getByID").mockResolvedValue({ id: 42 } as any);
+      vi.spyOn(DAO.organizations, "getByIDs").mockResolvedValue([
         { ID: 5, cause_area_ID: 1 },
         { ID: 6, cause_area_ID: 2 },
       ] as any);
-      const kidStub = sinon.stub(DAO.vipps, "updateAgreementKID");
+      const kidStub = vi.spyOn(DAO.vipps, "updateAgreementKID").mockReturnValue(undefined as any);
 
       await expectTrpcError(
         admin().vipps.agreements.updateDistribution({ id: "agr_TEST1", distribution }),
         "BAD_REQUEST",
       );
-      expect(kidStub.called).to.be.false;
+      expect(kidStub).not.toHaveBeenCalled();
     });
 
     it("rejects a distribution that does not sum to 100", async () => {
-      sinon.stub(DAO.vipps, "getAgreement").resolves(dbAgreement);
-      const kidStub = sinon.stub(DAO.vipps, "updateAgreementKID");
+      vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue(dbAgreement);
+      const kidStub = vi.spyOn(DAO.vipps, "updateAgreementKID").mockReturnValue(undefined as any);
 
       await expectTrpcError(
         admin().vipps.agreements.updateDistribution({
@@ -428,7 +439,7 @@ describe("tRPC vipps router", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(kidStub.called).to.be.false;
+      expect(kidStub).not.toHaveBeenCalled();
     });
   });
 
@@ -442,9 +453,9 @@ describe("tRPC vipps router", () => {
         amountNOK: 300,
       } as any;
       const statistics = { numCharges: 1, sumCharges: "300", avgCharge: "300.0000" };
-      const stub = sinon
-        .stub(DAO.vipps, "getCharges")
-        .resolves({ rows: [row], statistics, pages: 1 });
+      const stub = vi
+        .spyOn(DAO.vipps, "getCharges")
+        .mockResolvedValue({ rows: [row], statistics, pages: 1 });
 
       const res = await admin().vipps.charges.list({
         page: 0,
@@ -452,12 +463,12 @@ describe("tRPC vipps router", () => {
         filter: { dueDate: { from: "2026-01-01" }, statuses: ["CHARGED"] },
       });
 
-      expect(res).to.deep.equal({
+      expect(res).toStrictEqual({
         rows: [{ chargeID: "chr1", amountNOK: 300 }],
         statistics,
         pages: 1,
       });
-      expect(stub.firstCall.args).to.deep.equal([
+      expect(stub.mock.calls[0]).toStrictEqual([
         { id: "dueDate", desc: true },
         0,
         25,
@@ -466,7 +477,7 @@ describe("tRPC vipps router", () => {
     });
 
     it("exports charges as CSV without the window aggregates", async () => {
-      sinon.stub(DAO.vipps, "getCharges").resolves({
+      vi.spyOn(DAO.vipps, "getCharges").mockResolvedValue({
         rows: [
           { full_count: 1, full_sum: "300", full_avg: "300", chargeID: "chr1", amountNOK: 300 },
         ] as any,
@@ -476,15 +487,15 @@ describe("tRPC vipps router", () => {
 
       const res = await admin().vipps.charges.export({});
 
-      expect(res.filename).to.match(/^vipps-charges-.*\.csv$/);
-      expect(res.csv).to.equal("\uFEFFchargeID,amountNOK\nchr1,300");
+      expect(res.filename).toMatch(/^vipps-charges-.*\.csv$/);
+      expect(res.csv).toBe("\uFEFFchargeID,amountNOK\nchr1,300");
     });
 
     it("returns the charge histogram", async () => {
       const buckets = [{ bucket: 500, items: 1, bar: 0 }];
-      sinon.stub(DAO.vipps, "getChargeSumHistogram").resolves(buckets);
+      vi.spyOn(DAO.vipps, "getChargeSumHistogram").mockResolvedValue(buckets);
       const res = await admin().vipps.charges.histogram();
-      expect(res).to.deep.equal(buckets);
+      expect(res).toStrictEqual(buckets);
     });
 
     const charge = (status: string) => ({
@@ -495,47 +506,49 @@ describe("tRPC vipps router", () => {
     });
 
     it("refunds a charge and marks it REFUNDED", async () => {
-      sinon.stub(DAO.vipps, "getCharge").resolves(charge("CHARGED"));
-      sinon.stub(vipps, "refundCharge").resolves(true);
-      const statusStub = sinon.stub(DAO.vipps, "updateChargeStatus").resolves(true);
+      vi.spyOn(DAO.vipps, "getCharge").mockResolvedValue(charge("CHARGED"));
+      vi.spyOn(vipps, "refundCharge").mockResolvedValue(true);
+      const statusStub = vi.spyOn(DAO.vipps, "updateChargeStatus").mockResolvedValue(true);
 
       await admin().vipps.charges.refund({ agreementId: "agr_TEST1", chargeId: "chr1" });
 
-      expect(statusStub.calledWith("REFUNDED", "agr_TEST1", "chr1")).to.be.true;
+      expect(statusStub).toHaveBeenCalledWith("REFUNDED", "agr_TEST1", "chr1");
     });
 
     it("reports a refund Vipps refused", async () => {
-      sinon.stub(DAO.vipps, "getCharge").resolves(charge("CHARGED"));
-      sinon.stub(vipps, "refundCharge").resolves(false);
-      const statusStub = sinon.stub(DAO.vipps, "updateChargeStatus");
+      vi.spyOn(DAO.vipps, "getCharge").mockResolvedValue(charge("CHARGED"));
+      vi.spyOn(vipps, "refundCharge").mockResolvedValue(false);
+      const statusStub = vi
+        .spyOn(DAO.vipps, "updateChargeStatus")
+        .mockReturnValue(undefined as any);
 
       await expectTrpcError(
         admin().vipps.charges.refund({ agreementId: "agr_TEST1", chargeId: "chr1" }),
         "BAD_GATEWAY",
       );
-      expect(statusStub.called).to.be.false;
+      expect(statusStub).not.toHaveBeenCalled();
     });
 
     it("returns NOT_FOUND for an unknown charge", async () => {
-      sinon.stub(DAO.vipps, "getCharge").resolves(false);
-      const refundStub = sinon.stub(vipps, "refundCharge");
+      vi.spyOn(DAO.vipps, "getCharge").mockResolvedValue(false);
+      const refundStub = vi.spyOn(vipps, "refundCharge").mockReturnValue(undefined);
 
       await expectTrpcError(
         admin().vipps.charges.refund({ agreementId: "agr_TEST1", chargeId: "chr1" }),
         "NOT_FOUND",
       );
-      expect(refundStub.called).to.be.false;
+      expect(refundStub).not.toHaveBeenCalled();
     });
 
     it("only refunds CHARGED charges", async () => {
-      sinon.stub(DAO.vipps, "getCharge").resolves(charge("PENDING"));
-      const refundStub = sinon.stub(vipps, "refundCharge");
+      vi.spyOn(DAO.vipps, "getCharge").mockResolvedValue(charge("PENDING"));
+      const refundStub = vi.spyOn(vipps, "refundCharge").mockReturnValue(undefined);
 
       await expectTrpcError(
         admin().vipps.charges.refund({ agreementId: "agr_TEST1", chargeId: "chr1" }),
         "BAD_REQUEST",
       );
-      expect(refundStub.called).to.be.false;
+      expect(refundStub).not.toHaveBeenCalled();
     });
   });
 
@@ -562,22 +575,22 @@ describe("tRPC vipps router", () => {
     ];
 
     it("lists all rules", async () => {
-      sinon.stub(DAO.vipps, "getMatchingRules").resolves(rules);
+      vi.spyOn(DAO.vipps, "getMatchingRules").mockResolvedValue(rules);
       const res = await admin().vipps.matchingRules.list();
-      expect(res.map((r) => r.id)).to.deep.equal([1, 2]);
+      expect(res.map((r) => r.id)).toStrictEqual([1, 2]);
     });
 
     it("lists rules overlapping a period", async () => {
-      sinon.stub(DAO.vipps, "getMatchingRules").resolves(rules);
+      vi.spyOn(DAO.vipps, "getMatchingRules").mockResolvedValue(rules);
       const res = await admin().vipps.matchingRules.list({
         period: { from: "2026-01-31", to: "2026-02-15" },
       });
-      expect(res.map((r) => r.id)).to.deep.equal([1]);
+      expect(res.map((r) => r.id)).toStrictEqual([1]);
     });
 
     it("creates a rule", async () => {
-      sinon.stub(DAO.distributions, "KIDexists").resolves(true);
-      const addStub = sinon.stub(DAO.vipps, "addMatchingRule").resolves(9);
+      vi.spyOn(DAO.distributions, "KIDexists").mockResolvedValue(true);
+      const addStub = vi.spyOn(DAO.vipps, "addMatchingRule").mockResolvedValue(9);
 
       const res = await admin().vipps.matchingRules.create({
         salesLocation: "Stand",
@@ -588,16 +601,18 @@ describe("tRPC vipps router", () => {
         precedence: 2,
       });
 
-      expect(res).to.deep.equal({ id: 9 });
-      expect(addStub.firstCall.args[0]).to.include({
-        resolveKID: "111",
-        periodFrom: "2026-03-01",
-      });
+      expect(res).toStrictEqual({ id: 9 });
+      expect(addStub.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          resolveKID: "111",
+          periodFrom: "2026-03-01",
+        }),
+      );
     });
 
     it("rejects a rule for an unknown KID", async () => {
-      sinon.stub(DAO.distributions, "KIDexists").resolves(false);
-      const addStub = sinon.stub(DAO.vipps, "addMatchingRule");
+      vi.spyOn(DAO.distributions, "KIDexists").mockResolvedValue(false);
+      const addStub = vi.spyOn(DAO.vipps, "addMatchingRule").mockReturnValue(undefined as any);
 
       await expectTrpcError(
         admin().vipps.matchingRules.create({
@@ -610,14 +625,14 @@ describe("tRPC vipps router", () => {
         }),
         "BAD_REQUEST",
       );
-      expect(addStub.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
     });
 
     it("updates a rule with the create validation, NOT_FOUND when missing", async () => {
-      const kidExists = sinon.stub(DAO.distributions, "KIDexists").resolves(true);
-      const update = sinon
-        .stub(DAO.vipps, "updateMatchingRule")
-        .callsFake(async (ruleId) => ruleId === 4);
+      const kidExists = vi.spyOn(DAO.distributions, "KIDexists").mockResolvedValue(true);
+      const update = vi
+        .spyOn(DAO.vipps, "updateMatchingRule")
+        .mockImplementation(async (ruleId) => ruleId === 4);
       const rule = {
         id: 4,
         salesLocation: "Stand",
@@ -628,16 +643,16 @@ describe("tRPC vipps router", () => {
         precedence: 2,
       };
 
-      expect(await admin().vipps.matchingRules.update(rule)).to.deep.equal({ id: 4 });
+      expect(await admin().vipps.matchingRules.update(rule)).toStrictEqual({ id: 4 });
       const { id, ...fields } = rule;
-      expect(update.firstCall.args).to.deep.equal([id, fields]);
+      expect(update.mock.calls[0]).toStrictEqual([id, fields]);
 
       await expectTrpcError(admin().vipps.matchingRules.update({ ...rule, id: 5 }), "NOT_FOUND");
       await expectTrpcError(
         admin().vipps.matchingRules.update({ ...rule, periodTo: "2026-03-01" }),
         "BAD_REQUEST",
       );
-      kidExists.resolves(false);
+      kidExists.mockResolvedValue(false);
       await expectTrpcError(admin().vipps.matchingRules.update(rule), "BAD_REQUEST");
       await expectTrpcError(
         admin().vipps.matchingRules.update({ ...rule, salesLocation: "x".repeat(46) }),
@@ -647,11 +662,11 @@ describe("tRPC vipps router", () => {
         admin().vipps.matchingRules.update({ ...rule, id: undefined } as any),
         "BAD_REQUEST",
       );
-      expect(update.callCount).to.equal(2);
+      expect(update).toHaveBeenCalledTimes(2);
     });
 
     it("deletes a rule, NOT_FOUND when missing", async () => {
-      const stub = sinon.stub(DAO.vipps, "deleteMatchingRule");
+      const stub = vi.spyOn(DAO.vipps, "deleteMatchingRule").mockReturnValue(undefined as any);
       stub.withArgs(1).resolves(true);
       stub.withArgs(2).resolves(false);
 

@@ -1,6 +1,5 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import {
   isUserRegisteredInAuth0,
   repointAuth0DonorIdOnMerge,
@@ -8,8 +7,7 @@ import {
 } from "../custom_modules/auth0";
 
 describe("auth0 Management API helpers", function () {
-  const sandbox = sinon.createSandbox();
-  let fetchStub: sinon.SinonStub;
+  let fetchStub: MockInstance;
 
   const loserId = 100;
   const winnerId = 200;
@@ -30,7 +28,7 @@ describe("auth0 Management API helpers", function () {
     usersStatus?: number;
     patchStatuses?: Record<string, number>;
   }) {
-    fetchStub.callsFake(async (url: string, init?: RequestInit) => {
+    fetchStub.mockImplementation(async (url: string, init?: RequestInit) => {
       const href = String(url);
 
       if (href.endsWith("/oauth/token")) {
@@ -56,14 +54,14 @@ describe("auth0 Management API helpers", function () {
     process.env.AUTH0_CLIENT_ID = "test-client";
     process.env.AUTH0_CLIENT_SECRET = "test-secret";
     resetAuth0TokenCache();
-    fetchStub = sandbox.stub(globalThis, "fetch");
-    sandbox.stub(console, "error");
-    sandbox.stub(console, "warn");
-    sandbox.stub(console, "log");
+    fetchStub = vi.spyOn(globalThis, "fetch").mockReturnValue(undefined as any);
+    vi.spyOn(console, "error").mockReturnValue(undefined);
+    vi.spyOn(console, "warn").mockReturnValue(undefined);
+    vi.spyOn(console, "log").mockReturnValue(undefined);
   });
 
   afterEach(function () {
-    sandbox.restore();
+    vi.restoreAllMocks();
     resetAuth0TokenCache();
   });
 
@@ -73,13 +71,13 @@ describe("auth0 Management API helpers", function () {
         users: [{ user_id: "auth0|1", email: loserEmail, email_verified: true }],
       });
 
-      expect(await isUserRegisteredInAuth0(loserEmail)).to.equal(true);
+      expect(await isUserRegisteredInAuth0(loserEmail)).toBe(true);
     });
 
     it("returns false when the lookup fails", async function () {
       stubAuth0Calls({ usersStatus: 500 });
 
-      expect(await isUserRegisteredInAuth0(loserEmail)).to.equal(false);
+      expect(await isUserRegisteredInAuth0(loserEmail)).toBe(false);
     });
   });
 
@@ -89,10 +87,10 @@ describe("auth0 Management API helpers", function () {
 
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
-      expect(result).to.deep.equal({ updated: [], skipped: [] });
-      expect(
-        fetchStub.getCalls().some((call) => String(call.args[1]?.method) === "PATCH"),
-      ).to.equal(false);
+      expect(result).toStrictEqual({ updated: [], skipped: [] });
+      expect(fetchStub.getCalls().some((call) => String(call.args[1]?.method) === "PATCH")).toBe(
+        false,
+      );
     });
 
     it("PATCHes users whose metadata still has the loser donor id", async function () {
@@ -109,15 +107,15 @@ describe("auth0 Management API helpers", function () {
 
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
-      expect(result.updated).to.deep.equal(["auth0|abc"]);
-      expect(result.skipped).to.deep.equal([]);
+      expect(result.updated).toStrictEqual(["auth0|abc"]);
+      expect(result.skipped).toStrictEqual([]);
 
       const patchCall = fetchStub.getCalls().find((call) => call.args[1]?.method === "PATCH");
       if (!patchCall) throw new Error("Expected a PATCH request to Auth0");
-      expect(String(patchCall.args[0])).to.equal(
+      expect(String(patchCall.args[0])).toBe(
         "https://gieffektivt.eu.auth0.com/api/v2/users/auth0%7Cabc",
       );
-      expect(JSON.parse(String(patchCall.args[1].body))).to.deep.equal({
+      expect(JSON.parse(String(patchCall.args[1].body))).toStrictEqual({
         user_metadata: { "gieffektivt-user-id": winnerId },
       });
     });
@@ -136,7 +134,7 @@ describe("auth0 Management API helpers", function () {
 
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
-      expect(result.updated).to.deep.equal(["auth0|string-id"]);
+      expect(result.updated).toStrictEqual(["auth0|string-id"]);
     });
 
     it("skips users that do not have the loser donor id", async function () {
@@ -158,11 +156,11 @@ describe("auth0 Management API helpers", function () {
 
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
-      expect(result.updated).to.deep.equal([]);
-      expect(result.skipped).to.deep.equal(["google-oauth2|other", "auth0|no-meta"]);
-      expect(
-        fetchStub.getCalls().some((call) => String(call.args[1]?.method) === "PATCH"),
-      ).to.equal(false);
+      expect(result.updated).toStrictEqual([]);
+      expect(result.skipped).toStrictEqual(["google-oauth2|other", "auth0|no-meta"]);
+      expect(fetchStub.getCalls().some((call) => String(call.args[1]?.method) === "PATCH")).toBe(
+        false,
+      );
     });
 
     it("updates only the matching identity when several Auth0 users share an email", async function () {
@@ -185,8 +183,8 @@ describe("auth0 Management API helpers", function () {
 
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
-      expect(result.updated).to.deep.equal(["auth0|password"]);
-      expect(result.skipped).to.deep.equal(["google-oauth2|winner-already"]);
+      expect(result.updated).toStrictEqual(["auth0|password"]);
+      expect(result.skipped).toStrictEqual(["google-oauth2|winner-already"]);
     });
 
     it("does not throw when the Management API lookup fails", async function () {
@@ -194,7 +192,7 @@ describe("auth0 Management API helpers", function () {
 
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
-      expect(result).to.deep.equal({ updated: [], skipped: [] });
+      expect(result).toStrictEqual({ updated: [], skipped: [] });
     });
 
     it("continues when a PATCH fails", async function () {
@@ -218,14 +216,14 @@ describe("auth0 Management API helpers", function () {
 
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
-      expect(result.updated).to.deep.equal(["auth0|ok"]);
+      expect(result.updated).toStrictEqual(["auth0|ok"]);
     });
 
     it("skips the lookup when the loser has no email", async function () {
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, "");
 
-      expect(result).to.deep.equal({ updated: [], skipped: [] });
-      expect(fetchStub.called).to.equal(false);
+      expect(result).toStrictEqual({ updated: [], skipped: [] });
+      expect(fetchStub).not.toHaveBeenCalled();
     });
   });
 });

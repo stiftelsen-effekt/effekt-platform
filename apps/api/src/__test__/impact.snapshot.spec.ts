@@ -1,6 +1,4 @@
-import { describe, it, afterEach, expect as vexpect } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, afterEach, expect as vexpect, expect, vi } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as results from "../custom_modules/results";
 import * as currency from "../custom_modules/currency";
@@ -161,24 +159,23 @@ const distribution = (orgs: [number, string][]): Distribution => ({
 });
 
 const expectClose = (a: number, b: number, what: string) =>
-  expect(Math.abs(a - b) / Math.max(Math.abs(b), 1e-12), `${what}: ${a} vs ${b}`).to.be.below(1e-9);
+  expect(Math.abs(a - b) / Math.max(Math.abs(b), 1e-12), `${what}: ${a} vs ${b}`).toBeLessThan(
+    1e-9,
+  );
 
-afterEach(() => sinon.restore());
+afterEach(() => vi.restoreAllMocks());
 
 /** Organizations the legacy receipts never matched to a charity */
 const UNMATCHED = ["Sight", "End", "DtW"];
 
 describe("receipts: legacy impact API vs impact tables", () => {
   const stubLegacy = (receipt: (typeof RECEIPTS)[number]) => {
-    sinon.stub(results, "getEvaluation").resolves(receipt.evaluations as any);
-    sinon.stub(results, "getMaximumImpactGrant").resolves(receipt.grant as any);
-    sinon.stub(currency, "getExchangeRateForDate").resolves(receipt.norgesBankRate as any);
-    sinon
-      .stub(DAO.organizations, "getByIDs")
-      .callsFake(
-        async (ids: number[]) =>
-          ORGS.filter((o) => ids.includes(o.ID)).map((o) => ({ ...o })) as any,
-      );
+    vi.spyOn(results, "getEvaluation").mockResolvedValue(receipt.evaluations as any);
+    vi.spyOn(results, "getMaximumImpactGrant").mockResolvedValue(receipt.grant as any);
+    vi.spyOn(currency, "getExchangeRateForDate").mockResolvedValue(receipt.norgesBankRate as any);
+    vi.spyOn(DAO.organizations, "getByIDs").mockImplementation(
+      async (ids: number[]) => ORGS.filter((o) => ids.includes(o.ID)).map((o) => ({ ...o })) as any,
+    );
   };
 
   for (const receipt of RECEIPTS) {
@@ -200,20 +197,20 @@ describe("receipts: legacy impact API vs impact tables", () => {
 
       // ECB instead of Norges Bank: every output scales by NB rate / ECB rate
       const rateRatio = Number(receipt.norgesBankRate) / ECB.daily[day];
-      expect(after.map((o) => o.orgId)).to.deep.equal(before.map((o) => o.orgId));
+      expect(after.map((o) => o.orgId)).toStrictEqual(before.map((o) => o.orgId));
       for (const [i, org] of after.entries()) {
         const old = before[i];
         if (UNMATCHED.includes(org.orgAbbriv)) {
           // Linked now; the legacy receipts compared the charity's abbreviation with the
           // organization's case-sensitively (END ≠ End, DTW ≠ DtW, SS ≠ Sight): no outputs
-          expect(old.outputs).to.deep.equal([]);
-          expect(org.outputs.map((o) => o.output)).to.deep.equal(["Ormekurer"]);
+          expect(old.outputs).toStrictEqual([]);
+          expect(org.outputs.map((o) => o.output)).toStrictEqual(["Ormekurer"]);
           continue;
         }
         expect(
           org.outputs.map((o) => o.output),
           org.orgAbbriv,
-        ).to.deep.equal(old.outputs.map((o) => o.output));
+        ).toStrictEqual(old.outputs.map((o) => o.output));
         for (const [j, output] of org.outputs.entries()) {
           const factor = output.output === "Drift" ? 1 : rateRatio;
           expectClose(
@@ -318,10 +315,10 @@ describe("results page: legacy impact API vs impact tables", () => {
   };
 
   const legacy = async () => {
-    sinon.stub(DAO.results, "getMonthlyDonationsPerOrg").resolves(SUMS as any);
-    sinon.stub(results, "getEvaluations").resolves(EVALUATIONS);
-    sinon.stub(results, "getMaximumImpactGrants").resolves(structuredClone(GRANTS));
-    sinon.stub(currency, "getExchangeRates").resolves(NB_MONTHLY);
+    vi.spyOn(DAO.results, "getMonthlyDonationsPerOrg").mockResolvedValue(SUMS as any);
+    vi.spyOn(results, "getEvaluations").mockResolvedValue(EVALUATIONS);
+    vi.spyOn(results, "getMaximumImpactGrants").mockResolvedValue(structuredClone(GRANTS));
+    vi.spyOn(currency, "getExchangeRates").mockResolvedValue(NB_MONTHLY);
     return getMonthlyDonationsPerOutputRemote();
   };
 
@@ -330,12 +327,12 @@ describe("results page: legacy impact API vs impact tables", () => {
     const rebuilt = buildMonthlyOutputs(DATA, SUMS, legacyRules(nbRate));
     const a = monthlyEntries(rebuilt);
     const b = monthlyEntries(before);
-    expect([...a.keys()]).to.deep.equal([...b.keys()]);
+    expect([...a.keys()]).toStrictEqual([...b.keys()]);
     for (const [key, value] of b) expectClose(a.get(key)!, value, key);
-    expect(rebuilt.map((r) => r.output)).to.deep.equal(before.map((r) => r.output));
+    expect(rebuilt.map((r) => r.output)).toStrictEqual(before.map((r) => r.output));
     for (const [i, r] of rebuilt.entries()) {
       expectClose(r.total.numberOfOutputs, before[i].total.numberOfOutputs, `${r.output} total`);
-      expect(r.monthly.map((m) => m.period)).to.deep.equal(before[i].monthly.map((m) => m.period));
+      expect(r.monthly.map((m) => m.period)).toStrictEqual(before[i].monthly.map((m) => m.period));
     }
   });
 
@@ -368,7 +365,7 @@ describe("results page: legacy impact API vs impact tables", () => {
     // Months between an evaluation and the next: the legacy page used the next one. Before a
     // charity's first evaluation (End 2017-05) or the fund's first grant (TCF 2017-06) there is
     // no estimate now ("Kroner").
-    expect([...changed].sort()).to.deep.equal([
+    expect([...changed].sort()).toStrictEqual([
       "2016-05 AMF",
       "2016-05 DtW",
       "2016-05 SCI",

@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { KID } from "../custom_modules/KID";
 
 // http://www.paypalobjects.com/en_US/vhelp/paypalmanager_help/credit_card_numbers.htm
@@ -15,11 +14,11 @@ describe("KID module", function () {
   // Tests for Generate() in KID.js
   describe("KidGenerate", function () {
     it("generate should be a function", function () {
-      expect(KID.generate).to.be.a("function");
+      expect(KID.generate).toBeTypeOf("function");
     });
 
     it("generate should return a string", function () {
-      expect(KID.generate()).to.be.a("string");
+      expect(KID.generate()).toBeTypeOf("string");
     });
 
     // Numbers based on data from wiki https://no.wikipedia.org/wiki/KID-nummer
@@ -31,17 +30,17 @@ describe("KID module", function () {
   // Tests for luhn_checksum() in KID.js
   describe("luhn_checksum", function () {
     it("luhn_checksum should be a function", function () {
-      expect(KID.luhn_checksum).to.be.a("function");
+      expect(KID.luhn_checksum).toBeTypeOf("function");
     });
 
     it("luhn_checksum should return a number", function () {
-      expect(KID.luhn_checksum(1)).to.be.a("number");
+      expect(KID.luhn_checksum(1)).toBeTypeOf("number");
     });
 
     it("luhn_checksum multi-number check", function () {
       for (var x = 0; x < TestCardNumbers.length; x++) {
-        expect(KID.luhn_checksum(TestCardNumbers[x])).equal(0);
-        expect(KID.luhn_checksum(TestCardNumbers[x])).to.be.a("number");
+        expect(KID.luhn_checksum(TestCardNumbers[x])).toBe(0);
+        expect(KID.luhn_checksum(TestCardNumbers[x])).toBeTypeOf("number");
       }
     });
   });
@@ -49,11 +48,11 @@ describe("KID module", function () {
   // Tests for luhn_caclulate() in KID.js
   describe("luhn_caclulate", function () {
     it("luhn_caclulate should be a function", function () {
-      expect(KID.luhn_caclulate).to.be.a("function");
+      expect(KID.luhn_caclulate).toBeTypeOf("function");
     });
 
     it("luhn_caclulate should return a number", function () {
-      expect(KID.luhn_caclulate(1)).to.be.a("number");
+      expect(KID.luhn_caclulate(1)).toBeTypeOf("number");
     });
 
     it("luhn_caclulate multi-number check", function () {
@@ -61,8 +60,8 @@ describe("KID module", function () {
         var CurrentNumber = TestCardNumbers[x].toString();
         var ValidationNumber = parseInt(CurrentNumber[CurrentNumber.length - 1]);
         var CaluclationNumber = parseInt(CurrentNumber.slice(0, -1));
-        expect(KID.luhn_caclulate(CaluclationNumber)).equal(ValidationNumber);
-        expect(KID.luhn_caclulate(CaluclationNumber)).to.be.a("number");
+        expect(KID.luhn_caclulate(CaluclationNumber)).toBe(ValidationNumber);
+        expect(KID.luhn_caclulate(CaluclationNumber)).toBeTypeOf("number");
       }
     });
   });

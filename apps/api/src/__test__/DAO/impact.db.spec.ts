@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
 import { clearImpactDataCache, getImpactData } from "../../custom_modules/impact/data";
@@ -45,28 +44,28 @@ const isLocal = !!url && /@(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
 
   it("loads the migrated rows", async () => {
     const data = await getImpactData();
-    expect(data.charities.size).to.equal(15);
-    expect([...data.evaluationsByCharity.values()].flat()).to.have.length(64); // + the 2024 estimates (20261101233000_impact_givewell_update)
-    expect(data.grantsByFund.get("TCF")).to.have.length(27);
-    expect(data.grantsByFund.get("AGF")!.map((g) => [g.id, g.legacyId])).to.deep.equal([[34, 1]]);
-    expect(data.interventions.get(2)!.texts.no!.shortDescription).to.equal("Myggnett");
+    expect(data.charities.size).toBe(15);
+    expect([...data.evaluationsByCharity.values()].flat()).toHaveLength(64); // + the 2024 estimates (20261101233000_impact_givewell_update)
+    expect(data.grantsByFund.get("TCF")).toHaveLength(27);
+    expect(data.grantsByFund.get("AGF")!.map((g) => [g.id, g.legacyId])).toStrictEqual([[34, 1]]);
+    expect(data.interventions.get(2)!.texts.no!.shortDescription).toBe("Myggnett");
     // AMF: eleven evaluations; the 2024 one applies from January 2024 on
-    expect(effectiveEvaluation(data, 1, "2023-12-01")!.centsPerOutput).to.equal(585);
-    expect(effectiveEvaluation(data, 1, "2026-10-01")!.centsPerOutput).to.equal(610);
-    expect(effectiveGrant(data, "TCF", "2026-10-01")!.validFrom).to.equal("2026-01-01");
+    expect(effectiveEvaluation(data, 1, "2023-12-01")!.centsPerOutput).toBe(585);
+    expect(effectiveEvaluation(data, 1, "2026-10-01")!.centsPerOutput).toBe(610);
+    expect(effectiveGrant(data, "TCF", "2026-10-01")!.validFrom).toBe("2026-01-01");
     // The dev seed links the charities whose organizations it has
     const amf = [...data.charities.values()].find((c) => c.abbreviation === "AMF")!;
-    expect(amf.organizationAbbreviation).to.equal("AMF");
+    expect(amf.organizationAbbreviation).toBe("AMF");
     const sum = [...data.grantsByFund.get("TCF")!].flatMap((g) => g.allotments);
-    expect(sum).to.have.length(47);
-    expect(Math.max(...sum.map((a) => a.sumInCents))).to.be.greaterThan(2 ** 32);
+    expect(sum).toHaveLength(47);
+    expect(Math.max(...sum.map((a) => a.sumInCents))).toBeGreaterThan(2 ** 32);
   });
 
   it("reads exchange rates with the latest earlier day", async () => {
     const table = await loadUsdRates("NOK", "2024-05-18", "2024-05-20");
     const rate = rateOn(table, "2024-05-19");
-    expect(rate).to.not.equal(null);
-    expect(rate!.date <= "2024-05-19").to.equal(true);
+    expect(rate).not.toBe(null);
+    expect(rate!.date <= "2024-05-19").toBe(true);
   });
 
   it("computes a donor's per-donation impact in a few queries and well under 150 ms", async () => {
@@ -77,8 +76,8 @@ const isLocal = !!url && /@(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
 
     queries = 0;
     const perDonation = await getDonationImpacts({ donorId: donor.id });
-    expect(queries, "queries per call (impact data cached)").to.equal(2);
-    expect(perDonation.size).to.equal(Number(donor.n));
+    expect(queries, "queries per call (impact data cached)").toBe(2);
+    expect(perDonation.size).toBe(Number(donor.n));
 
     // The entries' amounts add up to the donations
     const [[{ total }]] = await pool.query<any[]>(
@@ -86,8 +85,10 @@ const isLocal = !!url && /@(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
       [donor.id],
     );
     const entries = [...perDonation.values()].flat();
-    expect(entries.reduce((s, e) => s + e.amount, 0)).to.be.closeTo(Number(total), 0.01);
-    expect(entries.some((e) => e.count !== null)).to.equal(true);
+    expect(Math.abs(entries.reduce((s, e) => s + e.amount, 0) - Number(total))).toBeLessThanOrEqual(
+      0.01,
+    );
+    expect(entries.some((e) => e.count !== null)).toBe(true);
 
     const times: number[] = [];
     for (let i = 0; i < 20; i++) {
@@ -100,7 +101,7 @@ const isLocal = !!url && /@(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
     console.log(
       `donor with ${donor.n} donations: p50 ${times[9].toFixed(1)} ms, p95 ${p95.toFixed(1)} ms`,
     );
-    expect(p95).to.be.below(150);
+    expect(p95).toBeLessThan(150);
   });
 
   it("limits to an Oslo calendar year", async () => {
@@ -113,6 +114,6 @@ const isLocal = !!url && /@(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
       [donor.id, new Date("2024-12-31T23:00:00Z"), new Date("2025-12-31T23:00:00Z")],
     );
     const year = await getDonationImpacts({ donorId: donor.id, year: 2025 });
-    expect(year.size).to.equal(Number(n));
+    expect(year.size).toBe(Number(n));
   });
 });

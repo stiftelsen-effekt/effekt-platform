@@ -1,7 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import type { CancelledAgreementRow } from "../custom_modules/DAO_modules/cancelledAgreements";
 import { appRouter } from "../trpc/router";
@@ -21,9 +20,9 @@ const admin = () => callerWith(["admin"]).agreements;
 const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
+    expect(err.code).toBe(code);
   }
 };
 
@@ -61,11 +60,13 @@ const summary = {
 };
 
 describe("tRPC agreements.cancelled", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   describe("procedure", () => {
     it("rejects anonymous and non-admin callers", async () => {
-      const getList = sinon.stub(DAO.cancelledAgreements, "getList");
+      const getList = vi
+        .spyOn(DAO.cancelledAgreements, "getList")
+        .mockReturnValue(undefined as any);
       await expectTrpcError(
         callerWith().agreements.cancelled({ page: 0, limit: 10 }),
         "UNAUTHORIZED",
@@ -74,11 +75,13 @@ describe("tRPC agreements.cancelled", () => {
         callerWith(["read:profile"]).agreements.cancelled({ page: 0, limit: 10 }),
         "FORBIDDEN",
       );
-      expect(getList.called).to.be.false;
+      expect(getList).not.toHaveBeenCalled();
     });
 
     it("rejects invalid input", async () => {
-      const getList = sinon.stub(DAO.cancelledAgreements, "getList");
+      const getList = vi
+        .spyOn(DAO.cancelledAgreements, "getList")
+        .mockReturnValue(undefined as any);
       const invalid: unknown[] = [
         { page: 0, limit: 10, sort: { id: "status", desc: true } },
         { page: 0, limit: 10, filter: { providers: ["autogiro"] } },
@@ -92,26 +95,28 @@ describe("tRPC agreements.cancelled", () => {
       for (const input of invalid) {
         await expectTrpcError(admin().cancelled(input as any), "BAD_REQUEST");
       }
-      expect(getList.called).to.be.false;
+      expect(getList).not.toHaveBeenCalled();
     });
 
     it("defaults to newest cancellation first and returns ISO dates and the org split", async () => {
-      const getList = sinon
-        .stub(DAO.cancelledAgreements, "getList")
-        .resolves({ rows: [row], summary, pages: 1 });
-      const orgShares = sinon.stub(DAO.distributions, "getOrgSharesByKIDs").resolves(new Map());
+      const getList = vi
+        .spyOn(DAO.cancelledAgreements, "getList")
+        .mockResolvedValue({ rows: [row], summary, pages: 1 });
+      const orgShares = vi
+        .spyOn(DAO.distributions, "getOrgSharesByKIDs")
+        .mockResolvedValue(new Map());
 
       const result = await admin().cancelled({ page: 0, limit: 25 });
 
-      expect(getList.firstCall.args[0]).to.deep.equal({
+      expect(getList.mock.calls[0][0]).toStrictEqual({
         filter: {},
         sort: { id: "cancelled", desc: true },
         page: 0,
         limit: 25,
       });
-      expect(orgShares.firstCall.args[0]).to.deep.equal([row.KID]);
-      expect(result.summary).to.deep.equal(summary);
-      expect(result.rows[0]).to.deep.equal({
+      expect(orgShares.mock.calls[0][0]).toStrictEqual([row.KID]);
+      expect(result.summary).toStrictEqual(summary);
+      expect(result.rows[0]).toStrictEqual({
         ...row,
         created: "2026-01-02T03:04:05.000Z",
         donorStats: { ...row.donorStats, latestDonation: "2026-09-15T10:00:00.000Z" },
@@ -121,10 +126,10 @@ describe("tRPC agreements.cancelled", () => {
     });
 
     it("passes filters and sort through", async () => {
-      const getList = sinon
-        .stub(DAO.cancelledAgreements, "getList")
-        .resolves({ rows: [], summary: { ...summary, count: 0, reasons: [] }, pages: 0 });
-      sinon.stub(DAO.distributions, "getOrgSharesByKIDs").resolves(new Map());
+      const getList = vi
+        .spyOn(DAO.cancelledAgreements, "getList")
+        .mockResolvedValue({ rows: [], summary: { ...summary, count: 0, reasons: [] }, pages: 0 });
+      vi.spyOn(DAO.distributions, "getOrgSharesByKIDs").mockResolvedValue(new Map());
       const filter = {
         providers: ["vipps" as const],
         cancelled: { from: "2026-01-01", to: "2026-01-31" },
@@ -138,7 +143,7 @@ describe("tRPC agreements.cancelled", () => {
         sort: { id: "donationSum", desc: false },
         filter,
       });
-      expect(getList.firstCall.args[0]).to.deep.equal({
+      expect(getList.mock.calls[0][0]).toStrictEqual({
         filter,
         sort: { id: "donationSum", desc: false },
         page: 2,
@@ -148,11 +153,11 @@ describe("tRPC agreements.cancelled", () => {
   });
 
   describe("DAO.cancelledAgreements.getList", () => {
-    let query: sinon.SinonStub;
+    let query: MockInstance;
 
     /** Answers each query by what it selects, since the summary runs alongside the page */
     beforeEach(() => {
-      query = sinon.stub(DAO, "query").callsFake((async (sql: string) => {
+      query = vi.spyOn(DAO, "query").mockImplementation((async (sql: string) => {
         if (sql.includes("AS withReasonCount"))
           return [[{ count: 3, withOtherActiveCount: "1", withReasonCount: "2" }], []];
         if (sql.includes("GROUP BY RS.ID"))
@@ -243,26 +248,26 @@ describe("tRPC agreements.cancelled", () => {
       });
 
       const [sql, params] = pageSql();
-      expect(sql).to.contain("VA.cancellation_date IS NOT NULL");
-      expect(sql).to.contain("AG.cancelled IS NOT NULL");
-      expect(sql).not.to.contain("AutoGiro_agreements");
-      expect(sql).to.match(/ORDER BY F\.cancelledDate DESC, F\.cancelledDate DESC, F\.provider/);
-      expect(params).to.deep.equal([2, 0]);
+      expect(sql).toContain("VA.cancellation_date IS NOT NULL");
+      expect(sql).toContain("AG.cancelled IS NOT NULL");
+      expect(sql).not.toContain("AutoGiro_agreements");
+      expect(sql).toMatch(/ORDER BY F\.cancelledDate DESC, F\.cancelledDate DESC, F\.provider/);
+      expect(params).toStrictEqual([2, 0]);
 
       // Batched: one reasons query and one donor stats query for the whole page
       const reasonCalls = query
         .getCalls()
         .filter((call) => String(call.args[0]).includes("FROM Recurring_agreement_stopped R"));
-      expect(reasonCalls).to.have.length(1);
-      expect(reasonCalls[0].args[1]).to.deep.equal([["agr_X"], [12]]);
+      expect(reasonCalls).toHaveLength(1);
+      expect(reasonCalls[0].args[1]).toStrictEqual([["agr_X"], [12]]);
       const statsCalls = query
         .getCalls()
         .filter((call) => String(call.args[0]).includes("FROM Donations"));
-      expect(statsCalls).to.have.length(1);
-      expect(statsCalls[0].args[1]).to.deep.equal([[7, 8]]);
+      expect(statsCalls).toHaveLength(1);
+      expect(statsCalls[0].args[1]).toStrictEqual([[7, 8]]);
 
-      expect(result.pages).to.equal(2);
-      expect(result.summary).to.deep.equal({
+      expect(result.pages).toBe(2);
+      expect(result.summary).toStrictEqual({
         count: 3,
         withOtherActiveCount: 1,
         withReasonCount: 2,
@@ -271,20 +276,22 @@ describe("tRPC agreements.cancelled", () => {
           { reasonId: 11, name: "Annet", count: 1 },
         ],
       });
-      expect(result.rows[0]).to.deep.equal({
+      expect(result.rows[0]).toStrictEqual({
         ...row,
         reasons: [
           { reasonId: 1, name: "Økonomiske grunner", comment: null, recorded: null },
           row.reasons[0],
         ],
       });
-      expect(result.rows[1]).to.include({
-        provider: "vipps",
-        hasOtherActiveAgreement: false,
-      });
-      expect(result.rows[1].otherActiveProviders).to.deep.equal([]);
-      expect(result.rows[1].reasons).to.deep.equal([]);
-      expect(result.rows[1].donorStats).to.deep.equal({
+      expect(result.rows[1]).toEqual(
+        expect.objectContaining({
+          provider: "vipps",
+          hasOtherActiveAgreement: false,
+        }),
+      );
+      expect(result.rows[1].otherActiveProviders).toStrictEqual([]);
+      expect(result.rows[1].reasons).toStrictEqual([]);
+      expect(result.rows[1].donorStats).toStrictEqual({
         latestDonation: null,
         donationSum: "0.00",
         donationCount: 0,
@@ -305,13 +312,13 @@ describe("tRPC agreements.cancelled", () => {
         limit: 10,
       });
       const [sql, params] = pageSql();
-      expect(sql).not.to.contain("FROM Avtalegiro_agreements AG");
-      expect(sql).to.contain("F.cancelledDate >= ?");
-      expect(sql).to.contain("F.cancelledDate <= ?");
-      expect(sql).to.contain("RK.reasonID IN (?)");
-      expect(sql).to.contain("F.donorId = ?");
-      expect(sql).to.match(/ORDER BY \(SELECT COALESCE\(SUM\(DS\.sum_confirmed\), 0\)/);
-      expect(params).to.deep.equal([
+      expect(sql).not.toContain("FROM Avtalegiro_agreements AG");
+      expect(sql).toContain("F.cancelledDate >= ?");
+      expect(sql).toContain("F.cancelledDate <= ?");
+      expect(sql).toContain("RK.reasonID IN (?)");
+      expect(sql).toContain("F.donorId = ?");
+      expect(sql).toMatch(/ORDER BY \(SELECT COALESCE\(SUM\(DS\.sum_confirmed\), 0\)/);
+      expect(params).toStrictEqual([
         "2026-01-01",
         "2026-01-31",
         1,
@@ -333,8 +340,8 @@ describe("tRPC agreements.cancelled", () => {
         limit: 10,
       });
       const [sql, params] = pageSql();
-      expect(sql).not.to.contain("F.donorId = ?");
-      expect(params.slice(0, 2)).to.deep.equal(["%50\\%\\_off%", "%50\\%\\_off%"]);
+      expect(sql).not.toContain("F.donorId = ?");
+      expect(params.slice(0, 2)).toStrictEqual(["%50\\%\\_off%", "%50\\%\\_off%"]);
     });
   });
 });

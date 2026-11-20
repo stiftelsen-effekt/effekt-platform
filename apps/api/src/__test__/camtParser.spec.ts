@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import { parseCamtFile, isCamtXml } from "../custom_modules/parsers/camtParser";
@@ -31,9 +30,9 @@ const loadInput = (key: string): string => {
 describe("CAMT.053 parser", () => {
   it("has a baseline entry for every fixture", () => {
     const fixtures = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith(".xml"));
-    expect(fixtures.length).to.be.greaterThan(0);
+    expect(fixtures.length).toBeGreaterThan(0);
     for (const f of fixtures) {
-      expect(baseline, f).to.have.property(f);
+      expect(baseline, f).toHaveProperty([f]);
     }
   });
 
@@ -41,18 +40,18 @@ describe("CAMT.053 parser", () => {
     if (INTENTIONAL_DIFFERENCES.has(key)) continue;
     if (expected.error !== undefined) {
       it(`rejects ${key} like the libxmljs implementation`, () => {
-        expect(() => parseCamtFile(loadInput(key))).to.throw();
+        expect(() => parseCamtFile(loadInput(key))).toThrow();
       });
     } else {
       it(`parses ${key} identically to the libxmljs implementation`, () => {
         const actual = JSON.parse(JSON.stringify(parseCamtFile(loadInput(key))));
-        expect(actual).to.deep.equal(expected.result);
+        expect(actual).toStrictEqual(expected.result);
       });
     }
   }
 
   it("keeps the same error message for a statement-less file", () => {
-    expect(() => parseCamtFile(loadInput("camt053_wrong_namespace.xml"))).to.throw(
+    expect(() => parseCamtFile(loadInput("camt053_wrong_namespace.xml"))).toThrow(
       "No statement found in CAMT file",
     );
   });
@@ -60,11 +59,11 @@ describe("CAMT.053 parser", () => {
   it("does not resolve external entities (XXE)", () => {
     // libxmljs left the entity unexpanded ("before  after"); we now reject the file outright.
     expect(baseline["camt053_xxe.xml"].result).to.deep.include({ postingDate: "2025-01-01" });
-    expect(() => parseCamtFile(loadInput("camt053_xxe.xml"))).to.throw(/entity not found/);
+    expect(() => parseCamtFile(loadInput("camt053_xxe.xml"))).toThrow(/entity not found/);
   });
 
   it("detects CAMT XML", () => {
-    expect(isCamtXml(loadInput("camt053_mixed.xml"))).to.equal(true);
-    expect(isCamtXml("not xml")).to.equal(false);
+    expect(isCamtXml(loadInput("camt053_mixed.xml"))).toBe(true);
+    expect(isCamtXml("not xml")).toBe(false);
   });
 });
