@@ -31,6 +31,13 @@ export default defineType({
       description: "Describes the image for screen readers. Falls back to the title if left empty.",
     }),
     defineField({
+      name: "giftcard",
+      type: "reference",
+      title: "Gift card product",
+      description: "Makes the card link to the product's page (the product's Page field)",
+      to: [{ type: "giftcardproduct" }],
+    }),
+    defineField({
       name: "links",
       type: "array",
       title: "Links",

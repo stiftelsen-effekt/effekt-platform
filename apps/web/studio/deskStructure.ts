@@ -8,6 +8,7 @@ import {
   DollarSign,
   File,
   Filter,
+  Gift,
   Heart,
   Lock,
   Paperclip,
@@ -115,6 +116,16 @@ export const deskStructure: StructureResolver = async (S, context) => {
           ),
       ]),
       S.divider(),
+      S.listItem()
+        .title("Gift card products")
+        .icon(Gift)
+        .child(
+          S.documentList()
+            .title("Gift card products")
+            .schemaType("giftcardproduct")
+            .apiVersion("v2024-09-19")
+            .filter('_type == "giftcardproduct"'),
+        ),
       ...when("results", [
         S.listItem()
           .title("Results")

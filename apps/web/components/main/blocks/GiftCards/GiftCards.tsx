@@ -10,7 +10,7 @@ export const GiftCards: React.FC<{
   return (
     <div className={styles.giftcards}>
       {giftcards &&
-        giftcards.map(({ _key, title, price, image, alt, links }) => (
+        giftcards.map(({ _key, title, price, image, alt, links, giftcard_page_slug }) => (
           <GiftCardItem
             key={_key}
             title={title}
@@ -18,6 +18,7 @@ export const GiftCards: React.FC<{
             image={image}
             alt={alt}
             links={links}
+            giftcard_page_slug={giftcard_page_slug}
             locale={locale}
             currency={currency}
           />

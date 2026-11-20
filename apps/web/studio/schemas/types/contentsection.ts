@@ -87,6 +87,8 @@ export default defineType({
         { type: "opendistributionbutton" },
         { type: "giftcardteaser" },
         { type: "giftcards" },
+        { type: "giftcardwidget" },
+        { type: "giftcardreceipt" },
         { type: "teamintroduction" },
         { type: "discountratecomparison" },
         { type: "itncoverage" },

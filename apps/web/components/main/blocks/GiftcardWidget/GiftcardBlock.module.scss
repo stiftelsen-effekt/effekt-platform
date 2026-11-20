@@ -1,0 +1,75 @@
+// The gift card block: pictures on the left, the widget on the right (wireframe), stacked on
+// mobile with the pictures first. The content section around it sets the width.
+
+.container {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 2.5rem;
+  width: 100%;
+}
+
+.panel {
+  min-width: 0;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 1.5rem;
+  align-self: start;
+}
+
+.galleryside {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.gallerysmall {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 0.73;
+  overflow: hidden;
+}
+
+.gallerymain {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 0.73;
+  overflow: hidden;
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--grey-20, #d9d9d9);
+}
+
+@media only screen and (max-width: 1180px) {
+  .container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  // One row of pictures that scrolls sideways, large one first
+  .gallery {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .galleryside {
+    flex-direction: row-reverse;
+    gap: 0.75rem;
+  }
+
+  .gallerymain,
+  .gallerysmall {
+    flex: 0 0 62vw;
+    width: 62vw;
+    scroll-snap-align: start;
+  }
+}

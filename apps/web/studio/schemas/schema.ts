@@ -85,6 +85,9 @@ import resultsteaser from "./types/resultsteaser";
 import taxdeductionwidget from "./types/taxdeductionwidget";
 import dkgavebrevtaxwidget from "./types/dkgavebrevtaxwidget";
 import donationwidgetblock from "./types/donationwidgetblock";
+import giftcardproduct from "./types/giftcardproduct";
+import giftcardwidget from "./types/giftcardwidget";
+import giftcardreceipt from "./types/giftcardreceipt";
 import dkmembershipwidget from "./types/dkmembershipwidget";
 import dkmembershipdisplay from "./types/dkmembershipdisplay";
 import resultstext from "./types/resultstext";
@@ -187,6 +190,9 @@ export const types = [
   teasers,
   teasersitem,
   donationwidgetblock,
+  giftcardproduct,
+  giftcardwidget,
+  giftcardreceipt,
   dkmembershipwidget,
   dkmembershipdisplay,
   resultstext,
