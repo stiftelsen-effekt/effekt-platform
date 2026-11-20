@@ -7,8 +7,8 @@ import { defineConfig, type Plugin } from "vitest/config";
  * after deleting them from `require.cache`. Vite would load the specs as ES modules, giving them
  * frozen namespace objects and a module graph separate from `require`. So, like ts-node under
  * Mocha before, compile each spec to CommonJS with TypeScript and let every import (including
- * `vitest`'s own, which must stay an ES import) go through Node's `require`; ts-node (registered
- * in setup/register.ts) compiles the application code. Specs and application code then share one
+ * `vitest`'s own, which must stay an ES import) go through Node's `require`; a require hook in
+ * setup/register.ts compiles the application code, also with TypeScript. Specs and application code then share one
  * module instance per file, as under Mocha.
  */
 const vitestImport = /^import \{[^}]*\} from "vitest";$/m;
@@ -64,8 +64,8 @@ export default defineConfig({
     testTimeout: 5000,
     hookTimeout: 5000,
     // Child processes, one per spec file, so each file gets a fresh require cache and stubs or
-    // env changes cannot leak between files. Node's own type stripping is off so ts-node compiles
-    // every .ts file (it handles enums and other syntax that stripping rejects).
+    // env changes cannot leak between files. Node's own type stripping is off so that hook
+    // compiles every .ts file (it handles enums and other syntax that stripping rejects).
     pool: "forks",
     fileParallelism: !testDbConfigured,
     execArgv: ["--no-experimental-strip-types"],
