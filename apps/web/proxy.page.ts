@@ -11,7 +11,6 @@ export function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/api") ||
     request.nextUrl.pathname.startsWith("/studio") ||
     request.nextUrl.pathname.startsWith("/favicon.ico") ||
-    request.nextUrl.pathname.startsWith("/favicon.svg") ||
     request.nextUrl.pathname.startsWith("/robots.txt") ||
     request.nextUrl.pathname.startsWith("/sitemap.xml") ||
     request.nextUrl.pathname.startsWith("/js/") ||
