@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { LinkType } from "../../../main/blocks/Links/Links";
 import { NavLink } from "../../components/Navbar/Navbar";
@@ -78,13 +77,7 @@ const Footer = withStaticProps(async ({ draftMode = false }: { draftMode: boolea
     <footer className={`${styles.grid} ${gridClass}`} id={"footer"}>
       <div className={`${styles.category} ${styles.logo__bottom}`}>
         <figure>
-          <Image
-            src="/images/footer-symbol.webp"
-            alt=""
-            width={300}
-            height={300}
-            aria-hidden="true"
-          />
+          <p>G</p>
         </figure>
       </div>
       {footer_columns &&
