@@ -122,13 +122,15 @@ describe("agf-grants importer: parsing", () => {
       "<title>Atlas AI – Estimating Subnational Populations (February 2026) | GiveWell</title><p>In a nutshell</p><p>A small grant.</p>",
       "Atlas-AI",
     );
-    expect(g).to.include({
-      recommendedMonth: "2026-02-01",
-      amountCents: null,
-      ceLow: null,
-      deathsAverted: null,
-      grantType: "research",
-    });
+    expect(g).toEqual(
+      expect.objectContaining({
+        recommendedMonth: "2026-02-01",
+        amountCents: null,
+        ceLow: null,
+        deathsAverted: null,
+        grantType: "research",
+      }),
+    );
   });
 
   it("reads the AGF page's selected grants", () => {
@@ -177,14 +179,16 @@ describe("agf-grants importer: parsing", () => {
     const other = row.replace("All Grants Fund (AGF)", "Top Charities Fund (TCF)");
     const [ie, ...rest] = parseImpactEstimates([header, row, other].join("\n"));
     expect(rest).toHaveLength(0);
-    expect(ie).to.include({
-      organizationKey: "New Incentives",
-      month: "2022-11-01",
-      fundAmountCents: 566833500,
-      outputs: 44419,
-      centsPerOutput: 12800,
-      deathsAverted: 1128,
-    });
+    expect(ie).toEqual(
+      expect.objectContaining({
+        organizationKey: "New Incentives",
+        month: "2022-11-01",
+        fundAmountCents: 566833500,
+        outputs: 44419,
+        centsPerOutput: 12800,
+        deathsAverted: 1128,
+      }),
+    );
   });
 
   it("reads a grants database CSV and stops on unknown columns", () => {

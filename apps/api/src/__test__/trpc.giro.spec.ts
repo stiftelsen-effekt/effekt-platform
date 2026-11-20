@@ -298,10 +298,8 @@ describe("tRPC giro router", () => {
       const donation = { id: 1, KID: "123", sum: "1.00" } as any;
       const bucket = { bucket: 0, items: 1, bar: 0 };
       const validation = { date: 5, expected: "500", actual: "0", diff: "-500" };
-      vi.spyOn(DAO.avtalegiroagreements, "getDonationsByKID")
-        .mockReturnValue(undefined as any)
-        .withArgs("123")
-        .resolves([donation]);
+      vi.spyOn(DAO.avtalegiroagreements, "getDonationsByKID").mockImplementation(((KID) =>
+        KID === "123" ? Promise.resolve([donation]) : undefined) as any);
       vi.spyOn(DAO.avtalegiroagreements, "getAgreementSumHistogram").mockResolvedValue([bucket]);
       vi.spyOn(DAO.avtalegiroagreements, "getAgreementReport").mockResolvedValue({
         activeAgreementCount: 3,

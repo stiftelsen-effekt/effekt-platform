@@ -29,7 +29,8 @@ describe("dev data: regranting history", { timeout: 20000 }, function () {
     expect(regular.length).toBeGreaterThan(15);
     expect(regular.every((r) => r.status === "paid")).toBe(true);
     const last = toDay(String(regular[regular.length - 1].cutoff));
-    expect(end - last).to.be.within(75, 110);
+    expect(end - last).toBeGreaterThanOrEqual(75);
+    expect(end - last).toBeLessThanOrEqual(110);
   });
 
   it("covers every round kind and lifecycle state", () => {

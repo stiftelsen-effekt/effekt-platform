@@ -42,11 +42,13 @@ describe("Vipps route handles report correctly", () => {
     const { content } = (json.mock.calls[0] as any[])[0];
     expect(Object.keys(content)).toStrictEqual(["valid", "invalid", "invalidTransactions"]);
     expect(queued).toHaveLength(content.invalidTransactions.length);
-    expect(queued[0]).to.include({
-      externalId: content.invalidTransactions[0].transaction.transactionID,
-      paymentId: 4,
-      amount: content.invalidTransactions[0].transaction.amount,
-    });
+    expect(queued[0]).toEqual(
+      expect.objectContaining({
+        externalId: content.invalidTransactions[0].transaction.transactionID,
+        paymentId: 4,
+        amount: content.invalidTransactions[0].transaction.amount,
+      }),
+    );
   });
 
   it("Attempts to send mail when in production", async () => {
@@ -65,13 +67,13 @@ describe("Vipps route handles report correctly", () => {
       await runVipps("Vipps April 2019");
     } finally {
       config.env = "development";
-      addStub.resetBehavior();
+      // Both queued rejections are consumed by the run, so this replaces the behaviour
       addStub.mockResolvedValue(10);
     }
 
     expect(addStub).toHaveBeenCalledTimes(10);
     expect(mailStub).toHaveBeenCalledTimes(8);
-    expect(mailStub.alwaysCalledWith(10)).to.be.true;
+    expect(mailStub.mock.calls.every((args) => args[0] === 10)).toBe(true);
   });
 
   it("Waits for receipts and keeps going if one fails", async () => {
@@ -89,7 +91,7 @@ describe("Vipps route handles report correctly", () => {
       await runVipps("Vipps April 2019");
     } finally {
       config.env = "development";
-      mailStub.resetBehavior();
+      mailStub.mockReturnValue(undefined as any);
     }
 
     expect(mailStub).toHaveBeenCalledTimes(10);

@@ -203,9 +203,9 @@ describe("Gift year range", () => {
       .mockResolvedValue([[{ total: 0, withoutTaxUnit: 0 }], []] as any);
     await DAO.tax.getDonationTotalsInYear(2026);
     await DAO.tax.getDonorsWithoutTaxUnitInYear(2026, 500);
-    for (const call of query.getCalls()) {
-      expect(call.args[0]).toContain("D.timestamp_confirmed >= '2026-01-01 00:00:00.000'");
-      expect(call.args[0]).toContain("D.timestamp_confirmed < '2026-12-31 23:00:00.000'");
+    for (const args of query.mock.calls) {
+      expect(args[0]).toContain("D.timestamp_confirmed >= '2026-01-01 00:00:00.000'");
+      expect(args[0]).toContain("D.timestamp_confirmed < '2026-12-31 23:00:00.000'");
     }
     expect(query.mock.lastCall![1]).toStrictEqual([500]);
   });
@@ -846,10 +846,9 @@ describe("tRPC reports.tax", () => {
       testMode: false,
       donorsMarkedSent: 2,
     });
-    expect(send.getCalls().map((call) => call.args[2])).to.have.members([
-      "a@example.org",
-      "b@example.org",
-    ]);
+    expect(send.mock.calls.map((args) => args[2]).sort()).toEqual(
+      ["a@example.org", "b@example.org"].sort(),
+    );
     expect(markSent).toHaveBeenCalledTimes(1);
     expect(markSent.mock.calls[0]).toStrictEqual([2025, [1, 2], ADMIN]);
   });
@@ -867,18 +866,19 @@ describe("tRPC reports.tax", () => {
       notice(3, "excluded"),
       notice(4, "sent"),
     ]);
-    const send = vi.spyOn(mail, "sendMissingTaxUnitNotice").mockReturnValue(undefined as any);
-    send.withArgs(sinon.match({ email: "a@example.org" })).resolves(true);
-    send.withArgs(sinon.match({ email: "b@example.org" })).resolves(false);
+    const send = vi.spyOn(mail, "sendMissingTaxUnitNotice").mockImplementation(((donor) => {
+      if (donor?.email === "a@example.org") return Promise.resolve(true);
+      if (donor?.email === "b@example.org") return Promise.resolve(false);
+      return undefined;
+    }) as any);
     const result = await callerWith(["admin"]).reports.tax.missingTaxUnitNotice({
       year: 2025,
       minSum: 500,
       confirmYear: 2025,
     });
-    expect(send.getCalls().map((call) => call.args[2])).to.have.members([
-      "a@example.org",
-      "b@example.org",
-    ]);
+    expect(send.mock.calls.map((args) => args[2]).sort()).toEqual(
+      ["a@example.org", "b@example.org"].sort(),
+    );
     expect(result).toEqual(
       expect.objectContaining({ total: 2, success: 1, failed: 1, donorsMarkedSent: 2 }),
     );
@@ -942,7 +942,7 @@ describe("Sending to chosen donors, reminders and the preview", () => {
       // 3 is in Sent: the notice round doesn't send to it again
       donorIds: [2, 3],
     });
-    expect(send.getCalls().map((call) => call.args[2])).toStrictEqual(["b@example.org"]);
+    expect(send.mock.calls.map((args) => args[2])).toStrictEqual(["b@example.org"]);
     expect(result).toEqual(
       expect.objectContaining({ round: "notice", total: 1, donorsMarkedSent: 1 }),
     );
@@ -957,7 +957,7 @@ describe("Sending to chosen donors, reminders and the preview", () => {
       confirmYear: 2025,
       round: "reminder",
     });
-    expect(send.getCalls().map((call) => [call.args[2], call.args[3]])).toStrictEqual([
+    expect(send.mock.calls.map((args) => [args[2], args[3]])).toStrictEqual([
       ["c@example.org", { reminder: true }],
     ]);
     expect(result).toEqual(
@@ -984,7 +984,7 @@ describe("Sending to chosen donors, reminders and the preview", () => {
       round: "reminder",
       donorIds: [1, 2, 3],
     });
-    expect(send.getCalls().map((call) => call.args[2])).toStrictEqual(["c@example.org"]);
+    expect(send.mock.calls.map((args) => args[2])).toStrictEqual(["c@example.org"]);
     expect(result).toEqual(expect.objectContaining({ total: 1 }));
     expect(markReminded.mock.calls[0]).toStrictEqual([2025, [3], ADMIN]);
   });
@@ -1160,7 +1160,7 @@ describe("Connecting gifts to the donor's tax unit", () => {
     expect((move.mock.calls[0][2] as Date).toISOString()).toBe(
       taxYearRange(thisYear).from.toISOString(),
     );
-    expect(connect.getCalls().map((call) => call.args)).toStrictEqual([
+    expect(connect.mock.calls).toStrictEqual([
       ["111", 7],
       ["222", 7],
       ["333", 7],

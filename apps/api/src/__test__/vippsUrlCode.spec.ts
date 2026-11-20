@@ -46,7 +46,9 @@ describe("Vipps agreement url codes", () => {
     const code = "0123456789abcdef0123456789abcdef";
 
     const stubAgreementOwner = (email: string) => {
-      vi.mocked(DAO.vipps.getAgreementIdByUrlCode).withArgs(code).resolves("agr_TEST");
+      vi.mocked(DAO.vipps.getAgreementIdByUrlCode).mockImplementation(async (c) =>
+        c === code ? "agr_TEST" : false,
+      );
       vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue({ ID: "agr_TEST", donorID: 42 } as any);
       vi.spyOn(DAO.donors, "getByID").mockResolvedValue({ id: 42, email } as any);
     };

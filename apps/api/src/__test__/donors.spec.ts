@@ -124,13 +124,13 @@ describe("donors", () => {
 
     describe("GET /donors/:id/donations", function () {
       beforeEach(function () {
-        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
-        donorStub.withArgs("237").resolves(jack);
+        donorStub = vi
+          .spyOn(DAO.donors, "getByID")
+          .mockImplementation(async (id) => (id === "237" ? (jack as any) : undefined));
 
-        var donationStub = vi
-          .spyOn(DAO.donations, "getByDonorId")
-          .mockReturnValue(undefined as any);
-        donationStub.withArgs("237").resolves(donationsStub);
+        vi.spyOn(DAO.donations, "getByDonorId").mockImplementation(async (id) =>
+          id === "237" ? (donationsStub as any) : undefined,
+        );
       });
 
       it("Should return 200 OK with the dontions by ID", async function () {
@@ -145,9 +145,9 @@ describe("donors", () => {
 
     describe("GET /donors/:id", function () {
       beforeEach(function () {
-        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
-
-        donorStub.withArgs("237").resolves(jack);
+        donorStub = vi
+          .spyOn(DAO.donors, "getByID")
+          .mockImplementation(async (id) => (id === "237" ? (jack as any) : undefined));
 
         donorUpdateStub = vi.spyOn(DAO.donors, "update").mockReturnValue(undefined as any);
       });
@@ -164,15 +164,17 @@ describe("donors", () => {
 
     describe("PUT /donors/:id", () => {
       beforeEach(function () {
-        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
-
-        donorStub.withArgs("237").resolves(jack);
+        donorStub = vi
+          .spyOn(DAO.donors, "getByID")
+          .mockImplementation(async (id) => (id === "237" ? (jack as any) : undefined));
 
         donorUpdateStub = vi.spyOn(DAO.donors, "update").mockReturnValue(undefined as any);
       });
 
       it("Should return 404 when donor is not found", async function () {
-        donorStub.withArgs("123").resolves(null);
+        donorStub.mockImplementation(async (id) =>
+          id === "237" ? (jack as any) : id === "123" ? null : undefined,
+        );
         const response = await request(server).put("/donors/123");
         expect(response.status).toBe(404);
       });
@@ -218,8 +220,9 @@ describe("donors", () => {
       let updateTaxUnitStub: MockInstance;
 
       beforeEach(function () {
-        donorStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
-        donorStub.withArgs(237).resolves(jack);
+        donorStub = vi
+          .spyOn(DAO.donors, "getByID")
+          .mockImplementation(async (id) => (id === 237 ? (jack as any) : undefined));
         taxGetByIdStub = vi.spyOn(DAO.tax, "getById").mockReturnValue(undefined as any);
         updateTaxUnitStub = vi.spyOn(DAO.tax, "updateTaxUnit").mockResolvedValue(1);
       });
@@ -227,14 +230,20 @@ describe("donors", () => {
       const body = { taxUnit: { name: "Jack Torrance", ssn: "999999999" } };
 
       it("Should update a tax unit owned by the donor", async function () {
-        taxGetByIdStub.withArgs(10).resolves({ id: 10, donorId: 237, name: "x", ssn: "1" });
+        taxGetByIdStub.mockImplementation(async (id) =>
+          id === 10 ? { id: 10, donorId: 237, name: "x", ssn: "1" } : undefined,
+        );
         const response = await request(server).put("/donors/237/taxunits/10").send(body);
         expect(response.status).toBe(200);
-        expect(updateTaxUnitStub).toHaveBeenCalledExactlyOnceWith(10);
+        // Called once, with 10 as the first argument (the update follows)
+        expect(updateTaxUnitStub).toHaveBeenCalledOnce();
+        expect(updateTaxUnitStub.mock.calls[0].slice(0, 1)).toStrictEqual([10]);
       });
 
       it("Should return 404 and not update a tax unit owned by another donor", async function () {
-        taxGetByIdStub.withArgs(11).resolves({ id: 11, donorId: 999, name: "x", ssn: "1" });
+        taxGetByIdStub.mockImplementation(async (id) =>
+          id === 11 ? { id: 11, donorId: 999, name: "x", ssn: "1" } : undefined,
+        );
         const response = await request(server).put("/donors/237/taxunits/11").send(body);
         expect(response.status).toBe(404);
         expect(updateTaxUnitStub).not.toHaveBeenCalled();
@@ -360,11 +369,11 @@ describe("donors", () => {
       });
 
       it("Donor doesn't have donations", async function () {
-        aggregatedByIdStub.withArgs("2349").resolves([]);
+        aggregatedByIdStub.mockImplementation(async (id) => (id === "2349" ? [] : mockDonations));
 
         const response = await request(server).get("/donors/2349/donations/aggregated").expect(200);
 
-        expect(response.body.content).to.be.empty;
+        expect(response.body.content).toHaveLength(0);
       });
 
       it("Donor ID doesn't exist", async function () {
@@ -490,9 +499,11 @@ describe("donors", () => {
       let repointStub: MockInstance;
 
       beforeEach(function () {
-        getByIDStub = vi.spyOn(DAO.donors, "getByID").mockReturnValue(undefined as any);
-        getByIDStub.withArgs(100).resolves(origin);
-        getByIDStub.withArgs(200).resolves(destination);
+        getByIDStub = vi
+          .spyOn(DAO.donors, "getByID")
+          .mockImplementation(async (id) =>
+            id === 100 ? (origin as any) : id === 200 ? destination : undefined,
+          );
         mergeStub = vi.spyOn(DAO.donors, "mergeDonors").mockResolvedValue(undefined);
         repointStub = vi.spyOn(auth0, "repointAuth0DonorIdOnMerge").mockResolvedValue({
           updated: [],
@@ -527,7 +538,9 @@ describe("donors", () => {
       });
 
       it("returns 404 when a donor is missing", async function () {
-        getByIDStub.withArgs(200).resolves(null);
+        getByIDStub.mockImplementation(async (id) =>
+          id === 100 ? (origin as any) : id === 200 ? null : undefined,
+        );
 
         await request(server).post("/donors/100/merge/200").expect(404);
 

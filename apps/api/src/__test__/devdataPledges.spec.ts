@@ -18,9 +18,11 @@ describe("dev data: pledges", { timeout: 20000 }, function () {
   const received = () => data.Pledges.filter((p) => p.Received_date !== null);
 
   it("has open pledges of different sizes and ages, one partly paid down", () => {
-    expect(open().map((p) => Number(p.Sum))).to.have.members([
-      350_000, 2_500_000, 1_200_000, 750_000,
-    ]);
+    expect(
+      open()
+        .map((p) => Number(p.Sum))
+        .sort((a, b) => a - b),
+    ).toStrictEqual([350_000, 750_000, 1_200_000, 2_500_000]);
     for (const p of open()) expect(p.Donation_ID).toBeNull();
     // The partly paid one: its first instalment is a bank donation on the donor's KID
     const partial = open().find((p) => Number(p.Sum) === 1_200_000)!;

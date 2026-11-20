@@ -95,7 +95,7 @@ describe("DAO transactions release their connection", () => {
 
     await DAO.rollbackTransaction(conn);
     expect(conn.release).toHaveBeenCalledOnce();
-    expect(conn.query.withArgs("ROLLBACK")).toHaveBeenCalledTimes(1);
+    expect(conn.query.mock.calls.filter(([sql]) => sql === "ROLLBACK")).toHaveLength(1);
   });
 
   it("releases when ROLLBACK fails", async () => {

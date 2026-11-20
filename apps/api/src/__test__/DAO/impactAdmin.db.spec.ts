@@ -97,7 +97,9 @@ const admin = () =>
       "SELECT ID, cents_per_output, updated_by, updated_at FROM Impact_evaluations WHERE ID = ?",
       [id],
     );
-    expect(row).to.include({ ID: id, cents_per_output: 550, updated_by: "ops@example.org" });
+    expect(row).toEqual(
+      expect.objectContaining({ ID: id, cents_per_output: 550, updated_by: "ops@example.org" }),
+    );
     expect(
       effectiveEvaluation(await getImpactData(), charityId, "2026-10-01")!.centsPerOutput,
     ).toBe(550);

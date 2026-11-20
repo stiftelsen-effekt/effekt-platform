@@ -20,9 +20,13 @@ describe("AvtaleGiro deletion file generation", () => {
     lines[row - 1].substr(start - 1, length);
 
   beforeAll(async function () {
-    const donorStub = vi.spyOn(DAO.donors, "getByKID").mockReturnValue(undefined as any);
-    donorStub.withArgs("002556289731589").resolves({ name: "Maria Brækkelie" } as any);
-    donorStub.withArgs("000638723319577").resolves({ name: "Kristian Jørgensen" } as any);
+    const donorsByKID = new Map<unknown, any>([
+      ["002556289731589", { name: "Maria Brækkelie" }],
+      ["000638723319577", { name: "Kristian Jørgensen" }],
+    ]);
+    vi.spyOn(DAO.donors, "getByKID").mockImplementation((KID: string) =>
+      donorsByKID.has(KID) ? Promise.resolve(donorsByKID.get(KID)) : (undefined as any),
+    );
 
     config.giro_customer_id = "00230456";
 

@@ -88,9 +88,7 @@ describe("auth0 Management API helpers", function () {
       const result = await repointAuth0DonorIdOnMerge(loserId, winnerId, loserEmail);
 
       expect(result).toStrictEqual({ updated: [], skipped: [] });
-      expect(fetchStub.getCalls().some((call) => String(call.args[1]?.method) === "PATCH")).toBe(
-        false,
-      );
+      expect(fetchStub.mock.calls.some((args) => String(args[1]?.method) === "PATCH")).toBe(false);
     });
 
     it("PATCHes users whose metadata still has the loser donor id", async function () {
@@ -110,12 +108,12 @@ describe("auth0 Management API helpers", function () {
       expect(result.updated).toStrictEqual(["auth0|abc"]);
       expect(result.skipped).toStrictEqual([]);
 
-      const patchCall = fetchStub.getCalls().find((call) => call.args[1]?.method === "PATCH");
+      const patchCall = fetchStub.mock.calls.find((args) => args[1]?.method === "PATCH");
       if (!patchCall) throw new Error("Expected a PATCH request to Auth0");
-      expect(String(patchCall.args[0])).toBe(
+      expect(String(patchCall[0])).toBe(
         "https://gieffektivt.eu.auth0.com/api/v2/users/auth0%7Cabc",
       );
-      expect(JSON.parse(String(patchCall.args[1].body))).toStrictEqual({
+      expect(JSON.parse(String(patchCall[1].body))).toStrictEqual({
         user_metadata: { "gieffektivt-user-id": winnerId },
       });
     });
@@ -158,9 +156,7 @@ describe("auth0 Management API helpers", function () {
 
       expect(result.updated).toStrictEqual([]);
       expect(result.skipped).toStrictEqual(["google-oauth2|other", "auth0|no-meta"]);
-      expect(fetchStub.getCalls().some((call) => String(call.args[1]?.method) === "PATCH")).toBe(
-        false,
-      );
+      expect(fetchStub.mock.calls.some((args) => String(args[1]?.method) === "PATCH")).toBe(false);
     });
 
     it("updates only the matching identity when several Auth0 users share an email", async function () {

@@ -226,13 +226,15 @@ describe("tRPC reports router", () => {
       expect(metaOwnerId).toBe(3);
       expect(result.importLogId).toBe(77);
       expect(queued).toHaveLength(1);
-      expect(queued[0]).to.include({
-        reason: "Invalid KID",
-        KID: item.transaction.KID,
-        amount: item.transaction.amount,
-        externalId: item.transaction.transactionID,
-        paymentId: item.transaction.paymentID,
-      });
+      expect(queued[0]).toEqual(
+        expect.objectContaining({
+          reason: "Invalid KID",
+          KID: item.transaction.KID,
+          amount: item.transaction.amount,
+          externalId: item.transaction.transactionID,
+          paymentId: item.transaction.paymentID,
+        }),
+      );
       expect(queued[0].date).toBeInstanceOf(Date);
       expect(queued[0].raw).toHaveProperty("transactionID", item.transaction.transactionID);
     });
@@ -310,15 +312,17 @@ describe("tRPC reports router", () => {
       expect(result.invalidTransactions.length).toBeGreaterThan(0);
       const [item] = result.invalidTransactions;
       expect(item.reason).toBe("Could not find valid KID or matching parsing rule");
-      expect(item.transaction).to.include.keys(
-        "KID",
-        "amount",
-        "date",
-        "transactionID",
-        "paymentID",
-        "message",
-        "name",
-        "location",
+      expect(Object.keys(item.transaction)).toEqual(
+        expect.arrayContaining([
+          "KID",
+          "amount",
+          "date",
+          "transactionID",
+          "paymentID",
+          "message",
+          "name",
+          "location",
+        ]),
       );
       expect(item.transaction.paymentID).toBe(4);
       expect(item.transaction.date).toBeTypeOf("string");
@@ -608,9 +612,9 @@ describe("tRPC reports router", () => {
 
     it("get returns an entry or NOT_FOUND", async () => {
       const entry = { ID: 7, label: "OCR", result: { file: "..." }, timestamp: new Date() };
-      const get = vi.spyOn(DAO.logging, "get").mockReturnValue(undefined as any);
-      get.withArgs(7).resolves(entry);
-      get.mockResolvedValue(null);
+      vi.spyOn(DAO.logging, "get").mockImplementation(
+        async (id) => (id === 7 ? entry : null) as any,
+      );
 
       expect(await admin().logs.get({ id: 7 })).toStrictEqual({ ...entry, displayLabel: "OCR" });
       await expectTrpcError(admin().logs.get({ id: 8 }), "NOT_FOUND");

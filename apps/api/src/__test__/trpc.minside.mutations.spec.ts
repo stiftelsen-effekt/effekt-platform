@@ -691,7 +691,9 @@ describe("tRPC minside mutations", () => {
       });
       expect(replace).toHaveBeenCalledOnce();
       expect(replace.mock.calls[0][0]).toBe(KID);
-      expect(replace.mock.calls[0][1]).to.deep.include({ donorId: DONOR, taxUnitId: null });
+      expect(replace.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ donorId: DONOR, taxUnitId: null }),
+      );
     });
 
     it("refuses shares that don't sum to 100, as validateDistribution does for REST", async () => {

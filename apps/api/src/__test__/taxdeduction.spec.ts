@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import { getTaxUnitsWithDeductions, TaxDeductionDonation } from "../custom_modules/taxdeductions";
 import { Tax_unit } from "@prisma/client";
 import { SqlResult } from "../custom_modules/DAO";
@@ -6,15 +6,13 @@ import { RequestLocale } from "../middleware/locale";
 import { DateTime } from "luxon";
 
 describe("getTaxUnitsWithDeductions", () => {
-  let clock: sinon.SinonFakeTimers;
-
   beforeEach(() => {
     // Mock current date if necessary
-    clock = sinon.useFakeTimers(new Date("2023-01-01").getTime());
+    vi.useFakeTimers({ now: new Date("2023-01-01").getTime() });
   });
 
   afterEach(() => {
-    clock.restore();
+    vi.useRealTimers();
   });
 
   it("should calculate deductions correctly for NO locale", async () => {
@@ -166,7 +164,7 @@ describe("getTaxUnitsWithDeductions", () => {
     /**
      * Stub DateTime.now() to return a date in the future, so that the yearly mapping will be missing
      */
-    clock.setSystemTime(new Date(futureYear, 0, 1));
+    vi.setSystemTime(new Date(futureYear, 0, 1));
 
     const donations: TaxDeductionDonation[] = [{ year: futureYear, sum: 1000, taxUnitId: 1 }];
     const taxUnits: SqlResult<Tax_unit>[] = [

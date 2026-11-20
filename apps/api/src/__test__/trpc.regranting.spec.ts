@@ -59,7 +59,9 @@ type Stubs = Record<keyof typeof DAO.regranting, MockInstance>;
 const stubDao = (): Stubs => {
   const stubs = {} as Stubs;
   for (const key of Object.keys(DAO.regranting) as (keyof typeof DAO.regranting)[]) {
-    const stub = vi.mocked(vi.spyOn(DAO.regranting, key).mockReturnValue(undefined as any));
+    const stub: MockInstance = vi
+      .spyOn(DAO.regranting as Record<string, (...args: any[]) => any>, key)
+      .mockReturnValue(undefined);
     if (arrayResults.has(key)) stub.mockResolvedValue([]);
     else if (mapResults.has(key)) stub.mockResolvedValue(new Map());
     else stub.mockResolvedValue(null);
@@ -254,7 +256,9 @@ describe("tRPC regranting", () => {
         propose: false,
       });
       expect(stubs.createRound.mock.calls[1][2]).toBe("auth0|carol");
-      expect(stubs.createRound.mock.calls[0][1]).to.deep.include({ minTransfer: 0 });
+      expect(stubs.createRound.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ minTransfer: 0 }),
+      );
     });
 
     it("records who created an adjustment", async () => {
@@ -272,11 +276,13 @@ describe("tRPC regranting", () => {
         effectiveAt: "2026-09-30",
       });
       expect(stubs.createAdjustment.mock.calls[0][1]).toBe("nina@example.org");
-      expect(stubs.createAdjustment.mock.calls[0][0]).to.deep.include({
-        projectId: null,
-        roundId: null,
-        linkedTransferId: null,
-      });
+      expect(stubs.createAdjustment.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          projectId: null,
+          roundId: null,
+          linkedTransferId: null,
+        }),
+      );
     });
   });
 
@@ -391,7 +397,7 @@ describe("tRPC regranting", () => {
       const t = await admin().transfers.setNotes({ id: 70, notes: "Held back 500 kr" });
       expect(t.notes).toBe("Held back 500 kr");
       await admin().transfers.setNotes({ id: 70, notes: null });
-      expect(stubs.setTransferNotes.args.map((a) => a.slice(0, 2))).toStrictEqual([
+      expect(stubs.setTransferNotes.mock.calls.map((a) => a.slice(0, 2))).toStrictEqual([
         [70, "Held back 500 kr"],
         [70, null],
       ]);
@@ -765,9 +771,12 @@ describe("tRPC regranting", () => {
     it("saves nothing when a step fails", async () => {
       const stubs = setUp();
       const committed = transactional(stubs);
-      stubs.replaceTransferLines
-        .withArgs(sinon.match.any, 71)
-        .rejects(new Error("connection lost"));
+      // Saving transfer 71 fails; other transfers keep the fake above
+      const replaceLines = stubs.replaceTransferLines.getMockImplementation()!;
+      stubs.replaceTransferLines.mockImplementation(async (...args: any[]) => {
+        if (args[1] === 71) throw new Error("connection lost");
+        return replaceLines(...args);
+      });
       try {
         await admin().transfers.savePayments(plan);
         expect.unreachable("expected the save to fail");
@@ -909,11 +918,13 @@ describe("tRPC regranting", () => {
       ]);
       stubs.listAdjustments.mockResolvedValue([adjustment({ amount: "-300.00" })]);
       await admin().rounds.approve({ id: 7 });
-      expect(stubs.writeSnapshot.mock.calls[0][2][0]).to.include({
-        balanceAtCutoff: "1000.00",
-        roundAdjustments: "-300.00",
-        inRound: "700.00",
-      });
+      expect(stubs.writeSnapshot.mock.calls[0][2][0]).toEqual(
+        expect.objectContaining({
+          balanceAtCutoff: "1000.00",
+          roundAdjustments: "-300.00",
+          inRound: "700.00",
+        }),
+      );
     });
   });
 
@@ -974,17 +985,19 @@ describe("tRPC regranting", () => {
         note: "Grant letter 12",
       });
       expect(stubs.inTransaction).toHaveBeenCalledOnce();
-      const [from, to] = stubs.createAdjustment.getCalls().map((c) => c.args);
-      expect(from[0]).to.deep.include({
-        organizationId: 1,
-        projectId: null,
-        amount: -400,
-        type: "reallocation",
-        effectiveAt: "2026-09-30",
-        roundId: 7,
-        reason: "Earmarked for Water in Q3: Grant letter 12",
-      });
-      expect(to[0]).to.deep.include({ projectId: 61, amount: 400, roundId: 7 });
+      const [from, to] = stubs.createAdjustment.mock.calls;
+      expect(from[0]).toEqual(
+        expect.objectContaining({
+          organizationId: 1,
+          projectId: null,
+          amount: -400,
+          type: "reallocation",
+          effectiveAt: "2026-09-30",
+          roundId: 7,
+          reason: "Earmarked for Water in Q3: Grant letter 12",
+        }),
+      );
+      expect(to[0]).toEqual(expect.objectContaining({ projectId: 61, amount: 400, roundId: 7 }));
       expect(from[1]).toBe("bob@example.org");
       expect(from[2]).toStrictEqual({ fake: true });
       expect(stubs.pairAdjustments.mock.calls[0].slice(1)).toStrictEqual([11, 12]);
@@ -1042,8 +1055,12 @@ describe("tRPC regranting", () => {
         roundId: 7,
         pairedAdjustmentId: paired,
       });
-      stubs.getAdjustment.withArgs(11).resolves(half(11, null, "-400.00", 12));
-      stubs.getAdjustment.withArgs(12).resolves(half(12, 61, "400.00", 11));
+      const adjustments = new Map<unknown, unknown>([
+        [11, half(11, null, "-400.00", 12)],
+        [12, half(12, 61, "400.00", 11)],
+      ]);
+      // Unknown ids keep stubDao's default (null)
+      stubs.getAdjustment.mockImplementation(async (id) => adjustments.get(id) ?? null);
       stubs.getTransfers.mockResolvedValue([
         transfer({
           lines: [
@@ -1064,9 +1081,7 @@ describe("tRPC regranting", () => {
       ]);
       expect(stubs.deleteAdjustments.mock.calls[0][1]).toStrictEqual([11, 12]);
 
-      stubs.getAdjustment
-        .withArgs(13)
-        .resolves({ ...half(13, null, "-5.00", 0), pairedAdjustmentId: null, type: "fee" });
+      adjustments.set(13, { ...half(13, null, "-5.00", 0), pairedAdjustmentId: null, type: "fee" });
       await expectTrpcError(
         admin().rounds.removeEarmark({ adjustmentId: 13 }),
         "BAD_REQUEST",
@@ -1182,8 +1197,8 @@ describe("tRPC regranting", () => {
         excludeRoundId: 3,
         inflowSince: "2026-06-30",
       });
-      for (const call of query.getCalls()) {
-        const [sql, params] = call.args as [string, unknown[]];
+      for (const args of query.mock.calls) {
+        const [sql, params] = args as [string, unknown[]];
         expect((sql.match(/\?/g) ?? []).length).toBe(params.length);
       }
       const [, filtered] = query.mock.calls[1] as [string, unknown[]];

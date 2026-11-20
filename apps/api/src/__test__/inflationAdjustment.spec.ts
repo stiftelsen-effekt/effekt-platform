@@ -337,10 +337,12 @@ describe("inflation adjustment", () => {
         [unsent(1), unsent(2), unsent(3, false), unsent(4)],
         () => true,
       );
-      const sendEmail = vi.fn();
-      sendEmail.withArgs(1).resolves(true);
-      sendEmail.withArgs(2).resolves(false);
-      sendEmail.withArgs(4).rejects(new Error("MailerSend down"));
+      const sendEmail = vi.fn(((id: number) => {
+        if (id === 1) return Promise.resolve(true);
+        if (id === 2) return Promise.resolve(false);
+        if (id === 4) return Promise.reject(new Error("MailerSend down"));
+        return undefined;
+      }) as (id: number) => Promise<boolean>);
 
       const result = await sendInflationOffers({ batchSize: 10, sendEmail, pauseMs: 0 });
 
@@ -351,14 +353,14 @@ describe("inflation adjustment", () => {
       expect(Math.abs(expires.getTime() - Date.now() - 30 * 24 * 3600 * 1000)).toBeLessThanOrEqual(
         60_000,
       );
-      expect(claim.firstCall.calledBefore(sendEmail.firstCall)).to.be.true;
+      expect(claim).toHaveBeenCalledBefore(sendEmail);
       expect(finish.mock.calls).toStrictEqual([
         [1, true],
         [2, false],
         [4, false],
       ]);
       expect(cancel).toHaveBeenCalledExactlyOnceWith(3);
-      expect(sendEmail.neverCalledWith(3)).to.be.true;
+      expect(sendEmail.mock.calls.some((args) => args[0] === 3)).toBe(false);
     });
 
     it("never emails an offer another run already claimed", async () => {

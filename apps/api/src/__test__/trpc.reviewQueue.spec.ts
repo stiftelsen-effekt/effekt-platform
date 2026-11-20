@@ -132,9 +132,11 @@ describe("tRPC reports.reviewQueue", () => {
     });
 
     it("gets an item, NOT_FOUND when missing", async () => {
-      const getById = vi.spyOn(DAO.reviewqueue, "getById").mockReturnValue(undefined as any);
-      getById.withArgs(5).resolves(item());
-      getById.withArgs(6).resolves(null);
+      vi.spyOn(DAO.reviewqueue, "getById").mockImplementation((id) => {
+        if (id === 5) return Promise.resolve(item());
+        if (id === 6) return Promise.resolve(null);
+        return undefined as any;
+      });
       expect(await admin().get({ id: 5 })).toStrictEqual(item());
       await expectTrpcError(admin().get({ id: 6 }), "NOT_FOUND");
     });
@@ -210,9 +212,12 @@ describe("tRPC reports.reviewQueue", () => {
     });
 
     it("registers a donation from the item's values and marks the item", async () => {
-      getById.mockResolvedValueOnce(
-        item({ status: "registered", donationId: 99, resolvedBy: "admin@example.org" }),
-      );
+      // Only the second call changes: the first keeps the default item()
+      getById
+        .mockResolvedValueOnce(item())
+        .mockResolvedValueOnce(
+          item({ status: "registered", donationId: 99, resolvedBy: "admin@example.org" }),
+        );
 
       const result = await admin({
         sub: "auth0|1",
@@ -249,12 +254,14 @@ describe("tRPC reports.reviewQueue", () => {
         sendReceipt: false,
       });
       expect(claim.mock.calls[0][1]).toBe("auth0|2");
-      expect(confirm.mock.calls[0][0]).to.deep.include({
-        paymentMethodId: 5,
-        sum: 300,
-        externalRef: null,
-        timestamp: new Date("2026-10-03"),
-      });
+      expect(confirm.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          paymentMethodId: 5,
+          sum: 300,
+          externalRef: null,
+          timestamp: new Date("2026-10-03"),
+        }),
+      );
     });
 
     it("defaults the data owner to the item's, then the default owner", async () => {
@@ -263,15 +270,15 @@ describe("tRPC reports.reviewQueue", () => {
 
       getById.mockResolvedValue(item({ metaOwnerId: 3 }));
       await admin().register({ id: 5, KID: "12345678", sendReceipt: false });
-      expect(confirm.mock.calls[0][0]).to.deep.include({ metaOwnerId: 3 });
+      expect(confirm.mock.calls[0][0]).toEqual(expect.objectContaining({ metaOwnerId: 3 }));
 
       getById.mockResolvedValue(item({ metaOwnerId: null }));
       await admin().register({ id: 5, KID: "12345678", sendReceipt: false });
-      expect(confirm.mock.calls[1][0]).to.deep.include({ metaOwnerId: 1 });
+      expect(confirm.mock.calls[1][0]).toEqual(expect.objectContaining({ metaOwnerId: 1 }));
 
       getById.mockResolvedValue(item({ metaOwnerId: 3 }));
       await admin().register({ id: 5, KID: "12345678", metaOwnerId: 1, sendReceipt: false });
-      expect(confirm.mock.calls[2][0]).to.deep.include({ metaOwnerId: 1 });
+      expect(confirm.mock.calls[2][0]).toEqual(expect.objectContaining({ metaOwnerId: 1 }));
     });
 
     it("creates a distribution like donations.register", async () => {
@@ -319,7 +326,8 @@ describe("tRPC reports.reviewQueue", () => {
 
     it("rejects with CONFLICT when another admin claims the item first", async () => {
       claim.mockResolvedValue(false);
-      getById.mockResolvedValueOnce(item({ status: "registered" }));
+      // Only the second call changes: the first keeps the default item()
+      getById.mockResolvedValueOnce(item()).mockResolvedValueOnce(item({ status: "registered" }));
       await expectTrpcError(
         admin().register({ id: 5, KID: "1", metaOwnerId: 3, sendReceipt: false }),
         "CONFLICT",
@@ -403,9 +411,11 @@ describe("tRPC reports.reviewQueue", () => {
 
     it("rejects ignoring resolved or unknown items", async () => {
       vi.spyOn(DAO.reviewqueue, "ignore").mockResolvedValue(false);
-      const getById = vi.spyOn(DAO.reviewqueue, "getById").mockReturnValue(undefined as any);
-      getById.withArgs(5).resolves(item({ status: "registered" }));
-      getById.withArgs(6).resolves(null);
+      vi.spyOn(DAO.reviewqueue, "getById").mockImplementation((id) => {
+        if (id === 5) return Promise.resolve(item({ status: "registered" }));
+        if (id === 6) return Promise.resolve(null);
+        return undefined as any;
+      });
       await expectTrpcError(admin().ignore({ id: 5 }), "CONFLICT", /already registered/);
       await expectTrpcError(admin().ignore({ id: 6 }), "NOT_FOUND");
     });
@@ -427,9 +437,11 @@ describe("tRPC reports.reviewQueue", () => {
 
     it("refuses to reopen open items and items whose donation exists", async () => {
       vi.spyOn(DAO.reviewqueue, "reopen").mockResolvedValue(false);
-      const getById = vi.spyOn(DAO.reviewqueue, "getById").mockReturnValue(undefined as any);
-      getById.withArgs(5).resolves(item());
-      getById.withArgs(6).resolves(item({ id: 6, status: "registered", donationId: 99 }));
+      vi.spyOn(DAO.reviewqueue, "getById").mockImplementation((id) => {
+        if (id === 5) return Promise.resolve(item());
+        if (id === 6) return Promise.resolve(item({ id: 6, status: "registered", donationId: 99 }));
+        return undefined as any;
+      });
       await expectTrpcError(admin().reopen({ id: 5 }), "CONFLICT", /already open/);
       await expectTrpcError(admin().reopen({ id: 6 }), "CONFLICT", /donation 99/);
     });

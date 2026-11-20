@@ -28,11 +28,11 @@ describe("POST /vipps/v2/payments/:orderId (eCom v2 callback)", () => {
   });
 
   beforeEach(() => {
-    getOrderStub = vi.spyOn(DAO.vipps, "getOrder").mockReturnValue(undefined as any);
-    getOrderStub.mockResolvedValue(false);
-    getOrderStub
-      .withArgs(orderId)
-      .resolves({ orderID: orderId, KID: "12345678", token: authToken });
+    getOrderStub = vi
+      .spyOn(DAO.vipps, "getOrder")
+      .mockImplementation(async (id) =>
+        id === orderId ? ({ orderID: orderId, KID: "12345678", token: authToken } as any) : false,
+      );
     getOrderDetailsStub = vi
       .spyOn(vipps, "getOrderDetails")
       .mockResolvedValue({ transactionLogHistory: [reserveLogItem] });
@@ -75,7 +75,9 @@ describe("POST /vipps/v2/payments/:orderId (eCom v2 callback)", () => {
   });
 
   it("rejects callbacks for orders without a stored auth token", async () => {
-    getOrderStub.withArgs(orderId).resolves({ orderID: orderId, KID: "12345678", token: null });
+    getOrderStub.mockImplementation(async (id) =>
+      id === orderId ? ({ orderID: orderId, KID: "12345678", token: null } as any) : false,
+    );
     await request(server)
       .post(`/vipps/v2/payments/${orderId}`)
       .set("Authorization", "")

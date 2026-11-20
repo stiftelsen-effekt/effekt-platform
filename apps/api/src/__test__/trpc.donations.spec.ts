@@ -206,9 +206,11 @@ describe("tRPC donations router", () => {
     });
 
     it("gets a donation and maps missing ones to NOT_FOUND", async () => {
-      const getByID = vi.spyOn(DAO.donations, "getByID").mockReturnValue(undefined as any);
-      getByID.withArgs(42).resolves(existingDonation as any);
-      getByID.withArgs(43).rejects(new Error("Could not find donation with ID 43"));
+      vi.spyOn(DAO.donations, "getByID").mockImplementation((id) => {
+        if (id === 42) return Promise.resolve(existingDonation as any);
+        if (id === 43) return Promise.reject(new Error("Could not find donation with ID 43"));
+        return undefined as any;
+      });
 
       expect(await admin().donations.get({ id: 42 })).toBe(existingDonation);
       await expectTrpcError(admin().donations.get({ id: 43 }), "NOT_FOUND");
@@ -289,7 +291,7 @@ describe("tRPC donations router", () => {
       ] as any);
       await expectTrpcError(admin().donations.update({ id: 42, distribution }), "BAD_REQUEST");
 
-      lookups.externalRefExists.withArgs("taken").resolves(true);
+      lookups.externalRefExists.mockImplementation(async (ref) => ref === "taken");
       await expectTrpcError(
         admin().donations.update({ id: 42, paymentExternalRef: "taken" }),
         "CONFLICT",
@@ -298,9 +300,11 @@ describe("tRPC donations router", () => {
     });
 
     it("deletes a donation", async () => {
-      const remove = vi.spyOn(DAO.donations, "remove").mockReturnValue(undefined as any);
-      remove.withArgs(42).resolves(true);
-      remove.withArgs(43).resolves(false);
+      vi.spyOn(DAO.donations, "remove").mockImplementation((id) => {
+        if (id === 42) return Promise.resolve(true);
+        if (id === 43) return Promise.resolve(false);
+        return undefined as any;
+      });
 
       await admin().donations.delete({ id: 42 });
       await expectTrpcError(admin().donations.delete({ id: 43 }), "NOT_FOUND");
@@ -314,8 +318,10 @@ describe("tRPC donations router", () => {
     });
 
     it("resends a receipt, optionally to another address", async () => {
-      const getByID = vi.spyOn(DAO.donations, "getByID").mockResolvedValue(existingDonation as any);
-      getByID.withArgs(43).rejects(new Error("Could not find donation with ID 43"));
+      vi.spyOn(DAO.donations, "getByID").mockImplementation(async (id) => {
+        if (id === 43) throw new Error("Could not find donation with ID 43");
+        return existingDonation as any;
+      });
       const send = vi.spyOn(mail, "sendDonationReceipt").mockResolvedValue(true);
 
       await admin().donations.resendReceipt({ id: 42 });
@@ -498,7 +504,7 @@ describe("tRPC donations router", () => {
     });
 
     it("returns CONFLICT for an external ref used by any payment method", async () => {
-      lookups.externalRefExists.withArgs("ext-1").resolves(true);
+      lookups.externalRefExists.mockImplementation(async (ref) => ref === "ext-1");
       const add = vi.spyOn(DAO.donations, "add").mockReturnValue(undefined as any);
       await expectTrpcError(admin().donations.register({ ...base, KID: "12345678" }), "CONFLICT");
       expect(add).not.toHaveBeenCalled();
@@ -575,11 +581,12 @@ describe("tRPC donations router", () => {
 
     it("gets a distribution with donor and tax unit", async () => {
       const split = { kid: "123", donorId: 7, taxUnitId: 9, causeAreas: [] };
-      const getSplit = vi
-        .spyOn(DAO.distributions, "getSplitByKID")
-        .mockReturnValue(undefined as any);
-      getSplit.withArgs("123").resolves(split as any);
-      getSplit.withArgs("404").rejects(new Error("NOT FOUND | No distribution with the KID 404"));
+      vi.spyOn(DAO.distributions, "getSplitByKID").mockImplementation((kid) => {
+        if (kid === "123") return Promise.resolve(split as any);
+        if (kid === "404")
+          return Promise.reject(new Error("NOT FOUND | No distribution with the KID 404"));
+        return undefined as any;
+      });
       vi.spyOn(DAO.donors, "getByID").mockResolvedValue({ id: 7 } as any);
       vi.spyOn(DAO.tax, "getById").mockResolvedValue({ id: 9 } as any);
 

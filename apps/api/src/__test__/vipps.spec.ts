@@ -1,11 +1,40 @@
 import { describe, it, beforeAll, afterAll, beforeEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import express from "express";
 import request from "supertest";
 import * as mail from "../custom_modules/mail";
+import { isDeepStrictEqual } from "node:util";
 
 const vipps = require("../custom_modules/vipps");
+
+/**
+ * Stand-in for sinon's `stub.withArgs(...args).resolves(value)`. As with sinon, a behaviour matches
+ * a call whose leading arguments deep-equal `args` (the most specific match wins, so `whenCalledWith(stub)`
+ * with no args is the default), other calls return `undefined`, and behaviours persist across tests
+ * (`vi.clearAllMocks()` only clears call history).
+ */
+const behavioursByStub = new WeakMap<object, Map<string, { args: unknown[]; value: unknown }>>();
+const whenCalledWith = (stub: MockInstance, ...args: unknown[]) => {
+  let behaviours = behavioursByStub.get(stub);
+  if (!behaviours) {
+    const map = new Map<string, { args: unknown[]; value: unknown }>();
+    behaviours = map;
+    behavioursByStub.set(stub, map);
+    stub.mockImplementation((...callArgs: unknown[]) => {
+      const match = [...map.values()]
+        .filter((b) => isDeepStrictEqual(callArgs.slice(0, b.args.length), b.args))
+        .sort((a, b) => b.args.length - a.args.length)[0];
+      return match ? Promise.resolve(match.value) : undefined;
+    });
+  }
+  return {
+    thenResolve: (value: unknown) => {
+      behaviours.set(JSON.stringify(args), { args, value });
+    },
+  };
+};
 
 describe("POST /scheduled/vipps", function () {
   const daysInAdvance = 3;
@@ -190,12 +219,12 @@ describe("POST /scheduled/vipps", function () {
   });
 
   it("No agreements test", async function () {
-    getAgreementsStub.withArgs("ACTIVE").resolves([]);
-    getAgreementsStub.withArgs("PENDING").resolves([]);
-    getAgreementsStub.withArgs("STOPPED").resolves([]);
-    getAgreementsStub.withArgs("EXPIRED").resolves([]);
+    whenCalledWith(getAgreementsStub, "ACTIVE").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "PENDING").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "STOPPED").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "EXPIRED").thenResolve([]);
 
-    getChargesStub.withArgs().resolves([]);
+    whenCalledWith(getChargesStub).thenResolve([]);
 
     await request(server).post("/scheduled/vipps").expect(200);
 
@@ -213,25 +242,25 @@ describe("POST /scheduled/vipps", function () {
   });
 
   it("Synchronize agreements and charges", async function () {
-    getAgreementsStub.withArgs("ACTIVE").resolves(mockAgreementsVipps);
-    getAgreementsStub.withArgs("PENDING").resolves([]);
-    getAgreementsStub.withArgs("STOPPED").resolves([]);
-    getAgreementsStub.withArgs("EXPIRED").resolves([]);
+    whenCalledWith(getAgreementsStub, "ACTIVE").thenResolve(mockAgreementsVipps);
+    whenCalledWith(getAgreementsStub, "PENDING").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "STOPPED").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "EXPIRED").thenResolve([]);
 
-    getChargesStub.withArgs("agr_1").resolves([mockChargesVipps[0]]);
-    getChargesStub.withArgs("agr_2").resolves([mockChargesVipps[1]]);
-    getChargesStub.withArgs("agr_3").resolves([mockChargesVipps[2]]);
+    whenCalledWith(getChargesStub, "agr_1").thenResolve([mockChargesVipps[0]]);
+    whenCalledWith(getChargesStub, "agr_2").thenResolve([mockChargesVipps[1]]);
+    whenCalledWith(getChargesStub, "agr_3").thenResolve([mockChargesVipps[2]]);
 
-    getAgreementStub.withArgs("agr_1").resolves([mockAgreementsDB[0]]);
-    getAgreementStub.withArgs("agr_2").resolves([mockAgreementsDB[1]]);
-    getAgreementStub.withArgs("agr_3").resolves([mockAgreementsDB[2]]);
+    whenCalledWith(getAgreementStub, "agr_1").thenResolve([mockAgreementsDB[0]]);
+    whenCalledWith(getAgreementStub, "agr_2").thenResolve([mockAgreementsDB[1]]);
+    whenCalledWith(getAgreementStub, "agr_3").thenResolve([mockAgreementsDB[2]]);
 
-    getChargeStub.withArgs("agr_1", "chr-1").resolves([mockChargesDB[0]]);
-    getChargeStub.withArgs("agr_2", "chr-2").resolves([mockChargesDB[1]]);
-    getChargeStub.withArgs("agr_3", "chr-3").resolves([mockChargesDB[2]]);
+    whenCalledWith(getChargeStub, "agr_1", "chr-1").thenResolve([mockChargesDB[0]]);
+    whenCalledWith(getChargeStub, "agr_2", "chr-2").thenResolve([mockChargesDB[1]]);
+    whenCalledWith(getChargeStub, "agr_3", "chr-3").thenResolve([mockChargesDB[2]]);
 
-    externalPaymentIDExistsStub.withArgs("agr_1.chr-1").resolves(true);
-    externalPaymentIDExistsStub.withArgs("agr_3.chr-3").resolves(false);
+    whenCalledWith(externalPaymentIDExistsStub, "agr_1.chr-1").thenResolve(true);
+    whenCalledWith(externalPaymentIDExistsStub, "agr_3.chr-3").thenResolve(false);
 
     // Resolve for charge 3 agreement 3
     addDonationStub.mockResolvedValue(123);
@@ -253,18 +282,18 @@ describe("POST /scheduled/vipps", function () {
   });
 
   it("Create future due charges", async function () {
-    getAgreementsStub.withArgs("ACTIVE").resolves([]);
-    getAgreementsStub.withArgs("PENDING").resolves([]);
-    getAgreementsStub.withArgs("STOPPED").resolves([]);
-    getAgreementsStub.withArgs("EXPIRED").resolves([]);
+    whenCalledWith(getAgreementsStub, "ACTIVE").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "PENDING").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "STOPPED").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "EXPIRED").thenResolve([]);
 
-    getActiveAgreementStub.withArgs().resolves([mockAgreementsDB[0], mockAgreementsDB[1]]);
+    whenCalledWith(getActiveAgreementStub).thenResolve([mockAgreementsDB[0], mockAgreementsDB[1]]);
 
-    getVippsAgreementStub.withArgs("agr_1").resolves(mockAgreementsVipps[0]);
-    getVippsAgreementStub.withArgs("agr_2").resolves(mockAgreementsVipps[1]);
+    whenCalledWith(getVippsAgreementStub, "agr_1").thenResolve(mockAgreementsVipps[0]);
+    whenCalledWith(getVippsAgreementStub, "agr_2").thenResolve(mockAgreementsVipps[1]);
 
-    hasChargedDueMonthStub.withArgs("agr_1").resolves(false);
-    hasChargedDueMonthStub.withArgs("agr_2").resolves(true);
+    whenCalledWith(hasChargedDueMonthStub, "agr_1").thenResolve(false);
+    whenCalledWith(hasChargedDueMonthStub, "agr_2").thenResolve(true);
     createChargeStub.mockResolvedValue("chr-new");
 
     await request(server).post("/scheduled/vipps").expect(200);
@@ -277,9 +306,9 @@ describe("POST /scheduled/vipps", function () {
   });
 
   it("Responds 500 and still logs when part of the run failed", async function () {
-    getAgreementsStub.withArgs("ACTIVE").resolves([]);
-    getAgreementsStub.withArgs("EXPIRED").resolves(false);
-    getActiveAgreementStub.withArgs().resolves(false);
+    whenCalledWith(getAgreementsStub, "ACTIVE").thenResolve([]);
+    whenCalledWith(getAgreementsStub, "EXPIRED").thenResolve(false);
+    whenCalledWith(getActiveAgreementStub).thenResolve(false);
 
     const response = await request(server).post("/scheduled/vipps").expect(500);
 

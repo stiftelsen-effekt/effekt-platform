@@ -666,9 +666,11 @@ describe("tRPC vipps router", () => {
     });
 
     it("deletes a rule, NOT_FOUND when missing", async () => {
-      const stub = vi.spyOn(DAO.vipps, "deleteMatchingRule").mockReturnValue(undefined as any);
-      stub.withArgs(1).resolves(true);
-      stub.withArgs(2).resolves(false);
+      vi.spyOn(DAO.vipps, "deleteMatchingRule").mockImplementation((id) => {
+        if (id === 1) return Promise.resolve(true);
+        if (id === 2) return Promise.resolve(false);
+        return undefined as any;
+      });
 
       await admin().vipps.matchingRules.delete({ id: 1 });
       await expectTrpcError(admin().vipps.matchingRules.delete({ id: 2 }), "NOT_FOUND");

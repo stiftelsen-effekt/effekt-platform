@@ -45,26 +45,30 @@ describe("review queue: enqueueInvalidTransactions", () => {
     const [source, items, importLogId] = addStub.mock.calls[0];
     expect(source).toBe("ocr");
     expect(importLogId).toBe(null);
-    expect(items[0]).to.deep.include({
-      reason: "Invalid KID",
-      KID: "123",
-      amount: 250.5,
-      date,
-      externalId: "ocr.1",
-      paymentId: 6,
-      message: null,
-      name: null,
-      location: null,
-    });
-    expect(items[0].raw).to.include({ transactionID: "ocr.1", KID: 123 });
-    expect(items[1]).to.deep.include({
-      reason: "Unknown error",
-      KID: null,
-      date: new Date("2026-10-02T00:00:00.000Z"),
-      paymentId: 5,
-      name: "Ola",
-      message: "gave",
-    });
+    expect(items[0]).toEqual(
+      expect.objectContaining({
+        reason: "Invalid KID",
+        KID: "123",
+        amount: 250.5,
+        date,
+        externalId: "ocr.1",
+        paymentId: 6,
+        message: null,
+        name: null,
+        location: null,
+      }),
+    );
+    expect(items[0].raw).toEqual(expect.objectContaining({ transactionID: "ocr.1", KID: 123 }));
+    expect(items[1]).toEqual(
+      expect.objectContaining({
+        reason: "Unknown error",
+        KID: null,
+        date: new Date("2026-10-02T00:00:00.000Z"),
+        paymentId: 5,
+        name: "Ola",
+        message: "gave",
+      }),
+    );
   });
 
   it("writes nothing when there are no transactions", async () => {
@@ -170,7 +174,8 @@ describe("review queue: POST /scheduled/ocr", () => {
     ]);
     const invalid = imported.addedDonations.invalidTransactions;
     expect(invalid.length).toBe(addStub.mock.calls.length);
-    expect(loggingStub).toHaveBeenCalledExactlyOnceWith("OCR");
+    expect(loggingStub).toHaveBeenCalledOnce();
+    expect(loggingStub.mock.calls[0][0]).toBe("OCR");
     expect(queueStub).toHaveBeenCalledOnce();
     const [source, items, importLogId] = queueStub.mock.calls[0];
     expect(source).toBe("ocr");

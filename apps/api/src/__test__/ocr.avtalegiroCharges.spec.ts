@@ -101,8 +101,13 @@ describe("OCR import links AvtaleGiro payments to charges", () => {
   it("links every AvtaleGiro payment in a file", async () => {
     addDonationStub.mockResolvedValueOnce(1);
     addDonationStub.mockResolvedValueOnce(2);
-    openChargesStub.withArgs("111").resolves([{ id: 11, dueDate: "2026-10-27" }]);
-    openChargesStub.withArgs("222").resolves([{ id: 22, dueDate: "2026-10-27" }]);
+    const chargesByKID = new Map<unknown, any>([
+      ["111", [{ id: 11, dueDate: "2026-10-27" }]],
+      ["222", [{ id: 22, dueDate: "2026-10-27" }]],
+    ]);
+    openChargesStub.mockImplementation((KID) =>
+      chargesByKID.has(KID) ? Promise.resolve(chargesByKID.get(KID)) : undefined,
+    );
     vi.spyOn(ocr, "sendReciepts").mockResolvedValue(undefined);
 
     const result = await ocr.addDonations(

@@ -1,12 +1,8 @@
 import { describe, it, expect } from "vitest";
-import chaiDatetime from "chai-datetime";
 import * as fs from "fs";
 import moment from "moment";
 import { parseReport as vippsParseReport } from "../custom_modules/parsers/vipps";
 import { parseReport as bankParseReport } from "../custom_modules/parsers/bank";
-
-const expect = chai.expect;
-chai.use(chaiDatetime);
 
 const reportType = {
   vipps: "vipps",

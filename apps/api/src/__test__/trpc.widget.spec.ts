@@ -88,6 +88,8 @@ const tokenFor = (kid: string, method: number, donorId = 42, amount = 500) =>
 describe("tRPC widget router", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    // and undo a test's vi.useFakeTimers()
+    vi.useRealTimers();
     resetBankPendingMail();
   });
 
@@ -258,21 +260,19 @@ describe("tRPC widget router", () => {
     });
 
     it("does exactly what POST /donations/register does", async () => {
-      sinon.useFakeTimers({ now: Date.parse("2026-10-30T12:00:00Z"), toFake: ["Date"] });
+      vi.useFakeTimers({ now: Date.parse("2026-10-30T12:00:00Z"), toFake: ["Date"] });
       const app = express();
       app.use(express.json());
       app.use("/donations", require("../routes/donations").default);
       const rest = await request(app).post("/donations/register").send(widgetBody()).expect(200);
-      const restCalls = [addDonor, addDistribution, addPaymentIntent].map((s) =>
-        s.getCalls().map((c) => c.args),
-      );
+      const restCalls = [addDonor, addDistribution, addPaymentIntent].map((s) => [...s.mock.calls]);
       vi.clearAllMocks();
 
       const trpc = await anonymous().registerDonation(widgetBody());
       expect(trpc).toStrictEqual(rest.body.content);
-      expect(
-        [addDonor, addDistribution, addPaymentIntent].map((s) => s.getCalls().map((c) => c.args)),
-      ).toStrictEqual(restCalls);
+      expect([addDonor, addDistribution, addPaymentIntent].map((s) => s.mock.calls)).toStrictEqual(
+        restCalls,
+      );
     });
 
     it("starts a one-off Vipps payment and returns its URL", async () => {

@@ -96,14 +96,17 @@ describe("createFutureDueCharges", () => {
       agreement("agr_2"),
       agreement("agr_3"),
     ] as any);
-    const getAgreement = vi.spyOn(vipps, "getAgreement").mockReturnValue(undefined);
-    getAgreement.withArgs("agr_1").rejects(new Error("network"));
-    getAgreement.withArgs("agr_2").resolves(vippsAgreement("agr_2"));
-    getAgreement.withArgs("agr_3").resolves(vippsAgreement("agr_3"));
+    vi.spyOn(vipps, "getAgreement").mockImplementation((id) => {
+      if (id === "agr_1") return Promise.reject(new Error("network"));
+      if (id === "agr_2" || id === "agr_3") return Promise.resolve(vippsAgreement(id));
+      return undefined;
+    });
     vi.spyOn(vipps, "hasChargedDueMonth").mockResolvedValue(false);
-    const createCharge = vi.spyOn(vipps, "createCharge").mockReturnValue(undefined);
-    createCharge.withArgs("agr_2").resolves(false);
-    createCharge.withArgs("agr_3").resolves("chr_3");
+    const createCharge = vi.spyOn(vipps, "createCharge").mockImplementation((id) => {
+      if (id === "agr_2") return Promise.resolve(false);
+      if (id === "agr_3") return Promise.resolve("chr_3");
+      return undefined;
+    });
 
     const result = await vipps.createFutureDueCharges(now);
 
@@ -111,7 +114,9 @@ describe("createFutureDueCharges", () => {
     expect(result.createdCharges).toBe(1);
     expect(result.failed.map((f) => f.agreementId)).toStrictEqual(["agr_1", "agr_2"]);
 
-    const [, amount, , dueDate, key] = createCharge.withArgs("agr_3").mock.calls[0];
+    const [, amount, , dueDate, key] = createCharge.mock.calls.filter(
+      ([id]) => id === "agr_3",
+    )[0] as any[];
     expect(amount).toBe(300);
     expect(dueDate.getTime()).toBe(day(2026, 11, 15).getTime());
     expect(key).toBe(vipps.scheduledChargeIdempotencyKey("agr_3", "2026-11-15"));
@@ -135,19 +140,24 @@ describe("synchronizeVippsAgreementDatabase", () => {
 
   it("continues past a failing agreement and reports it", async () => {
     vi.spyOn(console, "error").mockReturnValue(undefined);
-    const getAgreements = vi.spyOn(vipps, "getAgreements").mockResolvedValue([]);
-    getAgreements.withArgs("ACTIVE").resolves([
-      { id: "agr_1", status: "ACTIVE", pricing: { amount: 10000 } },
-      { id: "agr_2", status: "ACTIVE", pricing: { amount: 10000 } },
-    ]);
-    getAgreements.withArgs("EXPIRED").resolves(false);
+    vi.spyOn(vipps, "getAgreements").mockImplementation(async (status) => {
+      if (status === "ACTIVE")
+        return [
+          { id: "agr_1", status: "ACTIVE", pricing: { amount: 10000 } },
+          { id: "agr_2", status: "ACTIVE", pricing: { amount: 10000 } },
+        ];
+      if (status === "EXPIRED") return false;
+      return [];
+    });
     vi.spyOn(DAO.vipps, "addAgreement").mockResolvedValue(true);
     vi.spyOn(DAO.vipps, "updateAgreementPrice").mockResolvedValue(true);
     vi.spyOn(DAO.vipps, "updateAgreementStatus").mockResolvedValue(true);
     vi.spyOn(DAO.vipps, "getAgreement").mockResolvedValue({ KID: "123" } as any);
-    const getCharges = vi.spyOn(vipps, "getCharges").mockReturnValue(undefined);
-    getCharges.withArgs("agr_1").resolves(false);
-    getCharges.withArgs("agr_2").resolves([]);
+    const getCharges = vi.spyOn(vipps, "getCharges").mockImplementation((id) => {
+      if (id === "agr_1") return Promise.resolve(false);
+      if (id === "agr_2") return Promise.resolve([]);
+      return undefined;
+    });
 
     const result = await vipps.synchronizeVippsAgreementDatabase();
 

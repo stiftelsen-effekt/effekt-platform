@@ -199,7 +199,9 @@ describe("webhook authentication", () => {
       vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
       await postAnswer(answerPayload("x@example.test"));
       expect(saveStub).toHaveBeenCalledOnce();
-      expect(saveStub.mock.calls[0][0]).to.include({ DonorID: 1, answer: "Fint" });
+      expect(saveStub.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ DonorID: 1, answer: "Fint" }),
+      );
       expect(saveStub.mock.calls[0][1]).toStrictEqual({ skipRecentDuplicate: true });
     });
 
@@ -207,7 +209,7 @@ describe("webhook authentication", () => {
       vi.spyOn(config, "mailersend_survey_webhook_secret", "get").mockReturnValue("whsec");
       vi.mocked(DAO.donors.getIDbyEmail).mockResolvedValue(null);
       await postAnswer(answerPayload("unknown@example.test"));
-      expect(saveStub.mock.calls[0][0]).to.include({ DonorID: 1464 });
+      expect(saveStub.mock.calls[0][0]).toEqual(expect.objectContaining({ DonorID: 1464 }));
       expect(saveStub.mock.calls[0][1]).toStrictEqual({ skipRecentDuplicate: false });
     });
 

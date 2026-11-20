@@ -100,7 +100,8 @@ describe("MailerSend transport", function () {
       const { body } = request();
       expect(body.from).toStrictEqual({ email: "teknisk@gieffektivt.no", name: "Gi Effektivt" });
       expect(body.to).toStrictEqual([{ email: "teknisk@gieffektivt.no" }]);
-      expect(body.subject).to.be.a("string").and.not.empty;
+      expect(body.subject).toBeTypeOf("string");
+      expect(body.subject).not.toHaveLength(0);
       expect(body.text).toContain("DRAFT");
       expect(body.html).toContain("DRAFT");
     });

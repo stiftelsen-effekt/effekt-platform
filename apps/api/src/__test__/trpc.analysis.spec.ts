@@ -50,7 +50,10 @@ const pledge = {
 };
 
 describe("analysis", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
 
   describe("buildOverview", () => {
     it("keeps measured and pledges apart, and adds them only in withPledges", () => {
@@ -169,12 +172,12 @@ describe("analysis", () => {
     });
 
     it("asks the database at most once a minute", async () => {
-      const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ["Date"] });
+      vi.useFakeTimers({ now: Date.now(), toFake: ["Date"] });
       const stub = vi.spyOn(DAO.analysis, "getOverviewTotals").mockResolvedValue(totals);
       await callerWith().analysis.ticker();
       await callerWith().analysis.ticker();
       expect(stub).toHaveBeenCalledTimes(1);
-      clock.tick(61_000);
+      vi.advanceTimersByTime(61_000);
       await callerWith().analysis.ticker();
       expect(stub).toHaveBeenCalledTimes(2);
     });
@@ -333,7 +336,9 @@ describe("analysis", () => {
       const update = vi.spyOn(DAO.pledges, "update").mockResolvedValue(true);
       vi.spyOn(DAO.pledges, "getById").mockResolvedValue(pledge);
       await admin().analysis.pledges.markReceived({ id: 1, receivedDate: "2026-11-02" });
-      expect(update.mock.calls[0][1]).to.include({ receivedDate: "2026-11-02", donationId: null });
+      expect(update.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ receivedDate: "2026-11-02", donationId: null }),
+      );
       expect(exists).not.toHaveBeenCalled();
     });
 

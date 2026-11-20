@@ -52,7 +52,9 @@ describe("agreementfeedback routes", () => {
 
   describe("DELETE /stopped/:KID/:id", () => {
     it("deletes a record belonging to the KID", async () => {
-      recordForKidStub.withArgs(5, "12345678").resolves(true);
+      recordForKidStub.mockImplementation(async (id, KID) =>
+        id === 5 && KID === "12345678" ? true : undefined,
+      );
       const res = await request(server).delete("/agreementfeedback/stopped/12345678/5");
       expect(res.status).toBe(200);
       expect(deleteStub).toHaveBeenCalledExactlyOnceWith(5);
@@ -70,7 +72,9 @@ describe("agreementfeedback routes", () => {
     const body = { reasonId: 1, agreementId: "3", agreementType: "AvtaleGiro" };
 
     it("adds feedback for an agreement with the KID", async () => {
-      belongsStub.withArgs("AvtaleGiro", "3", "12345678").resolves(true);
+      belongsStub.mockImplementation(async (type, agreementId, KID) =>
+        type === "AvtaleGiro" && agreementId === "3" && KID === "12345678" ? true : undefined,
+      );
       const res = await request(server).post("/agreementfeedback/stopped/12345678").send(body);
       expect(res.status).toBe(200);
       expect(addStub).toHaveBeenCalledOnce();

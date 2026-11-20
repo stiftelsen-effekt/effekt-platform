@@ -113,7 +113,8 @@ describe("public widget paths", () => {
         expect(res.headers.location).toMatch(/^https:\/\/gieffektivt\.no\/opprettet\?plausible=/);
       }
       expect(send).toHaveBeenCalledOnce();
-      expect(claim.alwaysCalledWith("12345678")).to.equal(true);
+      expect(claim).toHaveBeenCalled();
+      expect(claim.mock.calls.every(([kid]) => kid === "12345678")).toBe(true);
     });
 
     it("sends nothing for a KID without an agreement", async () => {

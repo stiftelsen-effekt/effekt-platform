@@ -359,12 +359,14 @@ const NOPAYEE = 7;
         "2000.00",
       ]);
 
-      expect(
-        builder.issues.map((i) => [i.severity, i.code, i.organizationId]),
-      ).to.have.deep.members([
-        ["warning", "recipient_without_payee", NOPAYEE],
-        ["warning", "unassigned_balance", null],
-      ]);
+      const issues = builder.issues.map((i) => [i.severity, i.code, i.organizationId]);
+      expect(issues).toHaveLength(2);
+      expect(issues).toEqual(
+        expect.arrayContaining([
+          ["warning", "recipient_without_payee", NOPAYEE],
+          ["warning", "unassigned_balance", null],
+        ]),
+      );
       const groups = builder.payeeGroups.map((g) => g.payee?.name ?? null);
       expect(groups).toEqual(
         expect.arrayContaining(["GiveWell", "GiveDirectly", "Driftskonto", null]),
@@ -678,12 +680,14 @@ const NOPAYEE = 7;
       });
       b = await alice.rounds.builder({ id: r.round.id });
       expect(b.recipients.find((x) => x.organizationId === TCF)!.includeDirectOverride).toBe(true);
-      expect(
-        b.transfers.flatMap((t) => t.lines.map((l) => [l.organizationId, l.amountNok])),
-      ).to.have.deep.members([
-        [GD, "500.00"],
-        [TCF, "1000.00"],
-      ]);
+      const lines = b.transfers.flatMap((t) => t.lines.map((l) => [l.organizationId, l.amountNok]));
+      expect(lines).toHaveLength(2);
+      expect(lines).toEqual(
+        expect.arrayContaining([
+          [GD, "500.00"],
+          [TCF, "1000.00"],
+        ]),
+      );
 
       // A grant over the fund's balance (2000 left) blocks approval
       await alice.fundGrants.create({
@@ -856,13 +860,15 @@ const NOPAYEE = 7;
         from: "2026-09-01",
         to: Q3,
       });
-      expect(
-        statement.entries.map((e) => [e.kind, e.amount, e.pending, e.balanceAfter]),
-      ).to.have.deep.members([
-        ["allocations", "5000.00", false, "5000.00"],
-        ["adjustment", "-2000.00", true, "5000.00"],
-        ["adjustment", "2000.00", true, "5000.00"],
-      ]);
+      const entries = statement.entries.map((e) => [e.kind, e.amount, e.pending, e.balanceAfter]);
+      expect(entries).toHaveLength(3);
+      expect(entries).toEqual(
+        expect.arrayContaining([
+          ["allocations", "5000.00", false, "5000.00"],
+          ["adjustment", "-2000.00", true, "5000.00"],
+          ["adjustment", "2000.00", true, "5000.00"],
+        ]),
+      );
     });
 
     it("an earmark can't take more than the unrestricted available", async () => {

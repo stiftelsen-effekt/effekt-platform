@@ -144,13 +144,12 @@ export const tablesFixture = (): AdminImpactTables => ({
 });
 
 describe("impact admin", () => {
-  let clock: sinon.SinonFakeTimers;
   beforeEach(() => {
     // 2026-11-15 in Oslo
-    clock = sinon.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
+    vi.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
   });
   afterEach(() => {
-    clock.restore();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -249,14 +248,16 @@ describe("impact admin", () => {
       const rows = await admin().impact.estimates.list();
       expect(rows.map((r) => r.id)).toStrictEqual([71, 5, 1, 23]);
       const amf2023 = rows[0]!;
-      expect(amf2023).to.include({
-        charityName: "Against Malaria Foundation",
-        interventionName: "Bednets",
-        validTo: null,
-        current: true,
-        monthsApplied: 47,
-        costPerOutputNok: "61.43",
-      });
+      expect(amf2023).toEqual(
+        expect.objectContaining({
+          charityName: "Against Malaria Foundation",
+          interventionName: "Bednets",
+          validTo: null,
+          current: true,
+          monthsApplied: 47,
+          costPerOutputNok: "61.43",
+        }),
+      );
       expect(rows[1]).toEqual(
         expect.objectContaining({ validTo: "2022-12-01", current: false, monthsApplied: 24 }),
       );
@@ -340,7 +341,7 @@ describe("impact admin", () => {
         centsPerOutput: 585,
         interventionName: "Bednets",
       });
-      expect(mc).to.include({ organizationId: null, allotments: 3 });
+      expect(mc).toEqual(expect.objectContaining({ organizationId: null, allotments: 3 }));
       const interventions = await admin().impact.interventions.list();
       expect(interventions.find((i) => i.id === 2)).toEqual(
         expect.objectContaining({ estimates: 3, allotments: 1 }),
@@ -750,12 +751,11 @@ describe("impact admin writes", () => {
 
   describe("preview", () => {
     beforeEach(() => {
-      clock = sinon.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
+      vi.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
       vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
       vi.spyOn(impactAdminDao, "readRateOn").mockResolvedValue({ date: "2026-11-13", perUsd: 10 });
     });
-    let clock: sinon.SinonFakeTimers;
-    afterEach(() => clock.restore());
+    afterEach(() => vi.useRealTimers());
 
     it("shows before → after and the donations in the months that change", async () => {
       const count = vi
@@ -852,19 +852,23 @@ describe("impact admin history", () => {
         summary: "AMF estimate from Jan 2023",
       }),
     );
-    expect(change.before).to.include({ centsPerOutput: 585, sourceName: "" });
-    expect(change.after).to.include({ centsPerOutput: 600, sourceName: "GiveWell" });
+    expect(change.before).toEqual(expect.objectContaining({ centsPerOutput: 585, sourceName: "" }));
+    expect(change.after).toEqual(
+      expect.objectContaining({ centsPerOutput: 600, sourceName: "GiveWell" }),
+    );
     expect(change.after).not.toHaveProperty("updatedBy");
 
     // A delete keeps the row as it was; a failed history write fails the edit
-    read.resetBehavior();
+    // Both queued values were consumed by the update above, so this replaces the behaviour
     read.mockResolvedValue(tablesFixture());
     vi.spyOn(impactAdminDao, "deleteEstimate").mockResolvedValue(undefined);
     await admin().impact.estimates.delete({ id: 5 });
     expect(insert.mock.calls[1][1]).toEqual(
       expect.objectContaining({ action: "delete", after: null }),
     );
-    expect(insert.mock.calls[1][1].before).to.include({ centsPerOutput: 487 });
+    expect(insert.mock.calls[1][1].before).toEqual(
+      expect.objectContaining({ centsPerOutput: 487 }),
+    );
     insert.mockRejectedValue(new Error("disk full"));
     await expectCode(admin().impact.estimates.delete({ id: 5 }), "INTERNAL_SERVER_ERROR");
   });

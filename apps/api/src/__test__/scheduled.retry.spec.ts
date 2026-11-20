@@ -61,6 +61,9 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   let failedUploadsStub;
   let alertStub;
 
+  const logsWithLabel = (label: string) =>
+    loggingStub.mock.calls.filter(([logLabel]) => logLabel === label);
+
   const receiptsOnServer = (shipmentIDs: number[], rejectedShipmentIDs: number[] = []) => {
     getConnectionStub.mockResolvedValue({
       list: vi
@@ -202,7 +205,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(sendFileStub.mock.calls[0][1]).toBe("DIRREM100523.160523.700");
     expect(alertStub).not.toHaveBeenCalled();
     expect(res.body.claimDates[0].path).toBe("resend");
-    const retryLog = loggingStub.withArgs("AvtaleGiro - Retry").mock.calls[0][1];
+    const retryLog = logsWithLabel("AvtaleGiro - Retry")[0][1];
     expect(retryLog.path).toBe("resend");
     expect(retryLog.shipments[0].receiptStatus).toBe("rejected");
     expect(retryLog.file).toBeTypeOf("string");
@@ -235,7 +238,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     // Shipment numbers and receipt file names only, no donor data
     expect(JSON.stringify(alertStub.mock.calls[0])).not.toContain(mockAgreements[0].KID);
     expect(res.body.alerted).toBe(true);
-    const retryLog = loggingStub.withArgs("AvtaleGiro - Retry").mock.calls[0][1];
+    const retryLog = logsWithLabel("AvtaleGiro - Retry")[0][1];
     expect(retryLog.path).toBe("alert");
   });
 
@@ -254,10 +257,12 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(supersedeStub).not.toHaveBeenCalled();
     expect(sendFileStub).not.toHaveBeenCalled();
     expect(alertStub).toHaveBeenCalledOnce();
-    expect(alertStub.mock.calls[0][1][0].shipments[0]).to.deep.include({
-      receiptStatus: "ambiguous",
-      receiptFiles: ["KV.DELVIS.F0000651.D230509.T133148.K5552827.html"],
-    });
+    expect(alertStub.mock.calls[0][1][0].shipments[0]).toEqual(
+      expect.objectContaining({
+        receiptStatus: "ambiguous",
+        receiptFiles: ["KV.DELVIS.F0000651.D230509.T133148.K5552827.html"],
+      }),
+    );
   });
 
   it("Sends again if the upload of the shipment failed", async () => {
@@ -295,7 +300,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     expect(supersedeStub).toHaveBeenCalledExactlyOnceWith([651]);
     expect(sendFileStub).toHaveBeenCalledOnce();
-    expect(loggingStub.withArgs("AvtaleGiro - Retry").mock.calls[0][1].path).toBe("manual-resend");
+    expect(logsWithLabel("AvtaleGiro - Retry")[0][1].path).toBe("manual-resend");
   });
 
   it("Does not send an accepted shipment again even when a person asks", async () => {
@@ -356,14 +361,16 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
   it("Continues to the next claim date when one has no agreements", async () => {
     dueDateStub.mockReturnValue([DateTime.fromISO("2023-05-16"), DateTime.fromISO("2023-05-17")]);
-    agreementsStub.withArgs(16).resolves([]);
-    agreementsStub.withArgs(17).resolves(mockAgreements);
+    // Calls for other days keep the default from beforeEach
+    agreementsStub.mockImplementation(async (paymentDate) =>
+      paymentDate === 16 ? [] : mockAgreements,
+    );
 
     await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
 
     expect(sendFileStub).toHaveBeenCalledOnce();
     expect(sendFileStub.mock.calls[0][1]).toBe("DIRREM100523.170523.700");
-    expect(loggingStub.withArgs("AvtaleGiro - Retry")).toHaveBeenCalledTimes(2);
+    expect(logsWithLabel("AvtaleGiro - Retry")).toHaveLength(2);
   });
 
   it("Processes deletions and sends unaccepted deletion files again", async () => {
@@ -386,9 +393,9 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(supersedeStub).not.toHaveBeenCalled();
     expect(addChargesStub).not.toHaveBeenCalled();
     expect(sendFileStub).not.toHaveBeenCalled();
-    const retryLogs = loggingStub.withArgs("AvtaleGiro - Retry");
-    expect(retryLogs).toHaveBeenCalledOnce();
-    expect(retryLogs.mock.calls[0][1].untrackedShipmentIDs).toStrictEqual([640, 641]);
+    const retryLogs = logsWithLabel("AvtaleGiro - Retry");
+    expect(retryLogs).toHaveLength(1);
+    expect(retryLogs[0][1].untrackedShipmentIDs).toStrictEqual([640, 641]);
     // Deletions are still processed
     expect(deletionsStub).toHaveBeenCalledOnce();
   });
@@ -407,9 +414,9 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     await request(server).post("/scheduled/avtalegiro?date=2023-05-10").expect(500);
 
-    const failedLogs = loggingStub.withArgs("AvtaleGiro - Upload failed");
-    expect(failedLogs).toHaveBeenCalledOnce();
-    expect(failedLogs.mock.calls[0][1]).toStrictEqual({
+    const failedLogs = logsWithLabel("AvtaleGiro - Upload failed");
+    expect(failedLogs).toHaveLength(1);
+    expect(failedLogs[0][1]).toStrictEqual({
       shipmentID: 700,
       claimDate: "2023-05-16",
       filename: "DIRREM100523.160523.700",

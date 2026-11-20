@@ -264,7 +264,7 @@ describe("DAO.avtalegirocharges list queries", () => {
   });
 
   const call = (part: string) =>
-    query.getCalls().find((c) => String(c.args[0]).includes(part))!.args as [string, unknown[]];
+    query.mock.calls.find((args) => String(args[0]).includes(part))! as [string, unknown[]];
 
   it("maps rows and summarises the filter, with per-status counts", async () => {
     const result = await avtalegirocharges.getList({

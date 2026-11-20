@@ -169,7 +169,8 @@ describe("regranting validation before approval", () => {
         fundGrantId: 1,
       }),
     );
-    expect(issue.message).to.contain("700,00\u00a0kr").and.contain("600,00\u00a0kr");
+    expect(issue.message).toContain("700,00\u00a0kr");
+    expect(issue.message).toContain("600,00\u00a0kr");
   });
 
   it("counts the round's own adjustments to a fund in what it can grant", () => {
@@ -214,10 +215,14 @@ describe("regranting validation before approval", () => {
     const input = valid();
     input.projectOrganizations = new Map([[MOMS, MC]]);
     const issues = validateRound(input).filter((i) => i.code === "project_recipient_mismatch");
-    expect(issues.map((i) => [i.transferLineId, i.fundGrantLineId])).to.have.deep.members([
-      [101, null],
-      [null, 101],
-    ]);
+    const lines = issues.map((i) => [i.transferLineId, i.fundGrantLineId]);
+    expect(lines).toHaveLength(2);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        [101, null],
+        [null, 101],
+      ]),
+    );
   });
 
   it("error: a major-donor donation already passed on", () => {

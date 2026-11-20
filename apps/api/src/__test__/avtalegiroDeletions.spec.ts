@@ -190,8 +190,8 @@ describe("AvtaleGiro deletions", () => {
 
     it("confirms deletion files that MPS accepted", async () => {
       sentShipmentsStub.mockResolvedValue([798, 799]);
-      receiptStub.withArgs(798).resolves(true);
-      receiptStub.withArgs(799).resolves(false);
+      // 798 accepted, 799 (and anything else, the default) not
+      receiptStub.mockImplementation(async (shipmentID) => shipmentID === 798);
 
       const result = await processAvtaleGiroDeletions(tenOClock, false);
 

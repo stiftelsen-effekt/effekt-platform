@@ -338,7 +338,8 @@ describe("tRPC minside agreements and tax reports", () => {
         .expect(207);
 
       expect(res.body[0].error.data.code).toBe("FORBIDDEN");
-      expect(res.body[1].result.data).to.be.an("array").that.is.not.empty;
+      expect(res.body[1].result.data).toBeInstanceOf(Array);
+      expect(res.body[1].result.data).not.toHaveLength(0);
       expect(vipps).not.toHaveBeenCalled();
       expect(taxUnits).toHaveBeenCalledExactlyOnceWith(7, RequestLocale.NO);
     });

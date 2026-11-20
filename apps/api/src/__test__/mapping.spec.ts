@@ -45,9 +45,9 @@ describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
     // Assertions
     expect(result).toStrictEqual(expectedCauseAreas);
     expect(getByIDStub).toHaveBeenCalledTimes(3);
-    expect(getByIDStub.firstCall.calledWith(1)).to.be.true;
-    expect(getByIDStub.secondCall.calledWith(2)).to.be.true;
-    expect(getByIDStub.thirdCall.calledWith(3)).to.be.true;
+    expect(getByIDStub.mock.calls[0][0]).toBe(1);
+    expect(getByIDStub.mock.calls[1][0]).toBe(2);
+    expect(getByIDStub.mock.calls[2][0]).toBe(3);
   });
 
   it("should map pure org shares to distribution input cause areas with multiple cause areas", async () => {
@@ -88,9 +88,9 @@ describe("mapPureOrgSharesToDistributionInputCauseAreas", () => {
     // Assertions
     expect(result).toStrictEqual(expectedCauseAreas);
     expect(getByIDStub).toHaveBeenCalledTimes(3);
-    expect(getByIDStub.firstCall.calledWith(1)).to.be.true;
-    expect(getByIDStub.secondCall.calledWith(2)).to.be.true;
-    expect(getByIDStub.thirdCall.calledWith(3)).to.be.true;
+    expect(getByIDStub.mock.calls[0][0]).toBe(1);
+    expect(getByIDStub.mock.calls[1][0]).toBe(2);
+    expect(getByIDStub.mock.calls[2][0]).toBe(3);
   });
 
   it("should throw an error if no shares are provided", async () => {

@@ -58,7 +58,9 @@ describe("CAMT.053 parser", () => {
 
   it("does not resolve external entities (XXE)", () => {
     // libxmljs left the entity unexpanded ("before  after"); we now reject the file outright.
-    expect(baseline["camt053_xxe.xml"].result).to.deep.include({ postingDate: "2025-01-01" });
+    expect(baseline["camt053_xxe.xml"].result).toEqual(
+      expect.objectContaining({ postingDate: "2025-01-01" }),
+    );
     expect(() => parseCamtFile(loadInput("camt053_xxe.xml"))).toThrow(/entity not found/);
   });
 

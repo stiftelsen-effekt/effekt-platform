@@ -439,12 +439,11 @@ describe("tRPC donors router", () => {
     });
 
     it("returns NOT_FOUND when merging a missing donor", async () => {
-      vi.spyOn(DAO.donors, "getByID")
-        .mockReturnValue(undefined as any)
-        .withArgs(8)
-        .resolves(null)
-        .withArgs(7)
-        .resolves(donor as any);
+      vi.spyOn(DAO.donors, "getByID").mockImplementation((id) => {
+        if (id === 8) return Promise.resolve(null);
+        if (id === 7) return Promise.resolve(donor as any);
+        return undefined as any;
+      });
       const merge = vi.spyOn(DAO.donors, "mergeDonors").mockResolvedValue(undefined);
       const repoint = vi
         .spyOn(auth0, "repointAuth0DonorIdOnMerge")
@@ -659,9 +658,11 @@ describe("tRPC donors router", () => {
 
     it("archives a tax unit with a transfer target", async () => {
       vi.spyOn(DAO.donors, "getByID").mockResolvedValue(donor as any);
-      const getById = vi.spyOn(DAO.tax, "getById").mockReturnValue(undefined as any);
-      getById.withArgs(11).resolves(taxUnit as any);
-      getById.withArgs(12).resolves({ ...taxUnit, id: 12 } as any);
+      vi.spyOn(DAO.tax, "getById").mockImplementation((id) => {
+        if (id === 11) return Promise.resolve(taxUnit as any);
+        if (id === 12) return Promise.resolve({ ...taxUnit, id: 12 } as any);
+        return undefined as any;
+      });
       const del = vi.spyOn(DAO.tax, "deleteById").mockResolvedValue(1);
 
       expect(
@@ -682,10 +683,11 @@ describe("tRPC donors router", () => {
     });
 
     it("refuses a transfer target belonging to another donor", async () => {
-      vi.spyOn(DAO.tax, "getById")
-        .mockReturnValue(undefined as any)
-        .withArgs(12)
-        .resolves({ ...taxUnit, id: 12, donorId: 99 } as any);
+      vi.spyOn(DAO.tax, "getById").mockImplementation((id) =>
+        id === 12
+          ? Promise.resolve({ ...taxUnit, id: 12, donorId: 99 } as any)
+          : (undefined as any),
+      );
       const del = vi.spyOn(DAO.tax, "deleteById").mockResolvedValue(1);
       await expectTrpcError(
         admin().donors.taxUnits.archive({ donorId: 7, taxUnitId: 11, transferId: 12 }),

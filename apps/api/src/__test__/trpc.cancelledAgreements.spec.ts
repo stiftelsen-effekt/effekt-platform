@@ -237,7 +237,7 @@ describe("tRPC agreements.cancelled", () => {
     });
 
     const pageSql = () =>
-      query.getCalls().find((call) => String(call.args[0]).includes("LIMIT ? OFFSET ?"))!.args;
+      query.mock.calls.find((args) => String(args[0]).includes("LIMIT ? OFFSET ?"))!;
 
     it("joins the page with reasons, donor stats and the summary", async () => {
       const result = await DAO.cancelledAgreements.getList({
@@ -255,16 +255,16 @@ describe("tRPC agreements.cancelled", () => {
       expect(params).toStrictEqual([2, 0]);
 
       // Batched: one reasons query and one donor stats query for the whole page
-      const reasonCalls = query
-        .getCalls()
-        .filter((call) => String(call.args[0]).includes("FROM Recurring_agreement_stopped R"));
+      const reasonCalls = query.mock.calls.filter((args) =>
+        String(args[0]).includes("FROM Recurring_agreement_stopped R"),
+      );
       expect(reasonCalls).toHaveLength(1);
-      expect(reasonCalls[0].args[1]).toStrictEqual([["agr_X"], [12]]);
-      const statsCalls = query
-        .getCalls()
-        .filter((call) => String(call.args[0]).includes("FROM Donations"));
+      expect(reasonCalls[0][1]).toStrictEqual([["agr_X"], [12]]);
+      const statsCalls = query.mock.calls.filter((args) =>
+        String(args[0]).includes("FROM Donations"),
+      );
       expect(statsCalls).toHaveLength(1);
-      expect(statsCalls[0].args[1]).toStrictEqual([[7, 8]]);
+      expect(statsCalls[0][1]).toStrictEqual([[7, 8]]);
 
       expect(result.pages).toBe(2);
       expect(result.summary).toStrictEqual({

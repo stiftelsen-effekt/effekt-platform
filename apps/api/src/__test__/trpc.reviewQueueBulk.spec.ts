@@ -32,7 +32,8 @@ describe("tRPC reports.reviewQueue bulk ignore", () => {
     expect(result).toStrictEqual({ ignored: 2, skipped: 1 });
     const [ids, resolvedBy, note] = ignoreMany.mock.calls[0];
     expect(ids).toStrictEqual([5, 6, 7]);
-    expect(resolvedBy).to.be.a("string").and.not.be.empty;
+    expect(resolvedBy).toBeTypeOf("string");
+    expect(resolvedBy).not.toHaveLength(0);
     expect(note).toBe("Wrong file uploaded");
   });
 

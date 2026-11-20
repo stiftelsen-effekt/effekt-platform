@@ -49,11 +49,6 @@ describe("normalizeDonorEmail", function () {
 });
 
 describe("donors DAO email normalization", function () {
-  /**
-   * A scoped sandbox rather than the default one. Several specs in this suite
-   * install stubs from module scope or from a before hook and rely on them for
-   * their whole run, and a bare sinon.restore() here would tear those down.
-   */
   let executeStub: MockInstance;
   let queryStub: MockInstance;
 

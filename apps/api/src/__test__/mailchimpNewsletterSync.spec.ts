@@ -71,7 +71,7 @@ describe("mailchimpNewsletterSync", function () {
       const statuses = await getMemberStatuses();
 
       expect(statuses.size).toBe(1003);
-      expect(stub.mock.calls[1][1]).to.include({ offset: 1000 });
+      expect(stub.mock.calls[1][1]).toEqual(expect.objectContaining({ offset: 1000 }));
     });
   });
 

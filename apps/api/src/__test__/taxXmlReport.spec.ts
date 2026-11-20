@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import { validateXml, writeXMLTaxReport } from "../custom_modules/tax";
@@ -17,12 +17,11 @@ const baseline: {
 } = readJson("libxmljs_baseline.json");
 
 describe("Tax report XML (Skatteetaten)", () => {
-  let clock: sinon.SinonFakeTimers;
   beforeEach(() => {
     // The baseline was generated with Date.now() === 1735689600000
-    clock = sinon.useFakeTimers({ now: 1735689600000, toFake: ["Date"] });
+    vi.useFakeTimers({ now: 1735689600000, toFake: ["Date"] });
   });
-  afterEach(() => clock.restore());
+  afterEach(() => vi.useRealTimers());
 
   for (const name of Object.keys(inputs)) {
     it(`serializes "${name}" identically to the libxmljs implementation`, () => {

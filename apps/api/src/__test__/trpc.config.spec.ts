@@ -274,7 +274,7 @@ describe("tRPC config router", () => {
         expect.objectContaining({ chartColor: "chart-11", standardShare: 40 }),
       );
       await admin().config.organizations.update({ id: 7, chartColor: null });
-      expect(update.mock.calls[1][0]).to.include({ chartColor: null });
+      expect(update.mock.calls[1][0]).toEqual(expect.objectContaining({ chartColor: null }));
     });
 
     it("rejects chart colours outside the organization palette", async () => {
@@ -308,9 +308,11 @@ describe("tRPC config router", () => {
     });
 
     it("toggles active and 404s on missing organizations", async () => {
-      const getByID = vi.spyOn(DAO.organizations, "getByID").mockReturnValue(undefined as any);
-      getByID.withArgs(7).resolves(orgRow);
-      getByID.withArgs(8).resolves(null);
+      vi.spyOn(DAO.organizations, "getByID").mockImplementation(((id) => {
+        if (id === 7) return Promise.resolve(orgRow);
+        if (id === 8) return Promise.resolve(null);
+        return undefined;
+      }) as any);
       const update = vi.spyOn(DAO.organizations, "updateById").mockResolvedValue(undefined);
       await admin().config.organizations.toggleActive({ id: 7 });
       expect(update.mock.calls[0][0].isActive).toBe(false);

@@ -48,7 +48,11 @@ const apiRow = {
 };
 
 describe("tRPC intents router", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // and undo a test's vi.useFakeTimers()
+    vi.useRealTimers();
+  });
 
   it("rejects anonymous and non-admin callers", async () => {
     const getList = vi.spyOn(DAO.paymentIntents, "getList").mockReturnValue(undefined as any);
@@ -158,7 +162,7 @@ describe("tRPC intents router", () => {
   });
 
   it("counts new donors awaiting a bank or AvtaleGiro payment", async () => {
-    const clock = sinon.useFakeTimers(new Date("2026-10-28T12:00:00Z"));
+    vi.useFakeTimers({ now: new Date("2026-10-28T12:00:00Z") });
     const count = vi
       .spyOn(DAO.paymentIntents, "countAwaitingNewDonors")
       .mockResolvedValue({ donors: 3, intents: 4 });
@@ -174,12 +178,16 @@ describe("tRPC intents router", () => {
       createdRange: { from: new Date("2026-09-28T12:00:00Z") },
       awaitingDays: 30,
     });
-    clock.restore();
+    vi.useRealTimers();
   });
 });
 
 describe("DAO paymentIntents", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // and undo a test's vi.useFakeTimers()
+    vi.useRealTimers();
+  });
 
   const dbRow = {
     id: 12,

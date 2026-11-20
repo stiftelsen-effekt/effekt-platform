@@ -293,7 +293,7 @@ describe("tRPC widget payment procedures", () => {
       const input = { KID, amount: 300, dueDay: 15, registrationToken: avtaleGiroToken };
       expect(await anonymous().draftAvtaleGiro(input)).toBe(true);
       expect(await anonymous().draftAvtaleGiro({ ...input, dueDay: 20 })).toBe(true);
-      expect(updateDraft.getCalls().map((c) => c.args)).toStrictEqual([
+      expect(updateDraft.mock.calls).toStrictEqual([
         [KID, 30000, 15],
         [KID, 30000, 20],
       ]);
@@ -303,7 +303,10 @@ describe("tRPC widget payment procedures", () => {
 
     it("treats losing a race with the same draft (a double click) as success", async () => {
       addDraftIfNone.mockResolvedValue(false);
-      getDraftState.mockResolvedValueOnce({ rows: 1, draft: true });
+      // The second call (after the insert lost) sees the other request's draft
+      getDraftState
+        .mockResolvedValueOnce({ rows: 0, draft: false })
+        .mockResolvedValueOnce({ rows: 1, draft: true });
       expect(
         await anonymous().draftAvtaleGiro({ KID, amount: 300, registrationToken: avtaleGiroToken }),
       ).toBe(true);
@@ -314,7 +317,10 @@ describe("tRPC widget payment procedures", () => {
       addDraftIfNone.mockRejectedValue(
         Object.assign(new Error("Deadlock"), { code: "ER_LOCK_DEADLOCK" }),
       );
-      getDraftState.mockResolvedValueOnce({ rows: 1, draft: true });
+      // The second call (after the insert lost) sees the other request's draft
+      getDraftState
+        .mockResolvedValueOnce({ rows: 0, draft: false })
+        .mockResolvedValueOnce({ rows: 1, draft: true });
       expect(
         await anonymous().draftAvtaleGiro({ KID, amount: 300, registrationToken: avtaleGiroToken }),
       ).toBe(true);
