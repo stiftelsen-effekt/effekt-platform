@@ -2,7 +2,7 @@
  * Records the legacy impact API's answers for the compatibility matrix into the golden fixtures
  * of src/__test__/impactCompat.golden.spec.ts (docs/impact-api-migration.md, phase 5).
  *
- *   cd apps/api && node -r ts-node/register/transpile-only scripts/impact-compat-golden.ts &&
+ *   cd apps/api && node --import tsx scripts/impact-compat-golden.ts &&
  *     npx prettier --write src/__test__/data/impact-compat
  *
  * - legacy.json: the exact response text per request. Each request carries a unique `cachebust`

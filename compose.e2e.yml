@@ -130,7 +130,7 @@ services:
       FRONTEND_URL: http://localhost:3100
       MIN_SIDE_URL: http://localhost:3100
     # No file watching in e2e
-    command: ["pnpm", "exec", "ts-node", "src/server.ts"]
+    command: ["node", "--import", "tsx", "src/server.ts"]
     depends_on:
       seed-e2e:
         condition: service_completed_successfully

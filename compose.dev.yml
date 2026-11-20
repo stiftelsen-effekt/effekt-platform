@@ -154,7 +154,7 @@ services:
         set -e
         pnpm exec prisma migrate deploy
         if node -e "require('mysql2/promise').createConnection(process.env.DB_URL).then(c => c.query('SELECT COUNT(*) AS n FROM Donors')).then(([r]) => process.exit(r[0].n > 0 ? 0 : 1), () => process.exit(1))"; then
-          pnpm exec ts-node prisma/devdata/topup.ts || echo "Warning: dev data top-up failed; the database is unchanged"
+          pnpm exec tsx prisma/devdata/topup.ts || echo "Warning: dev data top-up failed; the database is unchanged"
         else
           pnpm exec prisma db seed
           pnpm exec prisma db execute --file prisma/dev/fulltext-search.sql
@@ -166,7 +166,7 @@ services:
 
   api:
     <<: *backend
-    command: ["pnpm", "exec", "nodemon", "--watch", "src", "--ext", "ts,js,json", "src/server.ts"]
+    command: ["node", "--watch-path=src", "--import", "tsx", "src/server.ts"]
     ports:
       - "${DEV_API_PORT:-5050}:5050"
     depends_on:

@@ -91,7 +91,7 @@ migration, which a developer runs:
 
 ```sh
 cd apps/api
-T() { node -r ts-node/register/transpile-only scripts/agf-grants.ts "$@"; }
+T() { node --import tsx scripts/agf-grants.ts "$@"; }
 T fetch --cache /tmp/agf-cache [--airtable-csv grants.csv] > /tmp/agf.json
 T report /tmp/agf.json        # rows per year, figures, totals vs the metrics reports
 DB_URL=mysql://readonly@127.0.0.1:3306/EffektDonasjonDB T diff /tmp/agf.json   # dry run

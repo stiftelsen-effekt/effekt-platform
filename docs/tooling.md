@@ -33,14 +33,14 @@ Dependabot proposes most of these updates, and pnpm refuses versions younger tha
 ([dependencies.md](dependencies.md)).
 
 TypeScript comes in two versions. The API and the website stay on TypeScript 5.9, because
-ts-node, the API's spec transform, `next build` and the tRPC type build use TypeScript's
+the API's spec transform, `next build` and the tRPC type build use TypeScript's
 JavaScript API, which TypeScript 7 doesn't have yet. The admin and the Sanity Studio only run
 `tsc`, so they use TypeScript 7 (the native compiler, about ten times faster) from the
 `native` catalog. Move the rest when TypeScript 7 ships its API.
 
 Checked again with 7.0.2 (November 2026): `require("typescript")` returns only `version`; the
-compiler API is under `typescript/unstable/*` and is a different, async API. So ts-node (`pnpm
-dev`), the API's Vitest transform (`ts.transpileModule` in `vitest.config.ts`) and `next build`
+compiler API is under `typescript/unstable/*` and is a different, async API. So the API's Vitest
+transform (`ts.transpileModule` in `vitest.config.ts`) and `next build`
 (`typescript.createProgram`) can't use it, and `scripts/build-types.mjs` resolves
 `typescript/bin/tsc`, which 7's `exports` doesn't expose. Dependabot ignores TypeScript majors
 until this changes ([dependencies.md](dependencies.md)).
@@ -50,14 +50,16 @@ pinned by `packageManager` in the root `package.json`.
 
 ## Tools
 
-| Concern         | Tool                                                                                                |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| Package manager | pnpm (one workspace, one lockfile)                                                                  |
-| Lint            | Oxlint, one config ([`.oxlintrc.json`](../.oxlintrc.json))                                          |
-| Format          | Prettier 3, one config ([`.prettierrc`](../.prettierrc))                                            |
-| Test            | Vitest                                                                                              |
-| TypeScript      | [`@effekt/config/tsconfig.base.json`](../packages/config/tsconfig.base.json), extended by every app |
-| Bundlers        | API: `tsc`. Admin: Vite. Website: Next.js. Studio: the Sanity CLI (Vite)                            |
+| Concern         | Tool                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Package manager | pnpm (one workspace, one lockfile)                                                                                                    |
+| Lint            | Oxlint, one config ([`.oxlintrc.json`](../.oxlintrc.json))                                                                            |
+| Format          | Prettier 3, one config ([`.prettierrc`](../.prettierrc))                                                                              |
+| Test            | Vitest                                                                                                                                |
+| TypeScript      | [`@effekt/config/tsconfig.base.json`](../packages/config/tsconfig.base.json), extended by every app                                   |
+| Bundlers        | API: `tsc`. Admin: Vite. Website: Next.js. Studio: the Sanity CLI (Vite)                                                              |
+| Run TypeScript  | API: `node --watch --import tsx` for `pnpm dev`, `tsx` for the seed and scripts. Specs: TypeScript (`src/__test__/setup/register.ts`) |
+| Env files       | Node built-ins: `process.loadEnvFile` (API), `node --env-file-if-exists` (website `sanity*` scripts). Set variables win over the file |
 
 ### Why not Vite+ (October 2026)
 

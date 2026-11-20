@@ -4,7 +4,7 @@
  * Safe to run any time; does nothing if the data is current or was not generated.
  *
  *   DB_URL=mysql://root:effekt-local@127.0.0.1:3307/EffektDonasjonDB_Local \
- *     pnpm exec ts-node prisma/devdata/topup.ts
+ *     pnpm exec tsx prisma/devdata/topup.ts
  */
 import { todayInNorway } from "./calendar";
 import { connect, topUp } from "./store";

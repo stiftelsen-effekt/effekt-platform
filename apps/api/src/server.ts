@@ -1,6 +1,7 @@
-import * as dotenv from "dotenv";
-// quiet: dotenv 17+ logs a line on load by default
-dotenv.config({ quiet: true });
+import { existsSync } from "fs";
+// Load .env from the working directory when there is one. Variables already set in the
+// environment win over the file.
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 import * as config from "./config";
 import { DAO } from "./custom_modules/DAO";

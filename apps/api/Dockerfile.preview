@@ -31,7 +31,7 @@ RUN pnpm run build
 
 # The seed (prisma/seed.ts -> prisma/devdata, which imports src/custom_modules/regranting) and
 # the top-up (prisma/devdata/topup.ts, used after cloning a template database) compiled to plain
-# JS, so the release image needs neither ts-node nor typescript.
+# JS, so the release image needs neither tsx nor typescript.
 RUN pnpm exec tsc --outDir dist-seed --rootDir . --module commonjs --target ES2022 \
       --esModuleInterop --skipLibCheck --strictNullChecks --allowJs false \
       prisma/seed.ts prisma/devdata/topup.ts
