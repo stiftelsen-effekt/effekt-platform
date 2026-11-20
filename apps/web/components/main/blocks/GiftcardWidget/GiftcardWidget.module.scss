@@ -353,38 +353,15 @@ $step-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
 
 .stepsinteractive {
   transition: height $step-duration $step-ease;
-
-  .headerwrap {
-    transition:
-      grid-template-rows $step-duration $step-ease,
-      opacity $step-duration $step-ease;
-  }
 }
 
-// The step indicator opens and closes by its height, so the steps glide down instead of jumping
-.headerwrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-}
-
-.headeropen {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-
-.headerclip {
-  min-height: 0;
-  overflow: hidden;
+// The step indicator fades in where it ends up when the flow starts (nothing is pushed down)
+.headerenter {
+  animation: giftcard-fade-in $step-duration $step-ease both;
 }
 
 // Contains the children's margins, so measured heights are the heights they take up
 .flowroot {
-  display: flow-root;
-}
-
-.stage {
-  position: relative;
   display: flow-root;
 }
 
@@ -430,6 +407,15 @@ $step-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
   }
 }
 
+@keyframes giftcard-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes giftcard-step-out {
   from {
     opacity: 1;
@@ -443,7 +429,6 @@ $step-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
 
 @media (prefers-reduced-motion: reduce) {
   .stepsinteractive,
-  .stepsinteractive .headerwrap,
   .back,
   .dots li {
     transition: none;
@@ -454,7 +439,8 @@ $step-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
   }
 
   .enterforward,
-  .enterbackward {
+  .enterbackward,
+  .headerenter {
     animation: none;
   }
 }

@@ -6,21 +6,30 @@ export type StepDirection = "forward" | "backward";
 /** How long the step being left stays on screen while it fades out (matches the CSS) */
 const EXIT_MS = 140;
 
-type Exiting = { key: string; node: React.ReactNode; direction: StepDirection };
+type Snapshot = { key: string; node: React.ReactNode; header: React.ReactNode; open: boolean };
+type Exiting = {
+  key: string;
+  node: React.ReactNode;
+  direction: StepDirection;
+  /** The header as it was, when it closes with this step (it fades out with it) */
+  header: React.ReactNode | null;
+  /** Where the step was: below the header if that stays open, otherwise at the top */
+  belowHeader: boolean;
+};
 
 /**
- * The widget's steps with a short crossfade: the step being left fades out where it was while
- * the next one slides a little in from the side it comes from, so the panel is never empty.
- * The header (step indicator) opens and closes smoothly, and the panel eases to its new height
- * both ways without clipping anything. Nothing animates until the first step change, and
- * reduced motion turns it all off (CSS).
+ * The widget's steps with a short crossfade. The step being left fades out exactly where it was
+ * (with the step indicator, if that closes with it), while the next one slides a little in from
+ * the side it comes from; the indicator fades in when the flow starts instead of pushing the
+ * content down. The panel eases to the new height in the same frame, and nothing is clipped.
+ * Nothing animates until the first step change; reduced motion turns it all off (CSS).
  */
 export const AnimatedSteps: React.FC<{
   stepKey: string;
   direction: StepDirection;
-  /** Shown above the steps without sliding (the step indicator) */
+  /** Above the steps, without sliding (the step indicator) */
   header?: React.ReactNode;
-  /** Whether the header shows: it opens and closes by animating its height */
+  /** Whether the header shows */
   headerOpen?: boolean;
   children: React.ReactNode;
 }> = ({ stepKey, direction, header, headerOpen = false, children }) => {
@@ -29,22 +38,30 @@ export const AnimatedSteps: React.FC<{
   const [changedBefore, setChangedBefore] = useState(false);
   const animate = changedBefore || stepKey !== initialStep;
 
-  // The last rendered step, kept so it can fade out after the step changes
-  const last = useRef<{ key: string; node: React.ReactNode }>({ key: stepKey, node: children });
+  // The last rendered step and header, kept so they can fade out after the step changes
+  const last = useRef<Snapshot>({ key: stepKey, node: children, header, open: headerOpen });
   const [exiting, setExiting] = useState<Exiting | null>(null);
+  const [headerJustOpened, setHeaderJustOpened] = useState(false);
 
   // Before paint, so the old step never disappears for a frame
   useLayoutEffect(() => {
-    if (last.current.key === stepKey) return;
-    setExiting({ ...last.current, direction });
+    const before = last.current;
+    if (before.key === stepKey) return;
+    setExiting({
+      key: before.key,
+      node: before.node,
+      direction,
+      header: before.open && !headerOpen ? before.header : null,
+      belowHeader: before.open && headerOpen,
+    });
+    setHeaderJustOpened(!before.open && headerOpen);
     setChangedBefore(true);
-    last.current = { key: stepKey, node: children };
-    // Only when the step changes; `children` and `direction` are read as they are then
+    // Only when the step changes; the rest is read as it is then
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepKey]);
   // The current step as last rendered (what fades out when the step changes)
   useLayoutEffect(() => {
-    last.current = { key: stepKey, node: children };
+    last.current = { key: stepKey, node: children, header, open: headerOpen };
   });
 
   useEffect(() => {
@@ -53,68 +70,62 @@ export const AnimatedSteps: React.FC<{
     return () => clearTimeout(timer);
   }, [exiting]);
 
-  // The panel's height goes straight to where it ends up (the header's full height when open,
-  // plus the current step), so it eases once instead of chasing the header as it opens
+  // The panel's height is the header and current step's; measured before paint on a step change
+  // (the observer reports a frame or two later), so it moves with the crossfade
+  const flowRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [heights, setHeights] = useState<{ header: number; stage: number } | null>(null);
+  const [size, setSize] = useState<{ height: number; header: number } | null>(null);
   const measureRef = useRef<() => void>(() => {});
   useLayoutEffect(() => {
-    const headerEl = headerRef.current;
-    const stage = stageRef.current;
-    if (!headerEl || !stage) return;
+    const flow = flowRef.current;
+    if (!flow) return;
     const measure = () => {
-      const next = { header: headerEl.offsetHeight, stage: stage.offsetHeight };
-      setHeights((prev) =>
-        prev?.header === next.header && prev.stage === next.stage ? prev : next,
+      const next = { height: flow.offsetHeight, header: headerRef.current?.offsetHeight ?? 0 };
+      setSize((prev) =>
+        prev?.height === next.height && prev.header === next.header ? prev : next,
       );
     };
     measureRef.current = measure;
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
-    observer.observe(headerEl);
-    observer.observe(stage);
+    observer.observe(flow);
     return () => observer.disconnect();
   }, []);
-  // On a step change, measure before paint (the observer reports a frame or two later), so the
-  // height starts moving in the same frame as the steps crossfade
   useLayoutEffect(() => {
     measureRef.current();
   }, [stepKey, headerOpen]);
-  const height = heights ? (headerOpen ? heights.header : 0) + heights.stage : undefined;
 
   return (
     <div
       className={`${styles.steps} ${animate ? styles.stepsinteractive : ""}`}
-      style={height === undefined ? undefined : { height }}
+      style={size ? { height: size.height } : undefined}
     >
-      <div
-        className={`${styles.headerwrap} ${headerOpen ? styles.headeropen : ""}`}
-        inert={!headerOpen}
-        aria-hidden={!headerOpen || undefined}
-      >
-        <div className={styles.headerclip}>
-          <div ref={headerRef} className={styles.flowroot}>
-            {header}
-          </div>
-        </div>
-      </div>
-      <div ref={stageRef} className={styles.stage}>
-        {exiting && (
+      <div ref={flowRef} className={styles.flowroot}>
+        {headerOpen && (
           <div
-            key={exiting.key}
-            className={`${styles.stepexit} ${styles[`exit${exiting.direction}`]}`}
-            aria-hidden="true"
-            inert
+            ref={headerRef}
+            className={`${styles.flowroot} ${headerJustOpened ? styles.headerenter : ""}`}
           >
-            {exiting.node}
+            {header}
           </div>
         )}
         <div key={stepKey} className={animate ? styles[`enter${direction}`] : undefined}>
           {children}
         </div>
       </div>
+      {exiting && (
+        <div
+          key={`exit-${exiting.key}`}
+          className={`${styles.stepexit} ${styles[`exit${exiting.direction}`]}`}
+          style={{ top: exiting.belowHeader ? (size?.header ?? 0) : 0 }}
+          aria-hidden="true"
+          inert
+        >
+          {exiting.header && <div className={styles.flowroot}>{exiting.header}</div>}
+          {exiting.node}
+        </div>
+      )}
     </div>
   );
 };
