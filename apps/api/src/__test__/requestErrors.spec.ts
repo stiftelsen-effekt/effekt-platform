@@ -65,4 +65,28 @@ describe("redactForAlert", () => {
     expect(out).to.include("db down");
     expect(out).to.include("[circular]");
   });
+
+  it("keeps the code and message of a fetch network error's cause", () => {
+    const cause = Object.assign(new Error("read ECONNRESET"), {
+      code: "ECONNRESET",
+      headers: { Authorization: "Bearer t0k" },
+    });
+    const ex = new TypeError("fetch failed", { cause });
+    const reduced = redactForAlert({ ex }) as any;
+    expect(reduced.ex).to.include({ name: "TypeError", message: "fetch failed" });
+    expect(reduced.ex.cause).to.include({ code: "ECONNRESET", message: "read ECONNRESET" });
+    const out = JSON.stringify(reduced);
+    expect(out).to.not.include("t0k");
+    expect(out).to.not.include("stack");
+  });
+
+  it("keeps an undici error code from a nested cause", () => {
+    const inner = Object.assign(new Error("Connect Timeout Error"), {
+      code: "UND_ERR_CONNECT_TIMEOUT",
+    });
+    const ex = new TypeError("fetch failed", { cause: inner });
+    const out = JSON.stringify(redactForAlert(ex));
+    expect(out).to.include("UND_ERR_CONNECT_TIMEOUT");
+    expect(out).to.include("Connect Timeout Error");
+  });
 });

@@ -41,7 +41,8 @@ const REDACTED = "[redacted]";
 
 /**
  * Prepares arbitrary data (an exception, request payload, ...) for an alert email or log line:
- * HTTP status errors are reduced with loggableRequestError, other errors to name/message,
+ * HTTP status errors are reduced with loggableRequestError, other errors to name/message/code
+ * (plus their cause, reduced the same way),
  * credential-like keys are replaced at any depth, and cycles are cut.
  */
 export const redactForAlert = (value: unknown): unknown => {
@@ -51,8 +52,15 @@ export const redactForAlert = (value: unknown): unknown => {
     if (current instanceof Error) {
       const reduced = loggableRequestError(current);
       if (reduced instanceof Error) {
-        const { statusCode, error } = current as { statusCode?: number; error?: unknown };
-        current = { name: current.name, message: current.message, statusCode, error };
+        const { statusCode, error, code, cause } = current as {
+          statusCode?: number;
+          error?: unknown;
+          code?: unknown;
+          cause?: unknown;
+        };
+        // fetch rejects with TypeError("fetch failed") and puts the reason (ECONNRESET,
+        // ENOTFOUND, UND_ERR_*) in cause, so keep the cause (reduced the same way) and any code
+        current = { name: current.name, message: current.message, code, statusCode, error, cause };
       } else {
         const { stack, ...rest } = reduced as Record<string, unknown>;
         current = rest;
