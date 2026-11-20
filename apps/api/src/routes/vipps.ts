@@ -526,7 +526,7 @@ router.get("/redirect/:orderId", async (req, res, next) => {
 
         if (await DAO.giftcards.getByKID(order.KID)) {
           const base = config.frontend_url || "https://gieffektivt.no";
-          res.redirect(`${base}/gavekort/takk?kid=${encodeURIComponent(order.KID)}`);
+          res.redirect(`${base}/gavekort-mottatt?kid=${encodeURIComponent(order.KID)}`);
           return true;
         }
 
