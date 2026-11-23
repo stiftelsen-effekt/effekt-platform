@@ -1,8 +1,7 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express from "express";
-import moment from "moment";
-import sinon from "sinon";
+import { DateTime } from "luxon";
 import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
@@ -12,16 +11,16 @@ import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
 const avtalegiro = require("../custom_modules/avtalegiro");
 
 describe("review queue: enqueueInvalidTransactions", () => {
-  let addStub: sinon.SinonStub;
-  let countStub: sinon.SinonStub;
+  let addStub: MockInstance;
+  let countStub: MockInstance;
   const statuses = { open: 2, registered: 1, ignored: 0 };
 
   beforeEach(() => {
-    addStub = sinon.stub(DAO.reviewqueue, "add").resolves({ added: 2, existing: 0 });
-    countStub = sinon.stub(DAO.reviewqueue, "getCountsForImport").resolves(statuses);
+    addStub = vi.spyOn(DAO.reviewqueue, "add").mockResolvedValue({ added: 2, existing: 0 });
+    countStub = vi.spyOn(DAO.reviewqueue, "getCountsForImport").mockResolvedValue(statuses);
   });
 
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("normalises transactions from each source", async () => {
     const date = new Date("2026-10-01T00:00:00.000Z");
@@ -34,7 +33,7 @@ describe("review queue: enqueueInvalidTransactions", () => {
         reason: undefined,
         transaction: {
           amount: 100,
-          date: moment.utc("2026-10-02"),
+          date: DateTime.fromISO("2026-10-02", { zone: "utc" }),
           transactionID: "ocr.2",
           paymentID: 5,
           donorName: "Ola",
@@ -43,54 +42,58 @@ describe("review queue: enqueueInvalidTransactions", () => {
       },
     ]);
 
-    const [source, items, importLogId] = addStub.firstCall.args;
-    expect(source).to.equal("ocr");
-    expect(importLogId).to.equal(null);
-    expect(items[0]).to.deep.include({
-      reason: "Invalid KID",
-      KID: "123",
-      amount: 250.5,
-      date,
-      externalId: "ocr.1",
-      paymentId: 6,
-      message: null,
-      name: null,
-      location: null,
-    });
-    expect(items[0].raw).to.include({ transactionID: "ocr.1", KID: 123 });
-    expect(items[1]).to.deep.include({
-      reason: "Unknown error",
-      KID: null,
-      date: new Date("2026-10-02T00:00:00.000Z"),
-      paymentId: 5,
-      name: "Ola",
-      message: "gave",
-    });
+    const [source, items, importLogId] = addStub.mock.calls[0];
+    expect(source).toBe("ocr");
+    expect(importLogId).toBe(null);
+    expect(items[0]).toEqual(
+      expect.objectContaining({
+        reason: "Invalid KID",
+        KID: "123",
+        amount: 250.5,
+        date,
+        externalId: "ocr.1",
+        paymentId: 6,
+        message: null,
+        name: null,
+        location: null,
+      }),
+    );
+    expect(items[0].raw).toEqual(expect.objectContaining({ transactionID: "ocr.1", KID: 123 }));
+    expect(items[1]).toEqual(
+      expect.objectContaining({
+        reason: "Unknown error",
+        KID: null,
+        date: new Date("2026-10-02T00:00:00.000Z"),
+        paymentId: 5,
+        name: "Ola",
+        message: "gave",
+      }),
+    );
   });
 
   it("writes nothing when there are no transactions", async () => {
-    expect(await enqueueInvalidTransactions("vipps", [])).to.deep.equal({
+    expect(await enqueueInvalidTransactions("vipps", [])).toStrictEqual({
       added: 0,
       existing: 0,
       skipped: 0,
       statuses: { open: 0, registered: 0, ignored: 0 },
     });
-    expect(addStub.called).to.be.false;
+    expect(addStub).not.toHaveBeenCalled();
   });
 
   it("counts rows as skipped instead of throwing when the queue can't be written", async () => {
-    sinon.stub(console, "error");
-    addStub.rejects(new Error("db down"));
+    vi.spyOn(console, "error").mockReturnValue(undefined);
+    addStub.mockRejectedValue(new Error("db down"));
     const result = await enqueueInvalidTransactions("bankNo", [
       { reason: "x", transaction: { amount: 1, transactionID: "b.1", paymentID: 5 } },
     ]);
-    expect(result).to.deep.equal({ added: 0, existing: 0, skipped: 1, statuses });
+    expect(result).toStrictEqual({ added: 0, existing: 0, skipped: 1, statuses });
   });
 
   it("skips unqueueable rows and queues the rest one by one if the batch fails", async () => {
-    sinon.stub(console, "error");
-    addStub.reset();
-    addStub.callsFake(async (_source, items) => {
+    vi.spyOn(console, "error").mockReturnValue(undefined);
+    addStub.mockReset();
+    addStub.mockImplementation(async (_source, items) => {
       if (items.length > 1) throw new Error("Incorrect decimal value");
       if (items[0].externalId === "b.3") throw new Error("Data too long");
       return { added: 1, existing: 0 };
@@ -104,46 +107,47 @@ describe("review queue: enqueueInvalidTransactions", () => {
         transaction: { amount: 3, transactionID: "b.4", paymentID: 5, date: new Date("x") },
       },
     ]);
-    expect(result).to.deep.equal({ added: 2, existing: 0, skipped: 2, statuses });
-    expect(countStub.firstCall.args).to.deep.equal(["bankNo", ["b.1", "b.3", "b.4"], null]);
+    expect(result).toStrictEqual({ added: 2, existing: 0, skipped: 2, statuses });
+    expect(countStub.mock.calls[0]).toStrictEqual(["bankNo", ["b.1", "b.3", "b.4"], null]);
     // The NaN amount is never sent; the invalid date is queued as null
-    expect(addStub.firstCall.args[1].map((item) => item.externalId)).to.deep.equal([
+    expect(addStub.mock.calls[0][1].map((item) => item.externalId)).toStrictEqual([
       "b.1",
       "b.3",
       "b.4",
     ]);
-    expect(addStub.lastCall.args[1][0].date).to.equal(null);
+    expect(addStub.mock.lastCall![1][0].date).toBe(null);
   });
 
   it("reports null statuses when they can't be counted", async () => {
-    sinon.stub(console, "error");
-    countStub.rejects(new Error("db down"));
+    vi.spyOn(console, "error").mockReturnValue(undefined);
+    countStub.mockRejectedValue(new Error("db down"));
     const result = await enqueueInvalidTransactions("bankNo", [
       { reason: "x", transaction: { amount: 1, transactionID: "b.1", paymentID: 5 } },
     ]);
-    expect(result).to.deep.equal({ added: 2, existing: 0, skipped: 0, statuses: null });
+    expect(result).toStrictEqual({ added: 2, existing: 0, skipped: 0, statuses: null });
   });
 });
 
 describe("review queue: POST /scheduled/ocr", () => {
   let server: express.Express;
-  let addStub: sinon.SinonStub;
-  let queueStub: sinon.SinonStub;
-  let loggingStub: sinon.SinonStub;
+  let addStub: MockInstance;
+  let queueStub: MockInstance;
+  let loggingStub: MockInstance;
 
   beforeEach(() => {
-    sinon.replace(authMiddleware, "isAdmin", []);
+    vi.spyOn(authMiddleware, "isAdmin", "get").mockReturnValue([]);
     const ocrFile = require("fs").readFileSync("src/__test__/data/ocr/TBOC2072.DAT");
-    sinon
-      .stub(giroSftp, "getOCRFiles")
-      .resolves([{ name: "OCR.D311026", modifyTime: 1, contents: ocrFile }]);
-    sinon
-      .stub(DAO.logging, "getOcrImportState")
-      .resolves({ imported: new Set(), trackedSince: null });
-    sinon.stub(avtalegiro, "updateAgreements").resolves([]);
-    addStub = sinon.stub(DAO.donations, "add").rejects(new Error("Invalid KID"));
-    queueStub = sinon.stub(DAO.reviewqueue, "add").resolves({ added: 2, existing: 0 });
-    loggingStub = sinon.stub(DAO.logging, "add").resolves(42);
+    vi.spyOn(giroSftp, "getOCRFiles").mockResolvedValue([
+      { name: "OCR.D311026", modifyTime: 1, contents: ocrFile },
+    ]);
+    vi.spyOn(DAO.logging, "getOcrImportState").mockResolvedValue({
+      imported: new Set(),
+      trackedSince: null,
+    });
+    vi.spyOn(avtalegiro, "updateAgreements").mockResolvedValue([]);
+    addStub = vi.spyOn(DAO.donations, "add").mockRejectedValue(new Error("Invalid KID"));
+    queueStub = vi.spyOn(DAO.reviewqueue, "add").mockResolvedValue({ added: 2, existing: 0 });
+    loggingStub = vi.spyOn(DAO.logging, "add").mockResolvedValue(42);
 
     delete require.cache[require.resolve("../routes/scheduled")];
     const scheduledRoute = require("../routes/scheduled");
@@ -152,16 +156,16 @@ describe("review queue: POST /scheduled/ocr", () => {
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
     delete require.cache[require.resolve("../routes/scheduled")];
   });
 
   it("queues failed transactions with the import log entry", async () => {
     const response = await request(server).post("/scheduled/ocr").expect(200);
 
-    expect(response.body.files).to.have.length(1);
+    expect(response.body.files).toHaveLength(1);
     const [imported] = response.body.files;
-    expect(Object.keys(imported)).to.deep.equal([
+    expect(Object.keys(imported)).toStrictEqual([
       "filename",
       "fileModifyTime",
       "addedDonations",
@@ -169,13 +173,14 @@ describe("review queue: POST /scheduled/ocr", () => {
       "file",
     ]);
     const invalid = imported.addedDonations.invalidTransactions;
-    expect(invalid.length).to.equal(addStub.callCount);
-    expect(loggingStub.calledOnceWith("OCR")).to.be.true;
-    expect(queueStub.calledOnce).to.be.true;
-    const [source, items, importLogId] = queueStub.firstCall.args;
-    expect(source).to.equal("ocr");
-    expect(importLogId).to.equal(42);
-    expect(items).to.have.length(invalid.length);
-    expect(items[0].externalId).to.equal(invalid[0].transaction.transactionID);
+    expect(invalid.length).toBe(addStub.mock.calls.length);
+    expect(loggingStub).toHaveBeenCalledOnce();
+    expect(loggingStub.mock.calls[0][0]).toBe("OCR");
+    expect(queueStub).toHaveBeenCalledOnce();
+    const [source, items, importLogId] = queueStub.mock.calls[0];
+    expect(source).toBe("ocr");
+    expect(importLogId).toBe(42);
+    expect(items).toHaveLength(invalid.length);
+    expect(items[0].externalId).toBe(invalid[0].transaction.transactionID);
   });
 });

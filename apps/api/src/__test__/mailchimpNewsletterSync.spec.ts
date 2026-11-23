@@ -1,6 +1,4 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import mailchimp from "@mailchimp/mailchimp_marketing";
 import {
   addMembersInBatches,
@@ -11,7 +9,7 @@ import {
 
 describe("mailchimpNewsletterSync", function () {
   afterEach(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("planNewsletterSync", function () {
@@ -37,9 +35,9 @@ describe("mailchimpNewsletterSync", function () {
         statuses,
       );
 
-      expect(plan.donorIDsToSubscribe).to.deep.equal([1]);
-      expect(plan.donorIDsToUnsubscribe).to.deep.equal([3]);
-      expect(plan.emailsToAdd).to.deep.equal(["missing@example.org"]);
+      expect(plan.donorIDsToSubscribe).toStrictEqual([1]);
+      expect(plan.donorIDsToUnsubscribe).toStrictEqual([3]);
+      expect(plan.emailsToAdd).toStrictEqual(["missing@example.org"]);
     });
 
     it("normalizes emails, adds each address once and skips empty ones", function () {
@@ -54,8 +52,8 @@ describe("mailchimpNewsletterSync", function () {
         statuses,
       );
 
-      expect(plan.emailsToAdd).to.deep.equal(["missing@example.org"]);
-      expect(plan.donorIDsToSubscribe).to.deep.equal([3]);
+      expect(plan.emailsToAdd).toStrictEqual(["missing@example.org"]);
+      expect(plan.donorIDsToSubscribe).toStrictEqual([3]);
     });
   });
 
@@ -66,14 +64,14 @@ describe("mailchimpNewsletterSync", function () {
           email_address: `${prefix}${i}@example.org`,
           status: "subscribed",
         }));
-      const stub = sinon.stub(mailchimp.lists, "getListMembersInfo");
-      stub.onFirstCall().resolves({ members: page(1000, "a") } as any);
-      stub.onSecondCall().resolves({ members: page(3, "b") } as any);
+      const stub = vi.spyOn(mailchimp.lists, "getListMembersInfo").mockReturnValue(undefined);
+      stub.mockResolvedValueOnce({ members: page(1000, "a") } as any);
+      stub.mockResolvedValueOnce({ members: page(3, "b") } as any);
 
       const statuses = await getMemberStatuses();
 
-      expect(statuses.size).to.equal(1003);
-      expect(stub.secondCall.args[1]).to.include({ offset: 1000 });
+      expect(statuses.size).toBe(1003);
+      expect(stub.mock.calls[1][1]).toEqual(expect.objectContaining({ offset: 1000 }));
     });
   });
 
@@ -83,8 +81,8 @@ describe("mailchimpNewsletterSync", function () {
         { length: MAILCHIMP_BATCH_SIZE + 2 },
         (_, i) => `donor${i}@example.org`,
       );
-      const stub = sinon.stub(mailchimp.lists, "batchListMembers");
-      stub.onFirstCall().resolves({
+      const stub = vi.spyOn(mailchimp.lists, "batchListMembers").mockReturnValue(undefined);
+      stub.mockResolvedValueOnce({
         total_created: MAILCHIMP_BATCH_SIZE - 2,
         errors: [
           {
@@ -98,25 +96,29 @@ describe("mailchimpNewsletterSync", function () {
           },
         ],
       } as any);
-      stub.onSecondCall().rejects(Object.assign(new Error("Too many requests"), { status: 429 }));
+      stub.mockRejectedValueOnce(Object.assign(new Error("Too many requests"), { status: 429 }));
 
       const result = await addMembersInBatches(emails);
 
-      expect(stub.callCount).to.equal(2);
-      expect(stub.firstCall.args[1].members).to.have.length(MAILCHIMP_BATCH_SIZE);
-      expect(stub.firstCall.args[1].update_existing).to.equal(false);
-      expect(result).to.deep.include({ added: MAILCHIMP_BATCH_SIZE - 2, rejectedAsInvalid: 1 });
-      expect(result.failed).to.equal(1 + 2);
-      expect(result.failures).to.deep.equal([
+      expect(stub).toHaveBeenCalledTimes(2);
+      expect(stub.mock.calls[0][1].members).toHaveLength(MAILCHIMP_BATCH_SIZE);
+      expect(stub.mock.calls[0][1].update_existing).toBe(false);
+      expect(result).toEqual(
+        expect.objectContaining({ added: MAILCHIMP_BATCH_SIZE - 2, rejectedAsInvalid: 1 }),
+      );
+      expect(result.failed).toBe(1 + 2);
+      expect(result.failures).toStrictEqual([
         { code: "ERROR_CONTACT_EXISTS", message: "<email> is already a list member" },
         { code: "429", message: "Too many requests" },
       ]);
     });
 
     it("does nothing without emails", async function () {
-      const stub = sinon.stub(mailchimp.lists, "batchListMembers");
-      expect(await addMembersInBatches([])).to.deep.include({ added: 0, failed: 0 });
-      expect(stub.called).to.be.false;
+      const stub = vi.spyOn(mailchimp.lists, "batchListMembers").mockReturnValue(undefined);
+      expect(await addMembersInBatches([])).toEqual(
+        expect.objectContaining({ added: 0, failed: 0 }),
+      );
+      expect(stub).not.toHaveBeenCalled();
     });
   });
 });

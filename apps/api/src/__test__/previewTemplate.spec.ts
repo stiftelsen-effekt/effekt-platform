@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -19,24 +18,24 @@ describe("Preview template databases", function () {
       "CREATE ALGORITHM=UNDEFINED DEFINER=`preview`@`%` SQL SECURITY DEFINER VIEW `Regrant_allocations` AS " +
       `select \`${TPL}\`.\`Donations\`.\`ID\` AS \`Donation_ID\` from \`${TPL}\`.\`Donations\``;
     const out = retarget(view, TPL, "preview_pr_12");
-    expect(out).to.not.include("DEFINER=");
-    expect(out).to.not.include(TPL);
-    expect(out).to.include("`preview_pr_12`.`Donations`.`ID`");
-    expect(out).to.include("SQL SECURITY DEFINER VIEW");
+    expect(out).not.toContain("DEFINER=");
+    expect(out).not.toContain(TPL);
+    expect(out).toContain("`preview_pr_12`.`Donations`.`ID`");
+    expect(out).toContain("SQL SECURITY DEFINER VIEW");
 
     const trigger =
       "CREATE DEFINER=`preview`@`%` TRIGGER `t` BEFORE INSERT ON `Donations` FOR EACH ROW SET NEW.x = 1";
-    expect(retarget(trigger, TPL, "preview_pr_12")).to.equal(
+    expect(retarget(trigger, TPL, "preview_pr_12")).toBe(
       "CREATE TRIGGER `t` BEFORE INSERT ON `Donations` FOR EACH ROW SET NEW.x = 1",
     );
   });
 
   it("only uses a template whose migrations all exist locally", function () {
     const local = new Set(["001_a", "002_b", "003_pr_only"]);
-    expect(migrationsFit(["001_a", "002_b"], local)).to.equal(true);
-    expect(migrationsFit(["001_a", "002_b", "004_newer_on_main"], local)).to.equal(false);
-    expect(migrationsFit(["001_a", "002_b"], local, true)).to.equal(false);
-    expect(migrationsFit(["001_a", "002_b", "003_pr_only"], local, true)).to.equal(true);
+    expect(migrationsFit(["001_a", "002_b"], local)).toBe(true);
+    expect(migrationsFit(["001_a", "002_b", "004_newer_on_main"], local)).toBe(false);
+    expect(migrationsFit(["001_a", "002_b"], local, true)).toBe(false);
+    expect(migrationsFit(["001_a", "002_b", "003_pr_only"], local, true)).toBe(true);
   });
 
   it("lists migration folders that contain a migration.sql", function () {
@@ -47,14 +46,14 @@ describe("Preview template databases", function () {
     writeFileSync(join(dir, "20260101_a", "migration.sql"), "");
     writeFileSync(join(dir, "20260102_b", "migration.sql"), "");
     writeFileSync(join(dir, "migration_lock.toml"), "");
-    expect([...localMigrations(dir)].sort()).to.deep.equal(["20260101_a", "20260102_b"]);
+    expect([...localMigrations(dir)].sort()).toStrictEqual(["20260101_a", "20260102_b"]);
   });
 
   it("accepts only strict template names", function () {
-    expect(SAFE_TEMPLATE_NAME.test(TPL)).to.equal(true);
-    expect(SAFE_TEMPLATE_NAME.test("preview_pr_12")).to.equal(false);
-    expect(SAFE_TEMPLATE_NAME.test("preview_tpl_0123456789ab_x`; DROP DATABASE y")).to.equal(false);
-    expect(SAFE_TEMPLATE_NAME.test("EffektDonasjonDB")).to.equal(false);
+    expect(SAFE_TEMPLATE_NAME.test(TPL)).toBe(true);
+    expect(SAFE_TEMPLATE_NAME.test("preview_pr_12")).toBe(false);
+    expect(SAFE_TEMPLATE_NAME.test("preview_tpl_0123456789ab_x`; DROP DATABASE y")).toBe(false);
+    expect(SAFE_TEMPLATE_NAME.test("EffektDonasjonDB")).toBe(false);
   });
 
   describe("CLI", function () {
@@ -79,21 +78,19 @@ describe("Preview template databases", function () {
     };
 
     it("refuses a seed key that isn't 12 hex characters", async function () {
-      expect(await fails(["find-template", "../../etc"])).to.match(/Invalid seed key/);
+      expect(await fails(["find-template", "../../etc"])).toMatch(/Invalid seed key/);
     });
 
     it("refuses to clone anything but a template database", async function () {
-      expect(await fails(["clone", "EffektDonasjonDB"])).to.match(/Not a template database/);
+      expect(await fails(["clone", "EffektDonasjonDB"])).toMatch(/Not a template database/);
     });
 
     it("refuses to mark a PR database as a template", async function () {
-      expect(await fails(["mark-template"])).to.match(/Not a template database/);
+      expect(await fails(["mark-template"])).toMatch(/Not a template database/);
     });
 
     it("still runs the startup guard first", async function () {
-      expect(await fails(["clone", TPL], env({ DB_NAME: "EffektDonasjonDB" }))).to.match(
-        /preview_/,
-      );
+      expect(await fails(["clone", TPL], env({ DB_NAME: "EffektDonasjonDB" }))).toMatch(/preview_/);
     });
   });
 });

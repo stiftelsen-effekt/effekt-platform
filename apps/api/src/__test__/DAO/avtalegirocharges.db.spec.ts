@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, afterEach, expect } from "vitest";
 import { DateTime } from "luxon";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
@@ -112,23 +111,23 @@ const KID_B = "990000000000022";
         "SELECT KID, DATE_FORMAT(due_date, '%Y-%m-%d') AS due, status, created FROM Avtalegiro_agreement_charges WHERE shipmentID = ? ORDER BY KID",
         [shipmentID],
       );
-      expect(rows.map((r) => [r.KID, r.due, r.status])).to.deep.equal([
+      expect(rows.map((r) => [r.KID, r.due, r.status])).toStrictEqual([
         [KID_A, "2026-11-05", "CLAIMED"],
         [KID_B, "2026-11-05", "CLAIMED"],
       ]);
-      expect(Math.abs(new Date(rows[0].created).getTime() - Date.now())).to.be.below(60_000);
+      expect(Math.abs(new Date(rows[0].created).getTime() - Date.now())).toBeLessThan(60_000);
 
       const november = await DAO.avtalegirocharges.getClaimedKIDsForMonth(
         DateTime.fromISO("2026-11-30"),
       );
-      expect([...november].filter((KID) => KID === KID_A || KID === KID_B).sort()).to.deep.equal([
+      expect([...november].filter((KID) => KID === KID_A || KID === KID_B).sort()).toStrictEqual([
         KID_A,
         KID_B,
       ]);
       const october = await DAO.avtalegirocharges.getClaimedKIDsForMonth(
         DateTime.fromISO("2026-10-31"),
       );
-      expect(october.has(KID_A)).to.be.false;
+      expect(october.has(KID_A)).toBe(false);
     });
 
     it("finds today's shipments for a due date, and supersedes them", async () => {
@@ -151,7 +150,7 @@ const KID_B = "990000000000022";
           DateTime.fromISO("2026-11-06"),
           generatedOn,
         ),
-      ).to.deep.equal([shipmentID]);
+      ).toStrictEqual([shipmentID]);
 
       await DAO.avtalegirocharges.supersedeShipments([shipmentID]);
 
@@ -160,11 +159,11 @@ const KID_B = "990000000000022";
           DateTime.fromISO("2026-11-06"),
           generatedOn,
         ),
-      ).to.deep.equal([]);
+      ).toStrictEqual([]);
       const claimed = await DAO.avtalegirocharges.getClaimedKIDsForMonth(
         DateTime.fromISO("2026-11-06"),
       );
-      expect(claimed.has(KID_A)).to.be.false;
+      expect(claimed.has(KID_A)).toBe(false);
     });
 
     it("lists open charges by KID with ISO due dates", async () => {
@@ -176,7 +175,7 @@ const KID_B = "990000000000022";
       );
 
       const open = await DAO.avtalegirocharges.getOpenChargesByKID(KID_A);
-      expect(open.map((c) => c.dueDate)).to.deep.equal(["2026-11-20"]);
+      expect(open.map((c) => c.dueDate)).toStrictEqual(["2026-11-20"]);
     });
 
     it("counts only shipments sent before the first recorded charge as untracked", async () => {
@@ -184,7 +183,7 @@ const KID_B = "990000000000022";
       const [[{ minShipment }]] = await pool.query<any[]>(
         "SELECT MIN(shipmentID) AS minShipment FROM Avtalegiro_agreement_charges",
       );
-      expect(minShipment, "no other charges in the test database").to.equal(null);
+      expect(minShipment, "no other charges in the test database").toBe(null);
 
       const legacy = await addShipment(`${day} 10:00:00`);
       const tracked = await addShipment(`${day} 10:01:00`);
@@ -198,7 +197,7 @@ const KID_B = "990000000000022";
 
       expect(
         await DAO.avtalegirocharges.getUntrackedShipmentIDs(DateTime.fromISO(day)),
-      ).to.deep.equal([legacy]);
+      ).toStrictEqual([legacy]);
     });
 
     it("leaves agreements claimed on another date this month out of the missing list", async () => {
@@ -212,15 +211,15 @@ const KID_B = "990000000000022";
 
       const missing = await DAO.avtalegiroagreements.getMissingForDate(new Date(2026, 10, 20));
       const KIDs = missing.map((row) => row.KID);
-      expect(KIDs).to.include(KID_B);
-      expect(KIDs).to.not.include(KID_A);
+      expect(KIDs).toContain(KID_B);
+      expect(KIDs).not.toContain(KID_A);
 
       // A superseded claim doesn't count
       await DAO.avtalegirocharges.supersedeShipments([shipmentID]);
       const afterSupersede = await DAO.avtalegiroagreements.getMissingForDate(
         new Date(2026, 10, 20),
       );
-      expect(afterSupersede.map((row) => row.KID)).to.include(KID_A);
+      expect(afterSupersede.map((row) => row.KID)).toContain(KID_A);
     });
     it("takes a cancelled claim through deletion, and leaves the deletion shipment tracked", async () => {
       const shipmentID = await addShipment();
@@ -234,12 +233,12 @@ const KID_B = "990000000000022";
         KID_A,
         DateTime.fromISO("2026-11-16T10:00:00", { zone: "Europe/Oslo" }),
       );
-      expect(upcoming.map((c) => [c.KID, c.amount, c.dueDate])).to.deep.equal([
+      expect(upcoming.map((c) => [c.KID, c.amount, c.dueDate])).toStrictEqual([
         [KID_A, 50000, "2026-11-20"],
       ]);
 
       await DAO.avtalegirocharges.requestDeletions(upcoming.map((c) => c.id));
-      expect((await DAO.avtalegirocharges.getDeletionRequests()).map((c) => c.id)).to.include(
+      expect((await DAO.avtalegirocharges.getDeletionRequests()).map((c) => c.id)).toContain(
         upcoming[0].id,
       );
       // A deletion request is no longer the month's claim
@@ -247,11 +246,11 @@ const KID_B = "990000000000022";
         (await DAO.avtalegirocharges.getClaimedKIDsForMonth(DateTime.fromISO("2026-11-20"))).has(
           KID_A,
         ),
-      ).to.be.false;
+      ).toBe(false);
 
       const deletionShipmentID = await addShipment();
       await DAO.avtalegirocharges.markDeletionsSent([upcoming[0].id], deletionShipmentID);
-      expect(await DAO.avtalegirocharges.getSentDeletionShipmentIDs()).to.include(
+      expect(await DAO.avtalegirocharges.getSentDeletionShipmentIDs()).toContain(
         deletionShipmentID,
       );
 
@@ -261,15 +260,15 @@ const KID_B = "990000000000022";
         [deletionShipmentID],
       );
       const untracked = await DAO.avtalegirocharges.getUntrackedShipmentIDs(DateTime.fromISO(day));
-      expect(untracked).to.not.include(deletionShipmentID);
-      expect(untracked).to.not.include(shipmentID);
+      expect(untracked).not.toContain(deletionShipmentID);
+      expect(untracked).not.toContain(shipmentID);
 
       await DAO.avtalegirocharges.confirmDeletionShipment(deletionShipmentID);
       const [[row]] = await pool.query<any[]>(
         "SELECT status, deletion_shipmentID FROM Avtalegiro_agreement_charges WHERE ID = ?",
         [upcoming[0].id],
       );
-      expect(row).to.deep.equal({ status: "DELETED", deletion_shipmentID: deletionShipmentID });
+      expect(row).toStrictEqual({ status: "DELETED", deletion_shipmentID: deletionShipmentID });
 
       // The agreement is cancelled; its deleted claim isn't missing
       await pool.query(
@@ -281,7 +280,7 @@ const KID_B = "990000000000022";
         "UPDATE Avtalegiro_agreements SET active = 1, cancelled = NULL WHERE ID = ?",
         [agreementA],
       );
-      expect(missing.map((r) => r.KID)).to.not.include(KID_A);
+      expect(missing.map((r) => r.KID)).not.toContain(KID_A);
     });
   },
 );

@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import { generateKeyPairSync, sign, KeyObject } from "crypto";
 import express from "express";
 import http from "http";
@@ -101,9 +100,9 @@ describe("JWT issuer checks", function () {
 
   it("reads the issuer only from well-formed bearer tokens", function () {
     const token = createToken(privateKey, { iss: customDomainIssuer });
-    expect(getUnverifiedIssuer(`Bearer ${token}`)).to.equal(customDomainIssuer);
-    expect(getUnverifiedIssuer(undefined)).to.equal(undefined);
-    expect(getUnverifiedIssuer("Bearer not-a-jwt")).to.equal(undefined);
-    expect(getUnverifiedIssuer("Basic abc.def.ghi")).to.equal(undefined);
+    expect(getUnverifiedIssuer(`Bearer ${token}`)).toBe(customDomainIssuer);
+    expect(getUnverifiedIssuer(undefined)).toBe(undefined);
+    expect(getUnverifiedIssuer("Bearer not-a-jwt")).toBe(undefined);
+    expect(getUnverifiedIssuer("Basic abc.def.ghi")).toBe(undefined);
   });
 });

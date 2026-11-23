@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
@@ -34,10 +33,10 @@ const bob = as("bob@example.org");
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: RegExp) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code, err.message).to.equal(code);
-    if (message) expect(err.message).to.match(message);
+    expect(err.code, err.message).toBe(code);
+    if (message) expect(err.message).toMatch(message);
   }
 };
 
@@ -210,12 +209,12 @@ const NOPAYEE = 7;
 
   describe("balances", () => {
     it("sums allocations dated on or before the day, excluding payments 15 and 16", async () => {
-      expect((await balanceOf("2026-03-31", AGF)).balance).to.equal("1007.00");
-      expect((await balanceOf("2026-04-01", AGF)).balance).to.equal("1018.00");
-      expect((await balanceOf("2026-03-31", TCF)).allocations).to.equal("1000.00");
-      expect((await balanceOf("2026-03-31", MC)).allocations).to.equal("1000.00");
-      expect((await balanceOf("2026-03-31", DRIFT)).balance).to.equal("100.00");
-      expect((await balanceOf("2026-01-09", AGF)).balance).to.equal("0.00");
+      expect((await balanceOf("2026-03-31", AGF)).balance).toBe("1007.00");
+      expect((await balanceOf("2026-04-01", AGF)).balance).toBe("1018.00");
+      expect((await balanceOf("2026-03-31", TCF)).allocations).toBe("1000.00");
+      expect((await balanceOf("2026-03-31", MC)).allocations).toBe("1000.00");
+      expect((await balanceOf("2026-03-31", DRIFT)).balance).toBe("100.00");
+      expect((await balanceOf("2026-01-09", AGF)).balance).toBe("0.00");
     });
 
     it("computes the same allocations as the Regrant_allocations view", async () => {
@@ -229,16 +228,16 @@ const NOPAYEE = 7;
         const fromQuery = rows
           .filter((r) => r.projectId === null && r.allocations !== "0.00")
           .map((r) => ({ org: r.organizationId, amount: r.allocations }));
-        expect(fromQuery).to.deep.equal(view.map((v: any) => ({ org: v.org, amount: v.amount })));
+        expect(fromQuery).toStrictEqual(view.map((v: any) => ({ org: v.org, amount: v.amount })));
       }
     });
 
     it("reports donations without a split as Unassigned", async () => {
-      expect(await DAO.regranting.getUnassigned("2026-03-31")).to.deep.equal({
+      expect(await DAO.regranting.getUnassigned("2026-03-31")).toStrictEqual({
         amount: "250.00",
         donationCount: 1,
       });
-      expect((await DAO.regranting.getUnassigned("2026-03-05")).donationCount).to.equal(0);
+      expect((await DAO.regranting.getUnassigned("2026-03-05")).donationCount).toBe(0);
     });
 
     it("counts adjustments by effective_at, except fronted ones", async () => {
@@ -273,34 +272,34 @@ const NOPAYEE = 7;
       });
 
       const agf = await balanceOf("2026-03-31", AGF);
-      expect(agf.opening).to.equal("200.00");
-      expect(agf.balance).to.equal("1207.00");
-      expect((await balanceOf("2026-03-19", TCF)).balance).to.equal("1000.00");
-      expect((await balanceOf("2026-03-20", TCF)).balance).to.equal("950.00");
-      expect((await balanceOf("2026-04-10", TCF)).balance).to.equal("1950.00");
+      expect(agf.opening).toBe("200.00");
+      expect(agf.balance).toBe("1207.00");
+      expect((await balanceOf("2026-03-19", TCF)).balance).toBe("1000.00");
+      expect((await balanceOf("2026-03-20", TCF)).balance).toBe("950.00");
+      expect((await balanceOf("2026-04-10", TCF)).balance).toBe("1950.00");
       // project vs unrestricted
-      expect((await balanceOf("2026-03-31", GD, water)).balance).to.equal("75.00");
-      expect((await balanceOf("2026-03-31", GD, null)).balance).to.equal("3000.00");
+      expect((await balanceOf("2026-03-31", GD, water)).balance).toBe("75.00");
+      expect((await balanceOf("2026-03-31", GD, null)).balance).toBe("3000.00");
     });
 
     it("lists recipients on the Balances page with projects, funds and inflow", async () => {
       const view = await alice.balances.list({ at: "2026-03-31" });
       const gd = view.recipients.find((r) => r.organizationId === GD)!;
-      expect(gd.total.balance).to.equal("3075.00");
-      expect(gd.unrestricted.balance).to.equal("3000.00");
-      expect(gd.projects.map((p) => [p.name, p.figures.balance])).to.deep.equal([
+      expect(gd.total.balance).toBe("3075.00");
+      expect(gd.unrestricted.balance).toBe("3000.00");
+      expect(gd.projects.map((p) => [p.name, p.figures.balance])).toStrictEqual([
         ["Water", "75.00"],
       ]);
-      expect(gd.payee?.name).to.equal("GiveDirectly");
+      expect(gd.payee?.name).toBe("GiveDirectly");
       const fund = view.recipients.find((r) => r.organizationId === GEBF)!;
-      expect(fund.isFund).to.be.true;
+      expect(fund.isFund).toBe(true);
       // 5000 arrived 2026-03-01: 30 days old on 03-31 (not longer), too old by 04-15
-      expect(fund.heldTooLong).to.equal("0.00");
+      expect(fund.heldTooLong).toBe("0.00");
       const later = await alice.balances.list({ at: "2026-04-15", organizationIds: [GEBF] });
-      expect(later.recipients[0].heldTooLong).to.equal("5000.00");
-      expect(view.unassigned.amount).to.equal("250.00");
-      expect(view.lastRound).to.equal(null);
-      expect(gd.inflowSinceLastRound).to.equal("3000.00");
+      expect(later.recipients[0].heldTooLong).toBe("5000.00");
+      expect(view.unassigned.amount).toBe("250.00");
+      expect(view.lastRound).toBe(null);
+      expect(gd.inflowSinceLastRound).toBe("3000.00");
     });
   });
 
@@ -315,8 +314,8 @@ const NOPAYEE = 7;
         propose: false,
       });
       r1 = created.round.id;
-      expect(created.round.status).to.equal("draft");
-      expect(created.round.createdBy).to.equal("alice@example.org");
+      expect(created.round.status).toBe("draft");
+      expect(created.round.createdBy).toBe("alice@example.org");
 
       await alice.fundGrants.create({
         roundId: r1,
@@ -331,42 +330,47 @@ const NOPAYEE = 7;
 
       const builder = await alice.rounds.propose({ id: r1 });
       const gw = builder.transfers.find((t) => t.payee.id === givewell)!;
-      expect(gw.lines.map((l) => [l.organizationId, l.projectId, l.amountNok])).to.deep.equal([
+      expect(gw.lines.map((l) => [l.organizationId, l.projectId, l.amountNok])).toStrictEqual([
         [AGF, null, "2207.00"],
         [TCF, null, "950.00"],
         [MC, null, "1000.00"],
       ]);
-      expect(gw.amountNok).to.equal("4157.00");
+      expect(gw.amountNok).toBe("4157.00");
       const gdTransfer = builder.transfers.find((t) => t.payee.id === gdPayee)!;
-      expect(gdTransfer.lines.map((l) => [l.projectId, l.amountNok])).to.deep.equal([
+      expect(gdTransfer.lines.map((l) => [l.projectId, l.amountNok])).toStrictEqual([
         [null, "3000.00"],
         [moms, "2000.00"],
         [water, "75.00"],
       ]);
       // Drift is held, own funds are never paid, NOPAYEE has no payee
-      expect(builder.transfers.some((t) => t.payee.id === ops)).to.be.false;
-      expect(builder.transfers.flatMap((t) => t.lines).some((l) => l.organizationId === GEBF)).to.be
-        .false;
+      expect(builder.transfers.some((t) => t.payee.id === ops)).toBe(false);
+      expect(builder.transfers.flatMap((t) => t.lines).some((l) => l.organizationId === GEBF)).toBe(
+        false,
+      );
       const drift = builder.recipients.find((r) => r.organizationId === DRIFT)!;
-      expect(drift.totals.available).to.equal("100.00");
-      expect(drift.totals.proposed).to.equal("0.00");
-      expect(drift.hold?.reason).to.equal("Paid with salaries");
+      expect(drift.totals.available).toBe("100.00");
+      expect(drift.totals.proposed).toBe("0.00");
+      expect(drift.hold?.reason).toBe("Paid with salaries");
 
       const fund = builder.funds.find((f) => f.organizationId === GEBF)!;
-      expect([fund.availableToGrant, fund.granted, fund.remaining]).to.deep.equal([
+      expect([fund.availableToGrant, fund.granted, fund.remaining]).toStrictEqual([
         "5000.00",
         "3000.00",
         "2000.00",
       ]);
 
-      expect(
-        builder.issues.map((i) => [i.severity, i.code, i.organizationId]),
-      ).to.have.deep.members([
-        ["warning", "recipient_without_payee", NOPAYEE],
-        ["warning", "unassigned_balance", null],
-      ]);
+      const issues = builder.issues.map((i) => [i.severity, i.code, i.organizationId]);
+      expect(issues).toHaveLength(2);
+      expect(issues).toEqual(
+        expect.arrayContaining([
+          ["warning", "recipient_without_payee", NOPAYEE],
+          ["warning", "unassigned_balance", null],
+        ]),
+      );
       const groups = builder.payeeGroups.map((g) => g.payee?.name ?? null);
-      expect(groups).to.include.members(["GiveWell", "GiveDirectly", "Driftskonto", null]);
+      expect(groups).toEqual(
+        expect.arrayContaining(["GiveWell", "GiveDirectly", "Driftskonto", null]),
+      );
     });
 
     it("rejects own funds on transfer lines and projects of another recipient", async () => {
@@ -394,40 +398,44 @@ const NOPAYEE = 7;
       const gw = builder.transfers.find((t) => t.payee.id === givewell)!;
       await alice.transfers.update({ id: gw.id, amountNok: 4000 });
       const issues = await alice.rounds.validate({ id: r1 });
-      expect(issues.find((i) => i.code === "transfer_lines_mismatch")?.transferId).to.equal(gw.id);
+      expect(issues.find((i) => i.code === "transfer_lines_mismatch")?.transferId).toBe(gw.id);
       const result = await bob.rounds.approve({ id: r1 });
-      expect(result.approved).to.be.false;
-      expect(result.round.status).to.equal("draft");
+      expect(result.approved).toBe(false);
+      expect(result.round.status).toBe("draft");
       await alice.transfers.update({ id: gw.id, amountNok: 4157 });
     });
 
     it("needs a second person to approve, then snapshots and commits", async () => {
       await expectTrpcError(alice.rounds.approve({ id: r1 }), "FORBIDDEN");
       const result = await bob.rounds.approve({ id: r1 });
-      expect(result.approved).to.be.true;
-      expect(result.round.status).to.equal("approved");
-      expect(result.round.approvedBy).to.equal("bob@example.org");
+      expect(result.approved).toBe(true);
+      expect(result.round.status).toBe("approved");
+      expect(result.round.approvedBy).toBe("bob@example.org");
 
       const detail = await alice.rounds.get({ id: r1 });
-      expect(detail.fundGrants[0].approvedBy).to.equal("bob@example.org");
+      expect(detail.fundGrants[0].approvedBy).toBe("bob@example.org");
       const agf = detail.snapshot.find((s) => s.organizationId === AGF && s.projectId === null)!;
-      expect(agf).to.include({
-        balanceAtCutoff: "1207.00",
-        fundGrants: "1000.00",
-        inRound: "2207.00",
-        includedDirect: true,
-      });
+      expect(agf).toEqual(
+        expect.objectContaining({
+          balanceAtCutoff: "1207.00",
+          fundGrants: "1000.00",
+          inRound: "2207.00",
+          includedDirect: true,
+        }),
+      );
       const fundSnap = detail.snapshot.find((s) => s.organizationId === GEBF)!;
-      expect(fundSnap).to.include({ fundGrants: "-3000.00", includedDirect: false });
+      expect(fundSnap).toEqual(
+        expect.objectContaining({ fundGrants: "-3000.00", includedDirect: false }),
+      );
 
       // Approved: fund grants count from the cutoff, transfer lines are committed, not paid
       const agfAfter = await balanceOf("2026-04-30", AGF);
-      expect(agfAfter.fundGrantsIn).to.equal("1000.00");
-      expect(agfAfter.balance).to.equal("2218.00");
-      expect(agfAfter.committed).to.equal("2207.00");
-      expect(agfAfter.available).to.equal("11.00");
-      expect((await balanceOf("2026-03-31", GEBF)).balance).to.equal("2000.00");
-      expect((await balanceOf("2026-03-31", GD, moms)).balance).to.equal("2000.00");
+      expect(agfAfter.fundGrantsIn).toBe("1000.00");
+      expect(agfAfter.balance).toBe("2218.00");
+      expect(agfAfter.committed).toBe("2207.00");
+      expect(agfAfter.available).toBe("11.00");
+      expect((await balanceOf("2026-03-31", GEBF)).balance).toBe("2000.00");
+      expect((await balanceOf("2026-03-31", GD, moms)).balance).toBe("2000.00");
     });
 
     it("locks an approved round", async () => {
@@ -458,24 +466,26 @@ const NOPAYEE = 7;
       await alice.rounds.markPaid({ id: r1 });
 
       const before = await balanceOf("2026-04-19", AGF);
-      expect(before.transfers).to.equal("0.00");
-      expect(before.committed).to.equal("2207.00"); // paid after the date
+      expect(before.transfers).toBe("0.00");
+      expect(before.committed).toBe("2207.00"); // paid after the date
       const after = await balanceOf("2026-04-20", AGF);
-      expect(after.transfers).to.equal("-2207.00");
-      expect(after.balance).to.equal("11.00");
-      expect(after.committed).to.equal("0.00");
+      expect(after.transfers).toBe("-2207.00");
+      expect(after.balance).toBe("11.00");
+      expect(after.committed).toBe("0.00");
       // bank fees are operations' cost
-      expect((await balanceOf("2026-04-20", TCF)).balance).to.equal("1000.00");
-      expect((await balanceOf("2026-04-20", GD, moms)).balance).to.equal("0.00");
+      expect((await balanceOf("2026-04-20", TCF)).balance).toBe("1000.00");
+      expect((await balanceOf("2026-04-20", GD, moms)).balance).toBe("0.00");
 
       const view = await alice.balances.list({ at: "2026-04-30", organizationIds: [AGF] });
-      expect(view.lastRound?.id).to.equal(r1);
-      expect(view.recipients[0].lastTransfer).to.include({
-        roundId: r1,
-        amountNok: "2207.00",
-        paidAt: "2026-04-20",
-      });
-      expect(view.recipients[0].inflowSinceLastRound).to.equal("11.00");
+      expect(view.lastRound?.id).toBe(r1);
+      expect(view.recipients[0].lastTransfer).toEqual(
+        expect.objectContaining({
+          roundId: r1,
+          amountNok: "2207.00",
+          paidAt: "2026-04-20",
+        }),
+      );
+      expect(view.recipients[0].inflowSinceLastRound).toBe("11.00");
     });
 
     it("never edits a paid round", async () => {
@@ -515,11 +525,13 @@ const NOPAYEE = 7;
       const lines = created.transfers.flatMap((t) =>
         t.lines.map((l) => [t.payee.id, l.organizationId, l.amountNok]),
       );
-      expect(lines).to.deep.equal([[givewell, MC, "10000.00"]]);
-      expect(created.donations[0]).to.include({ donationId: donation.major, inScope: true });
+      expect(lines).toStrictEqual([[givewell, MC, "10000.00"]]);
+      expect(created.donations[0]).toEqual(
+        expect.objectContaining({ donationId: donation.major, inScope: true }),
+      );
       const mc = created.recipients.find((r) => r.organizationId === MC)!;
-      expect(mc.chosenAllocations).to.equal("10000.00");
-      expect(mc.includeDirect).to.be.false;
+      expect(mc.chosenAllocations).toBe("10000.00");
+      expect(mc.includeDirect).toBe(false);
 
       await alice.rounds.approve({ id: r2 });
       const t = (await alice.rounds.get({ id: r2 })).transfers[0];
@@ -533,7 +545,7 @@ const NOPAYEE = 7;
         kind: "extraordinary",
         cutoff: "2026-05-10",
       });
-      expect(rf.transfers).to.have.length(0); // extraordinary: nothing by default
+      expect(rf.transfers).toHaveLength(0); // extraordinary: nothing by default
       await alice.transfers.create({
         roundId: rf.round.id,
         payeeId: givewell,
@@ -548,18 +560,16 @@ const NOPAYEE = 7;
         roundId: rf.round.id,
       });
       const builder = await alice.rounds.builder({ id: rf.round.id });
-      expect(builder.issues.find((i) => i.code === "negative_balance")?.organizationId).to.equal(
-        MC,
-      );
+      expect(builder.issues.find((i) => i.code === "negative_balance")?.organizationId).toBe(MC);
       expect(
         builder.recipients.find((r) => r.organizationId === MC)!.frontedOutstanding,
-      ).to.have.length(1);
+      ).toHaveLength(1);
       await bob.rounds.approve({ id: rf.round.id });
       const t = (await alice.rounds.get({ id: rf.round.id })).transfers[0];
       await alice.transfers.recordPayment({ id: t.id, paidAt: "2026-05-12" });
       await alice.rounds.markPaid({ id: rf.round.id });
 
-      expect((await balanceOf("2026-05-31", MC)).balance).to.equal("-4000.00");
+      expect((await balanceOf("2026-05-31", MC)).balance).toBe("-4000.00");
 
       // The gift arrives and is linked to the fronted entry
       const r = await sql(
@@ -572,9 +582,9 @@ const NOPAYEE = 7;
         id: fronted.id,
         donationId: donation.fronted,
       });
-      expect(linked.linkedDonationId).to.equal(donation.fronted);
-      expect(linked.affectsBalance).to.be.false;
-      expect((await balanceOf("2026-06-01", MC)).balance).to.equal("0.00");
+      expect(linked.linkedDonationId).toBe(donation.fronted);
+      expect(linked.affectsBalance).toBe(false);
+      expect((await balanceOf("2026-06-01", MC)).balance).toBe("0.00");
     });
 
     it("the next regular round doesn't pay the major donor's or the fronted gift again", async () => {
@@ -584,11 +594,11 @@ const NOPAYEE = 7;
         cutoff: "2026-06-30",
       });
       const mc = r3.recipients.find((r) => r.organizationId === MC);
-      expect(mc?.totals.available ?? "0.00").to.equal("0.00");
-      expect(r3.transfers.flatMap((t) => t.lines).some((l) => l.organizationId === MC)).to.be.false;
+      expect(mc?.totals.available ?? "0.00").toBe("0.00");
+      expect(r3.transfers.flatMap((t) => t.lines).some((l) => l.organizationId === MC)).toBe(false);
       // what is left: AGF's 11 from 1 April, TCF's own_funds 1000
       const gw = r3.transfers.find((t) => t.payee.id === givewell)!;
-      expect(gw.lines.map((l) => [l.organizationId, l.amountNok])).to.deep.equal([
+      expect(gw.lines.map((l) => [l.organizationId, l.amountNok])).toStrictEqual([
         [AGF, "11.00"],
         [TCF, "1000.00"],
       ]);
@@ -603,9 +613,9 @@ const NOPAYEE = 7;
         cutoff: "2026-04-30",
       });
       const mc = late.recipients.find((r) => r.organizationId === MC)!;
-      expect(mc.totals.balanceAtCutoff).to.equal("10000.00");
-      expect(mc.totals.committed).to.equal("14000.00");
-      expect(mc.totals.proposed).to.equal("0.00");
+      expect(mc.totals.balanceAtCutoff).toBe("10000.00");
+      expect(mc.totals.committed).toBe("14000.00");
+      expect(mc.totals.proposed).toBe("0.00");
       await alice.rounds.delete({ id: late.round.id });
     });
 
@@ -616,13 +626,13 @@ const NOPAYEE = 7;
         cutoff: "2026-06-30",
         donationIds: [donation.major, donation.fronted],
       });
-      expect(again.transfers).to.have.length(0);
-      expect(again.donations.map((d) => [d.donationId, d.excludedReason])).to.deep.equal([
+      expect(again.transfers).toHaveLength(0);
+      expect(again.donations.map((d) => [d.donationId, d.excludedReason])).toStrictEqual([
         [donation.major, "passed_on"],
         [donation.fronted, "passed_on"],
       ]);
-      expect(again.issues.filter((i) => i.code === "donation_already_passed_on")).to.have.length(2);
-      expect((await bob.rounds.approve({ id: again.round.id })).approved).to.be.false;
+      expect(again.issues.filter((i) => i.code === "donation_already_passed_on")).toHaveLength(2);
+      expect((await bob.rounds.approve({ id: again.round.id })).approved).toBe(false);
       await alice.rounds.delete({ id: again.round.id });
     });
   });
@@ -639,8 +649,8 @@ const NOPAYEE = 7;
         cutoff: "2026-08-31",
       });
       const mcTransfer = r.transfers.find((t) => t.payee.id === mcDirect)!;
-      expect(mcTransfer.currency).to.equal("EUR");
-      expect(mcTransfer.lines.map((l) => [l.organizationId, l.amountNok])).to.deep.equal([
+      expect(mcTransfer.currency).toBe("EUR");
+      expect(mcTransfer.lines.map((l) => [l.organizationId, l.amountNok])).toStrictEqual([
         [MC, "600.00"],
       ]);
       await alice.rounds.delete({ id: r.round.id });
@@ -652,7 +662,7 @@ const NOPAYEE = 7;
         kind: "fund_grant",
         cutoff: "2026-06-30",
       });
-      expect(r.transfers).to.have.length(0);
+      expect(r.transfers).toHaveLength(0);
       await alice.fundGrants.create({
         roundId: r.round.id,
         fundId: GEBF,
@@ -662,20 +672,22 @@ const NOPAYEE = 7;
       let b = await alice.rounds.propose({ id: r.round.id });
       expect(
         b.transfers.flatMap((t) => t.lines.map((l) => [l.organizationId, l.amountNok])),
-      ).to.deep.equal([[GD, "500.00"]]);
+      ).toStrictEqual([[GD, "500.00"]]);
       await alice.rounds.setIncludeDirect({
         roundId: r.round.id,
         organizationId: TCF,
         includeDirect: true,
       });
       b = await alice.rounds.builder({ id: r.round.id });
-      expect(b.recipients.find((x) => x.organizationId === TCF)!.includeDirectOverride).to.be.true;
-      expect(
-        b.transfers.flatMap((t) => t.lines.map((l) => [l.organizationId, l.amountNok])),
-      ).to.have.deep.members([
-        [GD, "500.00"],
-        [TCF, "1000.00"],
-      ]);
+      expect(b.recipients.find((x) => x.organizationId === TCF)!.includeDirectOverride).toBe(true);
+      const lines = b.transfers.flatMap((t) => t.lines.map((l) => [l.organizationId, l.amountNok]));
+      expect(lines).toHaveLength(2);
+      expect(lines).toEqual(
+        expect.arrayContaining([
+          [GD, "500.00"],
+          [TCF, "1000.00"],
+        ]),
+      );
 
       // A grant over the fund's balance (2000 left) blocks approval
       await alice.fundGrants.create({
@@ -685,10 +697,10 @@ const NOPAYEE = 7;
         lines: [{ organizationId: AGF, projectId: null, amount: 1600 }],
       });
       const issues = await alice.rounds.validate({ id: r.round.id });
-      expect(issues.find((i) => i.code === "fund_grant_exceeds_balance")?.organizationId).to.equal(
+      expect(issues.find((i) => i.code === "fund_grant_exceeds_balance")?.organizationId).toBe(
         GEBF,
       );
-      expect((await bob.rounds.approve({ id: r.round.id })).approved).to.be.false;
+      expect((await bob.rounds.approve({ id: r.round.id })).approved).toBe(false);
       await expectTrpcError(
         alice.fundGrants.create({
           roundId: r.round.id,
@@ -710,10 +722,8 @@ const NOPAYEE = 7;
         minTransfer: 500,
       });
       const lines = r.transfers.flatMap((t) => t.lines.map((l) => [l.organizationId, l.amountNok]));
-      expect(lines).to.deep.equal([[TCF, "1000.00"]]); // AGF's 11 stays
-      expect(r.recipients.find((x) => x.organizationId === AGF)!.totals.carriesOver).to.equal(
-        "11.00",
-      );
+      expect(lines).toStrictEqual([[TCF, "1000.00"]]); // AGF's 11 stays
+      expect(r.recipients.find((x) => x.organizationId === AGF)!.totals.carriesOver).toBe("11.00");
       await alice.rounds.delete({ id: r.round.id });
     });
 
@@ -732,10 +742,10 @@ const NOPAYEE = 7;
         from: "2026-01-01",
         to: "2026-06-30",
       });
-      expect(s.openingBalance).to.equal("0.00");
+      expect(s.openingBalance).toBe("0.00");
       expect(
         s.entries.map((e) => [e.date, e.kind, e.amount, e.affectsBalance, e.balanceAfter]),
-      ).to.deep.equal([
+      ).toStrictEqual([
         ["2026-02-15", "allocations", "1000.00", true, "1000.00"],
         ["2026-04-15", "allocations", "10000.00", true, "11000.00"],
         ["2026-04-20", "transfer", "-1000.00", true, "10000.00"],
@@ -744,14 +754,14 @@ const NOPAYEE = 7;
         ["2026-05-12", "transfer", "-4000.00", true, "-4000.00"],
         ["2026-06-01", "allocations", "4000.00", true, "0.00"],
       ]);
-      expect(s.closingBalance).to.equal("0.00");
+      expect(s.closingBalance).toBe("0.00");
 
       const fund = await alice.statements.recipient({
         organizationId: GEBF,
         from: "2026-03-01",
         to: "2026-03-31",
       });
-      expect(fund.entries.map((e) => [e.kind, e.amount, e.counterpartName])).to.deep.equal([
+      expect(fund.entries.map((e) => [e.kind, e.amount, e.counterpartName])).toStrictEqual([
         ["allocations", "5000.00", null],
         ["fund_grant_out", "-2000.00", "GiveDirectly"],
         ["fund_grant_out", "-1000.00", "GiveWell All Grants Fund"],
@@ -760,12 +770,12 @@ const NOPAYEE = 7;
 
     it("shows a project's lines", async () => {
       const page = await alice.projects.get({ id: moms });
-      expect(page.project.organizationName).to.equal("GiveDirectly");
-      expect(page.fundGrantLines.map((l) => l.amount)).to.deep.equal(["2000.00"]);
-      expect(page.transferLines.map((l) => [l.amountNok, l.roundStatus])).to.deep.equal([
+      expect(page.project.organizationName).toBe("GiveDirectly");
+      expect(page.fundGrantLines.map((l) => l.amount)).toStrictEqual(["2000.00"]);
+      expect(page.transferLines.map((l) => [l.amountNok, l.roundStatus])).toStrictEqual([
         ["2000.00", "paid"],
       ]);
-      expect(page.figures.balance).to.equal("0.00");
+      expect(page.figures.balance).toBe("0.00");
       await expectTrpcError(alice.projects.delete({ id: moms }), "CONFLICT");
     });
   });
@@ -799,7 +809,7 @@ const NOPAYEE = 7;
 
     it("an earmark in a draft shows in the builder but doesn't move balances", async () => {
       const before = await alice.balances.list({ at: Q3, organizationIds: [GD] });
-      expect(before.recipients[0].unrestricted.balance).to.equal("5000.00");
+      expect(before.recipients[0].unrestricted.balance).toBe("5000.00");
 
       draft = (await alice.rounds.create({ name: "Q3 2026", kind: "regular", cutoff: Q3 })).round
         .id;
@@ -810,19 +820,19 @@ const NOPAYEE = 7;
         amount: 2000,
         note: "Agreement W-1",
       });
-      expect(gdLines(b)).to.deep.equal([
+      expect(gdLines(b)).toStrictEqual([
         [null, "5000.00", "-2000.00", "3000.00", "3000.00"],
         [water, "0.00", "2000.00", "2000.00", "2000.00"],
       ]);
-      expect(gdTransferLines(b)).to.deep.equal([
+      expect(gdTransferLines(b)).toStrictEqual([
         [null, "3000.00"],
         [water, "2000.00"],
       ]);
-      expect(b.recipients.find((r) => r.organizationId === GD)!.inRound).to.be.true;
+      expect(b.recipients.find((r) => r.organizationId === GD)!.inRound).toBe(true);
 
       const after = await alice.balances.list({ at: Q3, organizationIds: [GD] });
-      expect(after.recipients).to.deep.equal(before.recipients);
-      expect((await balanceOf("2026-12-31", GD, water)).balance).to.equal("0.00");
+      expect(after.recipients).toStrictEqual(before.recipients);
+      expect((await balanceOf("2026-12-31", GD, water)).balance).toBe("0.00");
 
       const adjustments = await alice.adjustments.list({ roundId: draft });
       earmarkIds = adjustments.map((a) => a.id);
@@ -837,26 +847,28 @@ const NOPAYEE = 7;
             a.createdBy,
           ])
           .sort((x, y) => Number(x[1]) - Number(y[1])),
-      ).to.deep.equal([
+      ).toStrictEqual([
         [null, "-2000.00", Q3, true, false, "bob@example.org"],
         [water, "2000.00", Q3, true, false, "bob@example.org"],
       ]);
-      expect(adjustments[0].pairedAdjustmentId).to.equal(adjustments[1].id);
-      expect(adjustments[1].pairedAdjustmentId).to.equal(adjustments[0].id);
-      expect(adjustments[0].reason).to.equal("Earmarked for Water in Q3 2026: Agreement W-1");
+      expect(adjustments[0].pairedAdjustmentId).toBe(adjustments[1].id);
+      expect(adjustments[1].pairedAdjustmentId).toBe(adjustments[0].id);
+      expect(adjustments[0].reason).toBe("Earmarked for Water in Q3 2026: Agreement W-1");
 
       const statement = await alice.statements.recipient({
         organizationId: GD,
         from: "2026-09-01",
         to: Q3,
       });
-      expect(
-        statement.entries.map((e) => [e.kind, e.amount, e.pending, e.balanceAfter]),
-      ).to.have.deep.members([
-        ["allocations", "5000.00", false, "5000.00"],
-        ["adjustment", "-2000.00", true, "5000.00"],
-        ["adjustment", "2000.00", true, "5000.00"],
-      ]);
+      const entries = statement.entries.map((e) => [e.kind, e.amount, e.pending, e.balanceAfter]);
+      expect(entries).toHaveLength(3);
+      expect(entries).toEqual(
+        expect.arrayContaining([
+          ["allocations", "5000.00", false, "5000.00"],
+          ["adjustment", "-2000.00", true, "5000.00"],
+          ["adjustment", "2000.00", true, "5000.00"],
+        ]),
+      );
     });
 
     it("an earmark can't take more than the unrestricted available", async () => {
@@ -881,7 +893,7 @@ const NOPAYEE = 7;
       await alice.rounds.update({ id: draft, cutoff: "2026-09-29" });
       expect(
         (await alice.adjustments.list({ roundId: draft })).map((a) => a.effectiveAt),
-      ).to.deep.equal(["2026-09-29", "2026-09-29"]);
+      ).toStrictEqual(["2026-09-29", "2026-09-29"]);
       await alice.rounds.update({ id: draft, cutoff: Q3 });
     });
 
@@ -890,8 +902,8 @@ const NOPAYEE = 7;
       const [{ n }] = await sql(`SELECT COUNT(*) AS n FROM Regrant_adjustments WHERE ID IN (?)`, [
         earmarkIds,
       ]);
-      expect(Number(n)).to.equal(0);
-      expect(await alice.adjustments.list({ roundId: draft })).to.deep.equal([]);
+      expect(Number(n)).toBe(0);
+      expect(await alice.adjustments.list({ roundId: draft })).toStrictEqual([]);
     });
 
     it("removing an earmark moves Pay now back", async () => {
@@ -905,8 +917,8 @@ const NOPAYEE = 7;
       });
       const [half] = await alice.adjustments.list({ roundId: draft });
       const b = await alice.rounds.removeEarmark({ adjustmentId: half.id });
-      expect(gdTransferLines(b)).to.deep.equal([[null, "5000.00"]]);
-      expect(await alice.adjustments.list({ roundId: draft })).to.deep.equal([]);
+      expect(gdTransferLines(b)).toStrictEqual([[null, "5000.00"]]);
+      expect(await alice.adjustments.list({ roundId: draft })).toStrictEqual([]);
     });
 
     it("counts once the round is approved, and as a later debit before its date", async () => {
@@ -916,40 +928,40 @@ const NOPAYEE = 7;
         projectId: water,
         amount: 1000,
       });
-      expect((await bob.rounds.approve({ id: draft })).approved).to.be.true;
+      expect((await bob.rounds.approve({ id: draft })).approved).toBe(true);
       const detail = await alice.rounds.get({ id: draft });
       expect(
         detail.snapshot
           .filter((x) => x.organizationId === GD)
           .map((x) => [x.projectId, x.balanceAtCutoff, x.roundAdjustments, x.inRound]),
-      ).to.deep.equal([
+      ).toStrictEqual([
         [null, "5000.00", "-1000.00", "4000.00"],
         [water, "0.00", "1000.00", "1000.00"],
       ]);
-      expect(detail.adjustments.every((a) => !a.pending && a.affectsBalance)).to.be.true;
+      expect(detail.adjustments.every((a) => !a.pending && a.affectsBalance)).toBe(true);
 
       const unrestricted = await balanceOf(Q3, GD);
-      expect([unrestricted.balance, unrestricted.committed, unrestricted.available]).to.deep.equal([
+      expect([unrestricted.balance, unrestricted.committed, unrestricted.available]).toStrictEqual([
         "4000.00",
         "4000.00",
         "0.00",
       ]);
       const project = await balanceOf(Q3, GD, water);
-      expect([project.balance, project.available]).to.deep.equal(["1000.00", "0.00"]);
+      expect([project.balance, project.available]).toStrictEqual(["1000.00", "0.00"]);
       // A round built later with an earlier cutoff sees the earmark as already decided
       const early = await balanceOf("2026-09-29", GD);
-      expect([early.balance, early.committed, early.available]).to.deep.equal([
+      expect([early.balance, early.committed, early.available]).toStrictEqual([
         "5000.00",
         "5000.00",
         "0.00",
       ]);
-      expect((await balanceOf("2026-09-29", GD, water)).available).to.equal("0.00");
+      expect((await balanceOf("2026-09-29", GD, water)).available).toBe("0.00");
     });
 
     it("records a foreign-currency payment only if it adds up", async () => {
       const { transfers } = await alice.rounds.get({ id: draft });
       const eur = transfers.find((t) => t.currency === "EUR")!;
-      expect(eur.amountNok).to.equal("600.00");
+      expect(eur.amountNok).toBe("600.00");
       await expectTrpcError(
         alice.transfers.recordPayment({
           id: eur.id,
@@ -971,7 +983,7 @@ const NOPAYEE = 7;
         amountForeign: "52.17",
         fxRate: "11.5",
       });
-      expect([paid.paidAt, paid.amountForeign, paid.fxRate]).to.deep.equal([
+      expect([paid.paidAt, paid.amountForeign, paid.fxRate]).toStrictEqual([
         "2026-10-05",
         "52.17",
         "11.5",
@@ -981,8 +993,8 @@ const NOPAYEE = 7;
       await alice.transfers.clearPayment({ id: eur.id });
       await alice.rounds.reopen({ id: draft });
       await alice.rounds.delete({ id: draft });
-      expect((await balanceOf(Q3, GD)).balance).to.equal("5000.00");
-      expect((await balanceOf(Q3, GD, water)).balance).to.equal("0.00");
+      expect((await balanceOf(Q3, GD)).balance).toBe("5000.00");
+      expect((await balanceOf(Q3, GD, water)).balance).toBe("0.00");
     });
   });
 });

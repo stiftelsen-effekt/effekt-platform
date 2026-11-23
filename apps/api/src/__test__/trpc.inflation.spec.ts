@@ -1,7 +1,5 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import * as inflation from "../custom_modules/inflationadjustment";
 import * as mail from "../custom_modules/mail";
@@ -20,18 +18,18 @@ const callerWith = (permissions?: string[]) =>
 const expectTrpcError = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
+    expect(err.code).toBe(code);
   }
 };
 
 describe("tRPC inflation router", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("is admin-only", async () => {
-    const prepare = sinon.stub(inflation, "prepareInflationOffers");
-    const send = sinon.stub(inflation, "sendInflationOffers");
+    const prepare = vi.spyOn(inflation, "prepareInflationOffers").mockReturnValue(undefined as any);
+    const send = vi.spyOn(inflation, "sendInflationOffers").mockReturnValue(undefined as any);
     await expectTrpcError(callerWith().inflation.prepare(), "UNAUTHORIZED");
     await expectTrpcError(callerWith(["read:profile"]).inflation.prepare(), "FORBIDDEN");
     await expectTrpcError(
@@ -39,12 +37,12 @@ describe("tRPC inflation router", () => {
       "FORBIDDEN",
     );
     await expectTrpcError(callerWith(["read:profile"]).inflation.overview(), "FORBIDDEN");
-    expect(prepare.called).to.be.false;
-    expect(send.called).to.be.false;
+    expect(prepare).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
   });
 
   it("shows the preview, the unsent offers and totals in kroner", async () => {
-    sinon.stub(inflation, "previewInflationRound").resolves({
+    vi.spyOn(inflation, "previewInflationRound").mockResolvedValue({
       inflationUntil: "2026-09",
       proposals: [
         {
@@ -82,62 +80,71 @@ describe("tRPC inflation router", () => {
         noEmail: 0,
       },
     });
-    sinon.stub(DAO.inflationadjustments, "getUnsent").resolves([]);
-    sinon
-      .stub(DAO.inflationadjustments, "getStatusCounts")
-      .resolves([{ status: "expired", count: 360, monthlyIncreaseOre: 123400 }]);
+    vi.spyOn(DAO.inflationadjustments, "getUnsent").mockResolvedValue([]);
+    vi.spyOn(DAO.inflationadjustments, "getStatusCounts").mockResolvedValue([
+      { status: "expired", count: 360, monthlyIncreaseOre: 123400 },
+    ]);
 
     const overview = await callerWith(["admin"]).inflation.overview();
 
-    expect(overview.eligibleTotals).to.deep.equal({
+    expect(overview.eligibleTotals).toStrictEqual({
       count: 2,
       avtaleGiro: 1,
       vipps: 1,
       monthlyIncrease: "30.00",
       yearlyIncrease: "360.00",
     });
-    expect(overview.eligible[0]).to.deep.include({
-      currentAmount: "300.00",
-      proposedAmount: "320.00",
-      increase: "20.00",
-    });
-    expect(overview.statuses).to.deep.equal([
+    expect(overview.eligible[0]).toEqual(
+      expect.objectContaining({
+        currentAmount: "300.00",
+        proposedAmount: "320.00",
+        increase: "20.00",
+      }),
+    );
+    expect(overview.statuses).toStrictEqual([
       { status: "expired", count: 360, monthlyIncrease: "1234.00" },
     ]);
-    expect(overview.unsentTotals.count).to.equal(0);
+    expect(overview.unsentTotals.count).toBe(0);
   });
 
   it("prepares and logs the counts", async () => {
-    sinon
-      .stub(inflation, "prepareInflationOffers")
-      .resolves({ created: 5, alreadyOpen: 0, expired: 0, inflationUntil: "2026-09" });
-    const log = sinon.stub(DAO.logging, "add").resolves(1);
+    vi.spyOn(inflation, "prepareInflationOffers").mockResolvedValue({
+      created: 5,
+      alreadyOpen: 0,
+      expired: 0,
+      inflationUntil: "2026-09",
+    });
+    const log = vi.spyOn(DAO.logging, "add").mockResolvedValue(1);
 
     const result = await callerWith(["admin"]).inflation.prepare();
 
-    expect(result.created).to.equal(5);
-    expect(log.calledOnce).to.be.true;
-    expect(log.firstCall.args[0]).to.equal("Inflation adjustment");
+    expect(result.created).toBe(5);
+    expect(log).toHaveBeenCalledOnce();
+    expect(log.mock.calls[0][0]).toBe("Inflation adjustment");
   });
 
   it("sends a batch through the inflation email, within the batch limit", async () => {
-    const send = sinon.stub(inflation, "sendInflationOffers").callsFake(async ({ sendEmail }) => ({
-      sent: (await sendEmail(7)) ? 1 : 0,
-      failed: 0,
-      cancelled: 0,
-      remaining: 0,
-    }));
-    sinon
-      .stub(DAO.inflationadjustments, "getByIdForEmail")
-      .resolves({ ID: 7, current_amount: 300, proposed_amount: 320 } as any);
-    const email = sinon.stub(mail, "sendAgreementInflationAdjustment").resolves(true);
-    sinon.stub(DAO.logging, "add").resolves(1);
+    const send = vi
+      .spyOn(inflation, "sendInflationOffers")
+      .mockImplementation(async ({ sendEmail }) => ({
+        sent: (await sendEmail(7)) ? 1 : 0,
+        failed: 0,
+        cancelled: 0,
+        remaining: 0,
+      }));
+    vi.spyOn(DAO.inflationadjustments, "getByIdForEmail").mockResolvedValue({
+      ID: 7,
+      current_amount: 300,
+      proposed_amount: 320,
+    } as any);
+    const email = vi.spyOn(mail, "sendAgreementInflationAdjustment").mockResolvedValue(true);
+    vi.spyOn(DAO.logging, "add").mockResolvedValue(1);
 
     const result = await callerWith(["admin"]).inflation.send({ batchSize: 10 });
 
-    expect(result.sent).to.equal(1);
-    expect(send.firstCall.args[0].batchSize).to.equal(10);
-    expect(email.firstCall.args[0]).to.deep.include({ ID: 7 });
+    expect(result.sent).toBe(1);
+    expect(send.mock.calls[0][0].batchSize).toBe(10);
+    expect(email.mock.calls[0][0]).toEqual(expect.objectContaining({ ID: 7 }));
     await expectTrpcError(
       callerWith(["admin"]).inflation.send({ batchSize: inflation.MAX_SEND_BATCH + 1 }),
       "BAD_REQUEST",

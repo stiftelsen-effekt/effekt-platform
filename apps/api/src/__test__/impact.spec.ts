@@ -1,6 +1,4 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import * as impactData from "../custom_modules/impact/data";
 import { buildImpactData, type ImpactRows } from "../custom_modules/impact/data";
 import {
@@ -101,51 +99,51 @@ const DATA = buildImpactData(ROWS);
 
 describe("impact rules", () => {
   it("takes the latest evaluation on or before the month, none before the first", () => {
-    expect(effectiveEvaluation(DATA, 1, "2019-12-01")).to.equal(null);
-    expect(effectiveEvaluation(DATA, 1, "2020-01-01")!.id).to.equal(1);
-    expect(effectiveEvaluation(DATA, 1, "2021-12-01")!.id).to.equal(1);
-    expect(effectiveEvaluation(DATA, 1, "2022-01-01")!.id).to.equal(2);
-    expect(effectiveEvaluation(DATA, 1, "2030-01-01")!.id).to.equal(2);
-    expect(effectiveEvaluation(DATA, 99, "2030-01-01")).to.equal(null);
+    expect(effectiveEvaluation(DATA, 1, "2019-12-01")).toBe(null);
+    expect(effectiveEvaluation(DATA, 1, "2020-01-01")!.id).toBe(1);
+    expect(effectiveEvaluation(DATA, 1, "2021-12-01")!.id).toBe(1);
+    expect(effectiveEvaluation(DATA, 1, "2022-01-01")!.id).toBe(2);
+    expect(effectiveEvaluation(DATA, 1, "2030-01-01")!.id).toBe(2);
+    expect(effectiveEvaluation(DATA, 99, "2030-01-01")).toBe(null);
   });
 
   it("takes the fund's latest grant on or before the month", () => {
-    expect(effectiveGrant(DATA, "TCF", "2018-12-01")).to.equal(null);
-    expect(effectiveGrant(DATA, "TCF", "2023-12-01")!.id).to.equal(1);
-    expect(effectiveGrant(DATA, "TCF", "2026-10-01")!.id).to.equal(2);
-    expect(effectiveGrant(DATA, "AGF", "2026-10-01")!.legacyId).to.equal(1);
+    expect(effectiveGrant(DATA, "TCF", "2018-12-01")).toBe(null);
+    expect(effectiveGrant(DATA, "TCF", "2023-12-01")!.id).toBe(1);
+    expect(effectiveGrant(DATA, "TCF", "2026-10-01")!.id).toBe(2);
+    expect(effectiveGrant(DATA, "AGF", "2026-10-01")!.legacyId).toBe(1);
   });
 
   it("splits a grant by sum and costs each allotment's outputs", () => {
     const split = grantSplit(effectiveGrant(DATA, "TCF", "2024-01-01")!);
-    expect(split.map((p) => [p.allotment.id, p.share, p.centsPerOutput])).to.deep.equal([
+    expect(split.map((p) => [p.allotment.id, p.share, p.centsPerOutput])).toStrictEqual([
       [5, 0.75, 400],
       [6, 0.25, 1000],
     ]);
     // 1000 NOK at 10 NOK/USD = 100 USD at 4 USD per output
-    expect(outputsFor(1000, 10, 400)).to.equal(25);
+    expect(outputsFor(1000, 10, 400)).toBe(25);
   });
 
   it("uses the Oslo calendar month", () => {
     // 00:30 on 1 February in Oslo (UTC+1), still January in UTC
-    expect(monthOf(new Date("2024-01-31T23:30:00Z"))).to.equal("2024-02-01");
-    expect(monthOf(new Date("2024-01-31T22:30:00Z"))).to.equal("2024-01-01");
-    expect(monthOf(new Date("2024-07-31T21:30:00Z"))).to.equal("2024-07-01");
-    expect(monthOf("2024-03-15")).to.equal("2024-03-01");
+    expect(monthOf(new Date("2024-01-31T23:30:00Z"))).toBe("2024-02-01");
+    expect(monthOf(new Date("2024-01-31T22:30:00Z"))).toBe("2024-01-01");
+    expect(monthOf(new Date("2024-07-31T21:30:00Z"))).toBe("2024-07-01");
+    expect(monthOf("2024-03-15")).toBe("2024-03-01");
   });
 
   it("falls back to English texts and ignores unknown languages", () => {
     const nets = DATA.interventions.get(2)!;
-    expect(interventionText(nets, "no").shortDescription).to.equal("Myggnett");
-    expect(interventionText(nets, "sv")).to.deep.equal({
+    expect(interventionText(nets, "no").shortDescription).toBe("Myggnett");
+    expect(interventionText(nets, "sv")).toStrictEqual({
       shortDescription: "Bednets",
       longDescription: "Nets",
     });
-    expect(Object.keys(nets.texts)).to.deep.equal(["no"]);
+    expect(Object.keys(nets.texts)).toStrictEqual(["no"]);
   });
 
   it("splits only the Top Charities Fund by grants", () => {
-    expect([...DATA.fundByOrganization]).to.deep.equal([[12, "TCF"]]);
+    expect([...DATA.fundByOrganization]).toStrictEqual([[12, "TCF"]]);
   });
 });
 
@@ -164,10 +162,10 @@ describe("estimateDonation and the Danish impact shape", () => {
       [1, 0.5],
       [12, 0.5],
     ]);
-    expect(withoutEstimate).to.deep.equal([]);
+    expect(withoutEstimate).toStrictEqual([]);
     expect(
       lines.map((l) => [l.organizationId, l.charityId, l.unit, l.amount, l.outputs]),
-    ).to.deep.equal([
+    ).toStrictEqual([
       [1, 1, "Myggnett", 500, 10], // 50 USD at 5 USD
       [12, 1, "Myggnett", 375, 9.375], // 37.5 USD at 4 USD
       [12, 10, "Malariabehandlinger", 125, 1.25], // 12.5 USD at 10 USD
@@ -184,8 +182,8 @@ describe("estimateDonation and the Danish impact shape", () => {
       ],
       "2021-05-01",
     );
-    expect(lines).to.deep.equal([]);
-    expect(withoutEstimate.map((w) => w.organizationId)).to.deep.equal([15, 20, 11, 4]);
+    expect(lines).toStrictEqual([]);
+    expect(withoutEstimate.map((w) => w.organizationId)).toStrictEqual([15, 20, 11, 4]);
   });
 
   it("gives Min Side's entries, merged per output, and sums them", () => {
@@ -196,7 +194,7 @@ describe("estimateDonation and the Danish impact shape", () => {
         [15, 0.2],
       ]),
     );
-    expect(a).to.deep.equal([
+    expect(a).toStrictEqual([
       {
         recipient: "Against Malaria Foundation",
         unit: "Myggnett",
@@ -227,7 +225,7 @@ describe("estimateDonation and the Danish impact shape", () => {
       },
     ]);
     const total = sumImpactEntries([...a, ...a]);
-    expect(total.map((e) => [e.recipient, e.amount, e.count])).to.deep.equal([
+    expect(total.map((e) => [e.recipient, e.amount, e.count])).toStrictEqual([
       ["Against Malaria Foundation", 1200, 30],
       ["Malaria Consortium", 400, 4],
       ["GiveWell All Grants Fund", 400, null],
@@ -251,7 +249,7 @@ describe("receipts", () => {
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
     delete process.env.IMPACT_SOURCE;
   });
 
@@ -274,7 +272,7 @@ describe("receipts", () => {
         r.orgAbbriv,
         r.outputs.map((o) => `${o.roundedNumberOfOutputs} ${o.output}`),
       ]),
-    ).to.deep.equal([
+    ).toStrictEqual([
       ["AMF", ["10 Myggnett"]],
       ["TCF", ["6 Myggnett", "1 Malariabehandlinger"]],
       ["Drift", ["100 Drift"]],
@@ -283,37 +281,41 @@ describe("receipts", () => {
   });
 
   it("rejects distributions that don't add up", () => {
-    expect(() => distributionShares(distribution([[1, "90"]]))).to.throw("Shares do not sum to 1");
+    expect(() => distributionShares(distribution([[1, "90"]]))).toThrow("Shares do not sum to 1");
   });
 
   it("reads the day's ECB rate, and falls back to the legacy API without one", async () => {
-    sinon.stub(impactData, "getImpactData").resolves(DATA);
-    const rates = sinon.stub(exchangeRates, "loadUsdRates");
-    const legacy = sinon.stub(remote, "getRemoteImpactEstimatesForDonationByOrg").resolves([]);
-    rates.resolves({ currency: "NOK", dates: ["2024-05-14"], perUsd: [10] });
+    vi.spyOn(impactData, "getImpactData").mockResolvedValue(DATA);
+    const rates = vi.spyOn(exchangeRates, "loadUsdRates").mockReturnValue(undefined as any);
+    const legacy = vi
+      .spyOn(remote, "getRemoteImpactEstimatesForDonationByOrg")
+      .mockResolvedValue([]);
+    rates.mockResolvedValue({ currency: "NOK", dates: ["2024-05-14"], perUsd: [10] });
 
     const local = await getImpactEstimatesForDonationByOrg(
       new Date("2024-05-15T12:00:00Z"),
       1000,
       distribution([[1, "100"]]),
     );
-    expect(rates.firstCall.args).to.deep.equal(["NOK", "2024-05-15", "2024-05-15"]);
-    expect(local[0].outputs[0].numberOfOutputs).to.equal(20);
-    expect(legacy.called).to.equal(false);
+    expect(rates.mock.calls[0]).toStrictEqual(["NOK", "2024-05-15", "2024-05-15"]);
+    expect(local[0].outputs[0].numberOfOutputs).toBe(20);
+    expect(legacy).not.toHaveBeenCalled();
 
-    sinon.stub(console, "warn");
-    rates.resolves({ currency: "NOK", dates: [], perUsd: [] });
+    vi.spyOn(console, "warn").mockReturnValue(undefined);
+    rates.mockResolvedValue({ currency: "NOK", dates: [], perUsd: [] });
     await getImpactEstimatesForDonationByOrg(new Date(), 1000, distribution([[1, "100"]]));
-    expect(legacy.callCount).to.equal(1);
+    expect(legacy).toHaveBeenCalledTimes(1);
   });
 
   it("uses the legacy API with IMPACT_SOURCE=remote", async () => {
     process.env.IMPACT_SOURCE = "remote";
-    const legacy = sinon.stub(remote, "getRemoteImpactEstimatesForDonationByOrg").resolves([]);
-    const data = sinon.stub(impactData, "getImpactData");
+    const legacy = vi
+      .spyOn(remote, "getRemoteImpactEstimatesForDonationByOrg")
+      .mockResolvedValue([]);
+    const data = vi.spyOn(impactData, "getImpactData").mockReturnValue(undefined as any);
     await getImpactEstimatesForDonationByOrg(new Date(), 1000, distribution([[1, "100"]]));
-    expect(legacy.callCount).to.equal(1);
-    expect(data.called).to.equal(false);
+    expect(legacy).toHaveBeenCalledTimes(1);
+    expect(data).not.toHaveBeenCalled();
   });
 });
 
@@ -324,8 +326,8 @@ describe("monthlyAverageRate", () => {
     perUsd: [9, 10, 11, 12],
   };
   it("averages the month's days, else takes the latest earlier rate", () => {
-    expect(monthlyAverageRate(table, "2024-02")).to.equal(10.5);
-    expect(monthlyAverageRate(table, "2024-04")).to.equal(12);
-    expect(monthlyAverageRate(table, "2023-12")).to.equal(null);
+    expect(monthlyAverageRate(table, "2024-02")).toBe(10.5);
+    expect(monthlyAverageRate(table, "2024-04")).toBe(12);
+    expect(monthlyAverageRate(table, "2023-12")).toBe(null);
   });
 });

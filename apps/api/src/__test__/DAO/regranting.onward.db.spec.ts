@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
@@ -29,10 +28,10 @@ const alice = createCaller({
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: RegExp) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code, err.message).to.equal(code);
-    if (message) expect(err.message).to.match(message);
+    expect(err.code, err.message).toBe(code);
+    if (message) expect(err.message).toMatch(message);
   }
 };
 
@@ -178,13 +177,15 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
 
     it("shows every paid line to GiveWell as awaiting, and nothing for other payees", async () => {
       const groups = await alice.onward.awaiting();
-      expect(groups).to.have.length(1);
-      expect(groups[0]).to.deep.include({
-        payeeName: "GiveWell",
-        awaitingNok: "2230000.00",
-        assumedNok: "0.00",
-      });
-      expect(groups[0]!.lines.map((l) => l.id)).to.deep.equal([
+      expect(groups).toHaveLength(1);
+      expect(groups[0]).toEqual(
+        expect.objectContaining({
+          payeeName: "GiveWell",
+          awaitingNok: "2230000.00",
+          assumedNok: "0.00",
+        }),
+      );
+      expect(groups[0]!.lines.map((l) => l.id)).toStrictEqual([
         L.amf24,
         L.tcf24,
         L.amf25,
@@ -195,7 +196,7 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
       const mc = await alice.onward.transfer({
         transferId: (await DAO.regrantingOnward.getLine(L.mc25))!.transferId,
       });
-      expect(mc).to.deep.include({ intermediary: false, lines: [] });
+      expect(mc).toEqual(expect.objectContaining({ intermediary: false, lines: [] }));
     });
 
     it("records a reported forward with a report, and returns warnings", async () => {
@@ -213,11 +214,13 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
       });
 
       const prefill = await alice.onward.prefill({ transferLineId: L.hki25 });
-      expect(prefill).to.deep.include({
-        organizationId: ORG.HKI,
-        projectId: vitaminA,
-        amountForeign: "20000.00",
-      });
+      expect(prefill).toEqual(
+        expect.objectContaining({
+          organizationId: ORG.HKI,
+          projectId: vitaminA,
+          amountForeign: "20000.00",
+        }),
+      );
 
       const first = await alice.onward.allocations.create({
         transferLineId: L.hki25,
@@ -228,13 +231,17 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
         forwardedAt: "2025-07-15",
         reportId: report,
       });
-      expect(first.warnings).to.deep.equal([]);
-      expect(first.allocation).to.deep.include({
-        amountNok: "157500.00",
-        basis: "reported",
-        createdBy: "alice@example.org",
-      });
-      expect(first.line).to.deep.include({ status: "partly_forwarded", awaitingNok: "52500.00" });
+      expect(first.warnings).toStrictEqual([]);
+      expect(first.allocation).toEqual(
+        expect.objectContaining({
+          amountNok: "157500.00",
+          basis: "reported",
+          createdBy: "alice@example.org",
+        }),
+      );
+      expect(first.line).toEqual(
+        expect.objectContaining({ status: "partly_forwarded", awaitingNok: "52500.00" }),
+      );
 
       const redirected = await alice.onward.allocations.create({
         transferLineId: L.hki25,
@@ -245,16 +252,20 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
         reportId: report,
         note: "Redirected by GiveWell",
       });
-      expect(redirected.warnings).to.have.length(2);
-      expect(redirected.line).to.deep.include({ status: "forwarded", awaitingNok: "0.00" });
+      expect(redirected.warnings).toHaveLength(2);
+      expect(redirected.line).toEqual(
+        expect.objectContaining({ status: "forwarded", awaitingNok: "0.00" }),
+      );
 
       const fetched = await alice.onward.reports.get({ id: report });
-      expect(fetched.report).to.deep.include({
-        allocationCount: 2,
-        allocationTotalNok: "210000.00",
-      });
-      expect(fetched.report.documents.map((d) => d.label)).to.deep.equal(["Statement"]);
-      expect(fetched.allocations[0]!.line.organizationId).to.equal(ORG.HKI);
+      expect(fetched.report).toEqual(
+        expect.objectContaining({
+          allocationCount: 2,
+          allocationTotalNok: "210000.00",
+        }),
+      );
+      expect(fetched.report.documents.map((d) => d.label)).toStrictEqual(["Statement"]);
+      expect(fetched.allocations[0]!.line.organizationId).toBe(ORG.HKI);
     });
 
     it("rejects what the rules call errors", async () => {
@@ -330,55 +341,67 @@ const expectTrpcError = async (promise: Promise<unknown>, code: string, message?
         forwardedAt: "2025-06-30",
         reportId: report,
       });
-      expect(last.line).to.deep.include({
-        status: "partly_forwarded",
-        reportedNok: "630000.00",
-        awaitingNok: "570000.00",
-      });
-      expect(last.allocation.externalGranteeName).to.equal("IDinsight RCT");
+      expect(last.line).toEqual(
+        expect.objectContaining({
+          status: "partly_forwarded",
+          reportedNok: "630000.00",
+          awaitingNok: "570000.00",
+        }),
+      );
+      expect(last.allocation.externalGranteeName).toBe("IDinsight RCT");
       await expectTrpcError(alice.onward.grantees.delete({ id: grantee.id }), "CONFLICT");
     });
 
     it("backfills assumed allocations for pass-through lines only, idempotently", async () => {
       const dry = await alice.onward.assume({ to: "2024-12-31", dryRun: true });
-      expect(dry).to.deep.include({ dryRun: true, created: 0, totalNok: "100000.00" });
-      expect(dry.lines.map((l) => l.transferLineId)).to.deep.equal([L.amf24]);
-      expect(await DAO.regrantingOnward.listAllocations({ lineIds: [L.amf24] })).to.deep.equal([]);
+      expect(dry).toEqual(
+        expect.objectContaining({ dryRun: true, created: 0, totalNok: "100000.00" }),
+      );
+      expect(dry.lines.map((l) => l.transferLineId)).toStrictEqual([L.amf24]);
+      expect(await DAO.regrantingOnward.listAllocations({ lineIds: [L.amf24] })).toStrictEqual([]);
 
       const first = await alice.onward.assume({});
       // amf24 and amf25; hki25 already has allocations, TCF lines are never assumed, mc25 is direct
-      expect(first.created).to.equal(2);
-      expect(first.lines.map((l) => l.transferLineId)).to.deep.equal([L.amf24, L.amf25]);
-      expect(first.lines[1]).to.deep.include({
-        currency: "USD",
-        amountForeign: "40000.00",
-        paidAt: "2025-05-20",
-      });
+      expect(first.created).toBe(2);
+      expect(first.lines.map((l) => l.transferLineId)).toStrictEqual([L.amf24, L.amf25]);
+      expect(first.lines[1]).toEqual(
+        expect.objectContaining({
+          currency: "USD",
+          amountForeign: "40000.00",
+          paidAt: "2025-05-20",
+        }),
+      );
 
       const again = await alice.onward.assume({});
-      expect(again).to.deep.include({ created: 0, totalNok: "0.00", lines: [] });
+      expect(again).toEqual(expect.objectContaining({ created: 0, totalNok: "0.00", lines: [] }));
 
       const line = await alice.onward.line({ transferLineId: L.amf25 });
-      expect(line).to.deep.include({
-        status: "forwarded_assumed",
-        assumedNok: "420000.00",
-        awaitingNok: "0.00",
-      });
-      expect(line.allocations[0]).to.deep.include({
-        basis: "assumed",
-        organizationId: ORG.AMF,
-        forwardedAt: "2025-05-20",
-        note: "Assumed forwarded in full; no report found",
-      });
+      expect(line).toEqual(
+        expect.objectContaining({
+          status: "forwarded_assumed",
+          assumedNok: "420000.00",
+          awaitingNok: "0.00",
+        }),
+      );
+      expect(line.allocations[0]).toEqual(
+        expect.objectContaining({
+          basis: "assumed",
+          organizationId: ORG.AMF,
+          forwardedAt: "2025-05-20",
+          note: "Assumed forwarded in full; no report found",
+        }),
+      );
 
       // Assumed lines stay on the awaiting list, counted separately
       const groups = await alice.onward.awaiting();
-      expect(groups[0]).to.deep.include({ assumedNok: "520000.00", awaitingNok: "870000.00" });
-      expect(groups[0]!.lines.map((l) => l.id)).to.deep.equal([L.amf24, L.tcf24, L.amf25, L.tcf25]);
+      expect(groups[0]).toEqual(
+        expect.objectContaining({ assumedNok: "520000.00", awaitingNok: "870000.00" }),
+      );
+      expect(groups[0]!.lines.map((l) => l.id)).toStrictEqual([L.amf24, L.tcf24, L.amf25, L.tcf25]);
 
       // Replacing an assumed entry: delete it, enter the report
       const after = await alice.onward.allocations.delete({ id: line.allocations[0]!.id });
-      expect(after.line.status).to.equal("awaiting");
+      expect(after.line.status).toBe("awaiting");
     });
   },
 );

@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import express from "express";
 import request from "supertest";
 import errorHandler from "../handlers/errorHandler";
@@ -13,6 +12,6 @@ describe("async route error handling", () => {
     app.use(errorHandler);
 
     const res = await request(app).get("/boom");
-    expect(res.status).to.equal(500);
+    expect(res.status).toBe(500);
   });
 });

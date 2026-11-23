@@ -1,6 +1,5 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import sinon from "sinon";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import { DAO } from "../../custom_modules/DAO";
 
 describe("DAO Distributions", () => {
@@ -26,11 +25,11 @@ describe("DAO Distributions", () => {
 
     /** The page rows (second call) and the count of every matching distribution (third) */
     const resolvePage = (rows: ReturnType<typeof mockRow>[], totalRows: number) => {
-      queryStub.onSecondCall().resolves([rows, []]);
-      queryStub.onThirdCall().resolves([[{ total_rows: totalRows }], []]);
+      queryStub.mockResolvedValueOnce([rows, []]);
+      queryStub.mockResolvedValueOnce([[{ total_rows: totalRows }], []]);
     };
-    const pageSql = () => queryStub.secondCall.args[0] as string;
-    const countSql = () => queryStub.thirdCall.args[0] as string;
+    const pageSql = () => queryStub.mock.calls[1][0] as string;
+    const countSql = () => queryStub.mock.calls[2][0] as string;
 
     const expectedRow = (KID: string) => ({
       KID,
@@ -42,15 +41,15 @@ describe("DAO Distributions", () => {
       AMF: 40,
     });
 
-    let queryStub: sinon.SinonStub;
+    let queryStub: MockInstance;
 
     beforeEach(() => {
-      queryStub = sinon.stub(DAO, "query");
-      queryStub.onFirstCall().resolves([mockActiveOrgs, []]);
+      queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      queryStub.mockResolvedValueOnce([mockActiveOrgs, []]);
     });
 
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
 
     it("Gets all distributions with no filter", async () => {
@@ -58,20 +57,20 @@ describe("DAO Distributions", () => {
 
       const result = await DAO.distributions.getAll(0, 10, { id: "KID" }, null);
 
-      expect(queryStub.calledThrice).to.be.true;
-      expect(result).to.deep.equal({
+      expect(queryStub).toHaveBeenCalledTimes(3);
+      expect(result).toStrictEqual({
         rows: [expectedRow("123456789"), expectedRow("987654321")],
         statistics: { numDistributions: 2 },
         pages: 1,
       });
-      expect(queryStub.firstCall.args[0]).to.contain("FROM Organizations");
+      expect(queryStub.mock.calls[0][0]).toContain("FROM Organizations");
       // The filters are the only thing that puts a LIKE in the main query
-      expect(pageSql()).to.not.contain("LIKE");
-      expect(pageSql()).to.contain("LIMIT 10");
-      expect(pageSql()).to.contain("OFFSET 0");
-      expect(countSql()).to.contain("COUNT(*) as total_rows");
-      expect(countSql()).to.not.contain("LIKE");
-      expect(countSql()).to.not.contain("LIMIT");
+      expect(pageSql()).not.toContain("LIKE");
+      expect(pageSql()).toContain("LIMIT 10");
+      expect(pageSql()).toContain("OFFSET 0");
+      expect(countSql()).toContain("COUNT(*) as total_rows");
+      expect(countSql()).not.toContain("LIKE");
+      expect(countSql()).not.toContain("LIMIT");
     });
 
     it("Gets all distributions with filter", async () => {
@@ -84,22 +83,22 @@ describe("DAO Distributions", () => {
         { donor: "Test Testesen" },
       );
 
-      expect(queryStub.calledThrice).to.be.true;
-      expect(result).to.deep.equal({
+      expect(queryStub).toHaveBeenCalledTimes(3);
+      expect(result).toStrictEqual({
         rows: [expectedRow("123456789"), expectedRow("987654321")],
         statistics: { numDistributions: 2 },
         pages: 1,
       });
-      expect(pageSql()).to.contain("WHERE");
-      expect(pageSql()).to.contain("Test Testesen");
-      expect(pageSql()).to.contain("LIKE");
-      expect(pageSql()).to.contain("LIMIT 10");
-      expect(pageSql()).to.contain("OFFSET 0");
+      expect(pageSql()).toContain("WHERE");
+      expect(pageSql()).toContain("Test Testesen");
+      expect(pageSql()).toContain("LIKE");
+      expect(pageSql()).toContain("LIMIT 10");
+      expect(pageSql()).toContain("OFFSET 0");
       // The count applies the same filter to every distribution, not just the page
-      expect(countSql()).to.contain("COUNT(*) as total_rows");
-      expect(countSql()).to.contain("Test Testesen");
-      expect(countSql()).to.contain("LIKE");
-      expect(countSql()).to.not.contain("LIMIT");
+      expect(countSql()).toContain("COUNT(*) as total_rows");
+      expect(countSql()).toContain("Test Testesen");
+      expect(countSql()).toContain("LIKE");
+      expect(countSql()).not.toContain("LIMIT");
     });
 
     it("Gets all distributions with filter and order", async () => {
@@ -112,21 +111,21 @@ describe("DAO Distributions", () => {
         { donor: "Test Testesen" },
       );
 
-      expect(queryStub.calledThrice).to.be.true;
-      expect(result).to.deep.equal({
+      expect(queryStub).toHaveBeenCalledTimes(3);
+      expect(result).toStrictEqual({
         rows: [expectedRow("123456789"), expectedRow("987654321")],
         statistics: { numDistributions: 2 },
         pages: 1,
       });
-      expect(pageSql()).to.contain("WHERE");
-      expect(pageSql()).to.contain("Test Testesen");
-      expect(pageSql()).to.contain("LIKE");
+      expect(pageSql()).toContain("WHERE");
+      expect(pageSql()).toContain("Test Testesen");
+      expect(pageSql()).toContain("LIKE");
       // "sum" maps to the donation_sum alias, not to a bare "sum" column
-      expect(pageSql()).to.contain("ORDER BY donation_sum DESC");
-      expect(pageSql()).to.contain("LIMIT 10");
-      expect(pageSql()).to.contain("OFFSET 0");
-      expect(countSql()).to.contain("Test Testesen");
-      expect(countSql()).to.not.contain("ORDER BY");
+      expect(pageSql()).toContain("ORDER BY donation_sum DESC");
+      expect(pageSql()).toContain("LIMIT 10");
+      expect(pageSql()).toContain("OFFSET 0");
+      expect(countSql()).toContain("Test Testesen");
+      expect(countSql()).not.toContain("ORDER BY");
     });
 
     it("Gets all distributions with correct pages counter when there are more rows than the limit", async () => {
@@ -134,16 +133,16 @@ describe("DAO Distributions", () => {
 
       const result = await DAO.distributions.getAll(0, 1, { id: "KID" }, null);
 
-      expect(queryStub.calledThrice).to.be.true;
-      expect(result).to.deep.equal({
+      expect(queryStub).toHaveBeenCalledTimes(3);
+      expect(result).toStrictEqual({
         rows: [expectedRow("111111111"), expectedRow("222222222"), expectedRow("333333333")],
         statistics: { numDistributions: 3 },
         pages: 3,
       });
-      expect(pageSql()).to.not.contain("LIKE");
-      expect(pageSql()).to.contain("LIMIT 1");
-      expect(countSql()).to.contain("COUNT(*) as total_rows");
-      expect(pageSql()).to.contain("OFFSET 0");
+      expect(pageSql()).not.toContain("LIKE");
+      expect(pageSql()).toContain("LIMIT 1");
+      expect(countSql()).toContain("COUNT(*) as total_rows");
+      expect(pageSql()).toContain("OFFSET 0");
     });
 
     it("Rejects a sort column that is not in the mapping", async () => {
@@ -151,14 +150,14 @@ describe("DAO Distributions", () => {
         await DAO.distributions.getAll(0, 10, { id: "ID" }, null);
         throw new Error("Promise did not reject as expected");
       } catch (ex) {
-        expect(ex.message).to.contain("Invalid sort column: ID");
+        expect(ex.message).toContain("Invalid sort column: ID");
       }
     });
   });
 
   describe("getAllByDonor", () => {
     it("Gets all distributions for a donor with a given ID", async () => {
-      const queryStub = sinon.stub(DAO, "query");
+      const queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
 
       const mockQueryResponse = [
         {
@@ -559,24 +558,24 @@ describe("DAO Distributions", () => {
         },
       ];
 
-      queryStub.resolves([mockQueryResponse, []]);
+      queryStub.mockResolvedValue([mockQueryResponse, []]);
 
       const result = await DAO.distributions.getAllByDonor(1);
 
-      expect(queryStub.calledOnce).to.be.true;
-      expect(queryStub.firstCall.args[0]).to.contain("WHERE");
-      expect(queryStub.firstCall.args[0]).to.contain("Donor_ID = ?");
-      expect(queryStub.firstCall.args[1]).to.deep.equal([1]);
+      expect(queryStub).toHaveBeenCalledOnce();
+      expect(queryStub.mock.calls[0][0]).toContain("WHERE");
+      expect(queryStub.mock.calls[0][0]).toContain("Donor_ID = ?");
+      expect(queryStub.mock.calls[0][1]).toStrictEqual([1]);
 
-      expect(result.distributions.length).to.equal(6);
+      expect(result.distributions.length).toBe(6);
 
       for (const distribution of result.distributions) {
-        expect(distribution.donorId).to.equal(1);
+        expect(distribution.donorId).toBe(1);
 
         // Expect cause area percentage shares to add up to 100
         expect(
           distribution.causeAreas.reduce((acc, curr) => acc + parseFloat(curr.percentageShare), 0),
-        ).to.equal(100);
+        ).toBe(100);
 
         for (const causeArea of distribution.causeAreas) {
           // Expect organization percentage shares to add up to 100
@@ -585,19 +584,19 @@ describe("DAO Distributions", () => {
               (acc, curr) => acc + parseFloat(curr.percentageShare),
               0,
             ),
-          ).to.equal(100);
+          ).toBe(100);
         }
       }
     });
 
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
   });
 
   describe("getByDonorId", () => {
     it("Gets a distribution for a donor with a given ID", async () => {
-      const queryStub = sinon.stub(DAO, "query");
+      const queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
 
       const mockQueryResponse = [
         {
@@ -616,26 +615,26 @@ describe("DAO Distributions", () => {
         },
       ];
 
-      queryStub.resolves([mockQueryResponse, []]);
+      queryStub.mockResolvedValue([mockQueryResponse, []]);
 
       const result = await DAO.distributions.getByDonorId(1);
 
-      expect(queryStub.calledOnce).to.be.true;
-      expect(queryStub.firstCall.args[0]).to.contain("WHERE");
-      expect(queryStub.firstCall.args[0]).to.contain("Donor_ID = ?");
-      expect(queryStub.firstCall.args[1]).to.deep.equal([1]);
+      expect(queryStub).toHaveBeenCalledOnce();
+      expect(queryStub.mock.calls[0][0]).toContain("WHERE");
+      expect(queryStub.mock.calls[0][0]).toContain("Donor_ID = ?");
+      expect(queryStub.mock.calls[0][1]).toStrictEqual([1]);
 
-      expect(result).to.deep.equal(mockQueryResponse);
+      expect(result).toStrictEqual(mockQueryResponse);
     });
 
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
   });
 
   describe("getSplitByKID", () => {
     it("Gets a distribution split for a KID", async () => {
-      const queryStub = sinon.stub(DAO, "query");
+      const queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
 
       const mockQueryResponse = [
         {
@@ -694,27 +693,27 @@ describe("DAO Distributions", () => {
         },
       ];
 
-      queryStub.resolves([mockQueryResponse, []]);
+      queryStub.mockResolvedValue([mockQueryResponse, []]);
 
       const result = await DAO.distributions.getSplitByKID("000001333993788");
 
-      expect(queryStub.calledOnce).to.be.true;
-      expect(queryStub.firstCall.args[0]).to.contain("WHERE");
-      expect(queryStub.firstCall.args[0]).to.contain("KID = ?");
-      expect(queryStub.firstCall.args[1]).to.deep.equal(["000001333993788"]);
-      expect(result.kid).to.equal("000001333993788");
-      expect(result.causeAreas.length).to.equal(2);
-      expect(result.causeAreas[0].percentageShare).to.equal("77.000000000000");
-      expect(result.causeAreas[0].organizations.length).to.equal(1);
-      expect(result.causeAreas[0].organizations[0].percentageShare).to.equal("100.000000000000");
-      expect(result.causeAreas[1].percentageShare).to.equal("23.000000000000");
-      expect(result.causeAreas[1].organizations.length).to.equal(2);
-      expect(result.causeAreas[1].organizations[0].percentageShare).to.equal("50.000000000000");
-      expect(result.causeAreas[1].organizations[1].percentageShare).to.equal("50.000000000000");
+      expect(queryStub).toHaveBeenCalledOnce();
+      expect(queryStub.mock.calls[0][0]).toContain("WHERE");
+      expect(queryStub.mock.calls[0][0]).toContain("KID = ?");
+      expect(queryStub.mock.calls[0][1]).toStrictEqual(["000001333993788"]);
+      expect(result.kid).toBe("000001333993788");
+      expect(result.causeAreas.length).toBe(2);
+      expect(result.causeAreas[0].percentageShare).toBe("77.000000000000");
+      expect(result.causeAreas[0].organizations.length).toBe(1);
+      expect(result.causeAreas[0].organizations[0].percentageShare).toBe("100.000000000000");
+      expect(result.causeAreas[1].percentageShare).toBe("23.000000000000");
+      expect(result.causeAreas[1].organizations.length).toBe(2);
+      expect(result.causeAreas[1].organizations[0].percentageShare).toBe("50.000000000000");
+      expect(result.causeAreas[1].organizations[1].percentageShare).toBe("50.000000000000");
     });
 
     it("Throws error if DB query returns multiple distributions", async () => {
-      const queryStub = sinon.stub(DAO, "query");
+      const queryStub = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
 
       const mockQueryResponse = [
         {
@@ -773,18 +772,18 @@ describe("DAO Distributions", () => {
         },
       ];
 
-      queryStub.resolves([mockQueryResponse, []]);
+      queryStub.mockResolvedValue([mockQueryResponse, []]);
 
       try {
         await DAO.distributions.getSplitByKID("000001333993788");
         throw new Error("Promise did not reject as expected");
       } catch (ex) {
-        expect(ex.message).to.contain("multiple distributions");
+        expect(ex.message).toContain("multiple distributions");
       }
     });
 
     afterEach(() => {
-      sinon.restore();
+      vi.restoreAllMocks();
     });
   });
 });

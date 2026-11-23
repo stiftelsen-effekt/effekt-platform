@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
@@ -40,19 +39,19 @@ const itemSum = (items: CompositionItem[]) => total(items.map((i) => i.amount));
 
 /** A group's amount is the sum of its items; a donations item's the sum of its months */
 const expectGroupAddsUp = (group: CompositionGroup, where: string) => {
-  expect(itemSum(group.items), where).to.equal(group.amount);
+  expect(itemSum(group.items), where).toBe(group.amount);
   for (const item of group.items) {
     if (item.kind === "donations") {
-      expect(total(item.months.map((m) => m.amount)), `${where} months`).to.equal(item.amount);
-      expect(item.from <= item.to, `${where} period`).to.equal(true);
+      expect(total(item.months.map((m) => m.amount)), `${where} months`).toBe(item.amount);
+      expect(item.from <= item.to, `${where} period`).toBe(true);
     }
   }
 };
 
 const expectBreakdownAddsUp = (b: BalanceBreakdown, where: string) => {
-  expect(b.check.differences, where).to.deep.equal([]);
-  expect(b.check.matches, where).to.equal(true);
-  expect(total(b.allocations.months.map((m) => m.amount)), `${where} months`).to.equal(
+  expect(b.check.differences, where).toStrictEqual([]);
+  expect(b.check.matches, where).toBe(true);
+  expect(total(b.allocations.months.map((m) => m.amount)), `${where} months`).toBe(
     b.allocations.total,
   );
   for (const part of [
@@ -62,7 +61,7 @@ const expectBreakdownAddsUp = (b: BalanceBreakdown, where: string) => {
     "transfers",
     "adjustments",
   ] as const) {
-    expect(total(b[part].entries.map((e) => e.amount)), `${where} ${part}`).to.equal(b[part].total);
+    expect(total(b[part].entries.map((e) => e.amount)), `${where} ${part}`).toBe(b[part].total);
   }
   expect(
     total([
@@ -74,11 +73,11 @@ const expectBreakdownAddsUp = (b: BalanceBreakdown, where: string) => {
       b.adjustments.total,
     ]),
     `${where} balance`,
-  ).to.equal(b.balance);
-  expect(total(b.committed.entries.map((e) => e.amount)), `${where} committed`).to.equal(
+  ).toBe(b.balance);
+  expect(total(b.committed.entries.map((e) => e.amount)), `${where} committed`).toBe(
     b.committed.total,
   );
-  expect(fmt(dec(b.balance).minus(b.committed.total)), `${where} available`).to.equal(b.available);
+  expect(fmt(dec(b.balance).minus(b.committed.total)), `${where} available`).toBe(b.available);
 };
 
 const expectLineAddsUp = (line: CompositionLine, where: string) => {
@@ -93,29 +92,26 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
   expect(
     total([line.thisRound.amount, line.carriedOver.amount, line.sinceLastTransfer.amount, ahead]),
     `${where} parts`,
-  ).to.equal(line.amount);
+  ).toBe(line.amount);
   if (line.ahead) {
-    expect(
-      total([...line.ahead.settledBy.map((i) => i.amount), line.ahead.unsettled]),
-      where,
-    ).to.equal(line.ahead.amount);
+    expect(total([...line.ahead.settledBy.map((i) => i.amount), line.ahead.unsettled]), where).toBe(
+      line.ahead.amount,
+    );
   }
   // Carried-over money is older than the window; money since the last transfer is inside it
   for (const item of line.carriedOver.items) {
     const date = item.kind === "donations" ? item.to : item.date;
-    expect(
-      line.window.from !== null && date < line.window.from,
-      `${where} carried ${date}`,
-    ).to.equal(true);
+    expect(line.window.from !== null && date < line.window.from, `${where} carried ${date}`).toBe(
+      true,
+    );
   }
   for (const item of line.sinceLastTransfer.items) {
     const from = item.kind === "donations" ? item.from : item.date;
     const to = item.kind === "donations" ? item.to : item.date;
-    expect(
-      line.window.from === null || from >= line.window.from,
-      `${where} since ${from}`,
-    ).to.equal(true);
-    expect(to <= line.window.to, `${where} since ${to}`).to.equal(true);
+    expect(line.window.from === null || from >= line.window.from, `${where} since ${from}`).toBe(
+      true,
+    );
+    expect(to <= line.window.to, `${where} since ${to}`).toBe(true);
   }
 };
 
@@ -137,7 +133,7 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
         id: o.id,
         name: o.name,
       }));
-      expect(rounds.length, "the seed's rounds").to.be.greaterThanOrEqual(20);
+      expect(rounds.length, "the seed's rounds").toBeGreaterThanOrEqual(20);
     });
 
     afterAll(async () => {
@@ -164,8 +160,8 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
             at,
           });
           expectBreakdownAddsUp(all, `${recipient.name} at ${at}`);
-          expect(all.balance).to.equal(recipient.total.balance);
-          expect(all.available).to.equal(recipient.total.available);
+          expect(all.balance).toBe(recipient.total.balance);
+          expect(all.available).toBe(recipient.total.available);
           checked++;
           if (recipient.projects.length > 0) {
             const unrestricted = await api.balances.breakdown({
@@ -174,7 +170,7 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
               at,
             });
             expectBreakdownAddsUp(unrestricted, `${recipient.name} unrestricted at ${at}`);
-            expect(unrestricted.balance).to.equal(recipient.unrestricted.balance);
+            expect(unrestricted.balance).toBe(recipient.unrestricted.balance);
             for (const project of recipient.projects) {
               const p = await api.balances.breakdown({
                 organizationId: recipient.organizationId,
@@ -182,8 +178,8 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
                 at,
               });
               expectBreakdownAddsUp(p, `${recipient.name} / ${project.name} at ${at}`);
-              expect(p.balance).to.equal(project.figures.balance);
-              expect(p.allocations.months).to.deep.equal([]);
+              expect(p.balance).toBe(project.figures.balance);
+              expect(p.allocations.months).toStrictEqual([]);
               checked += 2;
             }
           }
@@ -201,16 +197,13 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
       for (const m of tcf.allocations.months) {
         // The list's figure = the allocation + rounding per donation + donations that fall in the
         // neighbouring month in Oslo time
-        expect(fmt(sum([m.amount, m.list.rounding, m.list.timeZone])), m.month).to.equal(
-          m.list.sum,
+        expect(fmt(sum([m.amount, m.list.rounding, m.list.timeZone])), m.month).toBe(m.list.sum);
+        expect(dec(m.list.rounding).abs().lte(dec(m.donationCount).times("0.01")), m.month).toBe(
+          true,
         );
-        expect(
-          dec(m.list.rounding).abs().lte(dec(m.donationCount).times("0.01")),
-          m.month,
-        ).to.equal(true);
       }
       // The seed has Vipps donations late in the evening: some months differ by time zone
-      expect(tcf.allocations.months.some((m) => m.list.timeZoneDonations !== 0)).to.equal(true);
+      expect(tcf.allocations.months.some((m) => m.list.timeZoneDonations !== 0)).toBe(true);
     });
 
     it("shows the round builder's lines at the cutoff the way the builder adds them up", async () => {
@@ -225,13 +218,13 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
             });
             const where = `${round.name}: ${recipient.name} ${line.projectName ?? "unrestricted"}`;
             expectBreakdownAddsUp(b, where);
-            expect(b.balance, where).to.equal(line.balanceAtCutoff);
-            expect(b.committed.total, where).to.equal(line.committed);
-            expect(b.inRound!.fundGrants.total, where).to.equal(line.fundGrants);
-            expect(b.inRound!.adjustments.total, where).to.equal(line.roundAdjustments);
-            expect(b.inRound!.available, where).to.equal(line.available);
-            expect(b.inRound!.payNow.total, where).to.equal(line.inRound);
-            expect(b.inRound!.carriesOver, where).to.equal(line.carriesOver);
+            expect(b.balance, where).toBe(line.balanceAtCutoff);
+            expect(b.committed.total, where).toBe(line.committed);
+            expect(b.inRound!.fundGrants.total, where).toBe(line.fundGrants);
+            expect(b.inRound!.adjustments.total, where).toBe(line.roundAdjustments);
+            expect(b.inRound!.available, where).toBe(line.available);
+            expect(b.inRound!.payNow.total, where).toBe(line.inRound);
+            expect(b.inRound!.carriesOver, where).toBe(line.carriesOver);
           }
         }
       }
@@ -245,10 +238,10 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
         const composition = await api.rounds.composition({ roundId: round.id });
         const detail = await api.rounds.get({ id: round.id });
         const expected = detail.transfers.flatMap((t) => t.lines);
-        expect(composition.lines.length, round.name).to.equal(expected.length);
+        expect(composition.lines.length, round.name).toBe(expected.length);
         for (const line of composition.lines) {
           const saved = expected.find((l) => l.id === line.transferLineId)!;
-          expect(line.amount, round.name).to.equal(saved.amountNok);
+          expect(line.amount, round.name).toBe(saved.amountNok);
           expectLineAddsUp(
             line,
             `${round.name}: ${line.organizationName} ${line.projectName ?? ""}`,
@@ -260,7 +253,7 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
           const chosen = composition.lines.flatMap((l) =>
             l.thisRound.items.filter((i) => i.kind === "donation" && i.reason === "chosen"),
           );
-          expect(chosen.length, round.name).to.be.greaterThan(0);
+          expect(chosen.length, round.name).toBeGreaterThan(0);
         }
         if (Date.now() - t0 > 3000) console.log(`      slow: ${round.name} ${Date.now() - t0} ms`);
       }
@@ -293,7 +286,7 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
             expect(
               all.some((x) => x.kind === "donation" && x.donationId === i.donationId),
               `${next.name} pays donation #${i.donationId} again`,
-            ).to.equal(false);
+            ).toBe(false);
           }
         }
       }
@@ -304,19 +297,19 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
       if (!fronted) return;
       const composition = await api.rounds.composition({ roundId: fronted.id });
       const ahead = composition.lines.filter((l) => l.ahead !== null);
-      expect(ahead.length, fronted.name).to.be.greaterThan(0);
+      expect(ahead.length, fronted.name).toBeGreaterThan(0);
       const settled = ahead.flatMap((l) => l.ahead!.settledBy);
-      expect(settled.some((i) => i.kind === "donation" && i.reason === "fronted")).to.equal(true);
+      expect(settled.some((i) => i.kind === "donation" && i.reason === "fronted")).toBe(true);
     });
 
     it("finds the view and the recomputation equal, and every month's donations accounted for", async () => {
       const started = Date.now();
       const check = await api.reconciliation.monthly({ from: "2022-01", to: "2026-10" });
       console.log(`      reconciliation 2022-01..2026-10 in ${Date.now() - started} ms`);
-      expect(check.checks.mismatchedCells).to.equal(0);
-      expect(check.checks.monthsUnexplained).to.equal(0);
+      expect(check.checks.mismatchedCells).toBe(0);
+      expect(check.checks.monthsUnexplained).toBe(0);
       for (const m of check.totals) {
-        expect(fmt(sum([m.allocated, m.unassigned, m.difference])), m.month).to.equal(m.donations);
+        expect(fmt(sum([m.allocated, m.unassigned, m.difference])), m.month).toBe(m.donations);
       }
       // Σ months per recipient = the balance query's allocations in the same period
       const fromBalance = await DAO.regranting.getBalances({
@@ -329,9 +322,9 @@ const expectLineAddsUp = (line: CompositionLine, where: string) => {
             .filter((b) => b.organizationId === r.organizationId)
             .map((b) => b.inflowSince),
         );
-        expect(r.allocated, r.name).to.equal(fmt(inflow));
+        expect(r.allocated, r.name).toBe(fmt(inflow));
       }
-      expect(organizations.length).to.be.greaterThan(0);
+      expect(organizations.length).toBeGreaterThan(0);
     });
   },
 );

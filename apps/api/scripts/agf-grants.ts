@@ -3,7 +3,7 @@
  * Impact_fund_portfolio and Impact_givewell_grants (docs/impact-givewell-numbers.md › All Grants
  * Fund grants). Donor-facing figures do not read these tables.
  *
- *   node -r ts-node/register/transpile-only scripts/agf-grants.ts fetch [--cache DIR] [--airtable-csv FILE] > agf.json
+ *   node --import tsx scripts/agf-grants.ts fetch [--cache DIR] [--airtable-csv FILE] > agf.json
  *     Reads GiveWell's public sources and prints a snapshot (deterministic for the same sources):
  *       - the yearly metrics report spreadsheets' "All Grants Fund Grants Summary" (AGF money by
  *         organisation and programme per metrics year) → `portfolio`
@@ -17,13 +17,13 @@
  *         of every grant, including those without a write-up
  *     --cache DIR keeps every fetched page in DIR and reads it from there next time.
  *
- *   node -r ts-node/register/transpile-only scripts/agf-grants.ts report agf.json
+ *   node --import tsx scripts/agf-grants.ts report agf.json
  *     Rows per year, how many have figures, and each year's AGF total against the metrics report.
  *
- *   DB_URL=mysql://… node -r ts-node/register/transpile-only scripts/agf-grants.ts diff agf.json
+ *   DB_URL=mysql://… node --import tsx scripts/agf-grants.ts diff agf.json
  *     Dry run: what `sql` would add or change in DB_URL's tables (needs only SELECT).
  *
- *   node -r ts-node/register/transpile-only scripts/agf-grants.ts sql agf.json --by migration:<name> > migration.sql
+ *   node --import tsx scripts/agf-grants.ts sql agf.json --by migration:<name> > migration.sql
  *     Upserts for a Prisma data migration, keyed by slug (grants) and fund + year + row key
  *     (portfolio). Rows edited in the admin (updated_by set) keep their values; rows that are no
  *     longer in the sources are left alone (the diff lists them). Each new row gets an

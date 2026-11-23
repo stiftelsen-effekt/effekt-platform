@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import express from "express";
 import apicache from "apicache";
 import request from "supertest";
@@ -24,7 +23,7 @@ describe("Express 5 behaviour the API relies on", () => {
     app.use(express.json());
     mountTrpc(app);
     const res = await request(app).get("/trpc/no.such.procedure").expect(404);
-    expect(res.body.error.data.code).to.equal("NOT_FOUND");
+    expect(res.body.error.data.code).toBe("NOT_FOUND");
   });
 
   it("matches a route defined with a trailing slash with or without it", async () => {
@@ -54,23 +53,23 @@ describe("Express 5 behaviour the API relies on", () => {
     };
 
     it("is {} on REST requests without a parsed body, as in Express 4", async () => {
-      expect((await request(app()).get("/rest")).body).to.deep.equal({ body: {} });
-      expect((await request(app()).post("/rest")).body).to.deep.equal({ body: {} });
+      expect((await request(app()).get("/rest")).body).toStrictEqual({ body: {} });
+      expect((await request(app()).post("/rest")).body).toStrictEqual({ body: {} });
     });
 
     it("is the parsed JSON body", async () => {
       const res = await request(app()).post("/rest").send({ a: 1 });
-      expect(res.body).to.deep.equal({ body: { a: 1 } });
+      expect(res.body).toStrictEqual({ body: { a: 1 } });
     });
 
     it("is parsed by a route's urlencoded parser after the default", async () => {
       const res = await request(app()).post("/form").type("form").send("a=1&b=two");
-      expect(res.body).to.deep.equal({ body: { a: "1", b: "two" } });
+      expect(res.body).toStrictEqual({ body: { a: "1", b: "two" } });
     });
 
     it("is left unset for /trpc so tRPC reads the stream", async () => {
       const res = await request(app()).post("/trpc/x").type("text").send("raw");
-      expect(res.body).to.deep.equal({ hasBody: true, body: null });
+      expect(res.body).toStrictEqual({ hasBody: true, body: null });
     });
   });
 
@@ -105,14 +104,14 @@ describe("Express 5 behaviour the API relies on", () => {
     const res = await request(app)
       .get("/ip")
       .set("X-Forwarded-For", "203.0.113.9, 198.51.100.7, 35.191.0.1");
-    expect(res.body.ip).to.equal("198.51.100.7");
+    expect(res.body.ip).toBe("198.51.100.7");
   });
 
   it("parses query strings flat (no nested objects), repeated keys as arrays", async () => {
     const app = express();
     app.get("/q", (req, res) => res.json(req.query));
     const res = await request(app).get("/q?a[b]=c&x=1&x=2&pretty");
-    expect(res.body).to.deep.equal({ "a[b]": "c", x: ["1", "2"], pretty: "" });
+    expect(res.body).toStrictEqual({ "a[b]": "c", x: ["1", "2"], pretty: "" });
   });
 
   it("caches responses with apicache", async () => {
@@ -124,8 +123,8 @@ describe("Express 5 behaviour the API relies on", () => {
     });
     const first = await request(app).get("/cached").expect(200);
     const second = await request(app).get("/cached").expect(200);
-    expect(second.body).to.deep.equal(first.body);
-    expect(calls).to.equal(1);
+    expect(second.body).toStrictEqual(first.body);
+    expect(calls).toBe(1);
     apicache.clear();
   });
 });

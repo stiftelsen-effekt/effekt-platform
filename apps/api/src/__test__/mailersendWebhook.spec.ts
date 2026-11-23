@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { parseSurveySubmission } from "../custom_modules/mailersendWebhook";
 
 /**
@@ -55,14 +54,14 @@ describe("parseSurveySubmission", function () {
   it("reads the recipient and every answer from a version 2 payload", function () {
     const { recipientEmail, answers } = parseSurveySubmission(version2Payload);
 
-    expect(recipientEmail).to.equal("donor@example.com");
-    expect(answers).to.deep.equal([
+    expect(recipientEmail).toBe("donor@example.com");
+    expect(answers).toStrictEqual([
       { surveyID: 4, questionID: 5, answer: "Very satisfied", answerID: "5" },
     ]);
   });
 
   it("reads a version 1 payload identically", function () {
-    expect(parseSurveySubmission(version1Payload)).to.deep.equal(
+    expect(parseSurveySubmission(version1Payload)).toStrictEqual(
       parseSurveySubmission(version2Payload),
     );
   });
@@ -85,7 +84,7 @@ describe("parseSurveySubmission", function () {
       },
     });
 
-    expect(answers).to.deep.equal([
+    expect(answers).toStrictEqual([
       { surveyID: 2, questionID: 1, answer: "Ja", answerID: "a1" },
       { surveyID: 2, questionID: 1, answer: "Nei", answerID: "a2" },
       { surveyID: 2, questionID: 3, answer: "Kanskje", answerID: "a3" },
@@ -107,8 +106,8 @@ describe("parseSurveySubmission", function () {
       },
     });
 
-    expect(answers).to.have.lengthOf(1);
-    expect(answers[0].questionID).to.equal(1);
+    expect(answers).toHaveLength(1);
+    expect(answers[0].questionID).toBe(1);
   });
 
   it("skips a survey with no answers array", function () {
@@ -117,7 +116,7 @@ describe("parseSurveySubmission", function () {
       meta: { surveys: [{ question_id: 1, survey_id: 2, is_last_question: true }] },
     });
 
-    expect(answers).to.be.empty;
+    expect(answers).toHaveLength(0);
   });
 
   it("keeps an empty answer string rather than dropping the row", function () {
@@ -128,8 +127,8 @@ describe("parseSurveySubmission", function () {
       },
     });
 
-    expect(answers).to.have.lengthOf(1);
-    expect(answers[0].answer).to.equal("");
+    expect(answers).toHaveLength(1);
+    expect(answers[0].answer).toBe("");
   });
 
   it("writes an empty answer id rather than dropping the row", function () {
@@ -138,14 +137,14 @@ describe("parseSurveySubmission", function () {
       meta: { surveys: [{ question_id: 1, survey_id: 2, answers: [{ answer: "Ja" }] }] },
     });
 
-    expect(answers).to.deep.equal([{ surveyID: 2, questionID: 1, answer: "Ja", answerID: "" }]);
+    expect(answers).toStrictEqual([{ surveyID: 2, questionID: 1, answer: "Ja", answerID: "" }]);
   });
 
   it("survives a payload with nothing useful in it", function () {
-    expect(parseSurveySubmission(undefined)).to.deep.equal({
+    expect(parseSurveySubmission(undefined)).toStrictEqual({
       recipientEmail: null,
       answers: [],
     });
-    expect(parseSurveySubmission({ meta: { surveys: "not an array" } }).answers).to.be.empty;
+    expect(parseSurveySubmission({ meta: { surveys: "not an array" } }).answers).toHaveLength(0);
   });
 });

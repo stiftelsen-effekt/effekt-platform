@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
@@ -32,9 +31,9 @@ const admin = () =>
 
 /** Within a minute of now: the 2-hour error this guards against is far outside that */
 const expectNow = (iso: string | Date | null | undefined) => {
-  expect(iso, "timestamp").to.not.equal(null);
+  expect(iso, "timestamp").not.toBe(null);
   const ms = new Date(iso as string).getTime();
-  expect(Math.abs(ms - Date.now()), `${new Date(ms).toISOString()} vs now`).to.be.below(60_000);
+  expect(Math.abs(ms - Date.now()), `${new Date(ms).toISOString()} vs now`).toBeLessThan(60_000);
 };
 
 (isLocal ? describe : describe.skip)(
@@ -58,7 +57,7 @@ const expectNow = (iso: string | Date | null | undefined) => {
       const [[zone]] = await pool.query<any[]>(
         "SELECT @@session.time_zone AS tz, TIMESTAMPDIFF(MINUTE, UTC_TIMESTAMP(), NOW()) AS offset",
       );
-      expect(zone.offset, `session zone ${zone.tz}`).to.equal(120);
+      expect(zone.offset, `session zone ${zone.tz}`).toBe(120);
     });
 
     afterAll(async () => {
@@ -75,7 +74,7 @@ const expectNow = (iso: string | Date | null | undefined) => {
         logId,
       ]);
       // Stored in the session's clock: read naively it is two hours ahead
-      expect(Math.round((raw.timestamp.getTime() - Date.now()) / 3_600_000)).to.equal(2);
+      expect(Math.round((raw.timestamp.getTime() - Date.now()) / 3_600_000)).toBe(2);
 
       const entry = await admin().reports.logs.get({ id: logId });
       expectNow(entry.timestamp);
@@ -86,7 +85,7 @@ const expectNow = (iso: string | Date | null | undefined) => {
         sort: { id: "timestamp", desc: true },
       });
       const row = list.rows.find((r: any) => r.ID === logId);
-      expect(row, "new entry first in the list").to.not.equal(undefined);
+      expect(row, "new entry first in the list").not.toBe(undefined);
       expectNow(row!.timestamp);
     });
 
@@ -94,7 +93,7 @@ const expectNow = (iso: string | Date | null | undefined) => {
       const [[dist]] = await pool.query<any[]>(
         "SELECT KID FROM Distributions WHERE Donor_ID IS NOT NULL ORDER BY KID LIMIT 1",
       );
-      expect(dist, "a seeded distribution").to.not.equal(undefined);
+      expect(dist, "a seeded distribution").not.toBe(undefined);
       const [insert] = await pool.query<mysql.ResultSetHeader>(
         "INSERT INTO Payment_intent (Payment_amount, Payment_method, KID_fordeling) VALUES (100, 2, ?)",
         [dist.KID],
@@ -108,7 +107,7 @@ const expectNow = (iso: string | Date | null | undefined) => {
         sort: { id: "created", desc: true },
       });
       const row = result.rows.find((r: any) => r.id === intentId);
-      expect(row, "new intent in the list").to.not.equal(undefined);
+      expect(row, "new intent in the list").not.toBe(undefined);
       expectNow(row!.created);
     });
 
@@ -124,10 +123,10 @@ const expectNow = (iso: string | Date | null | undefined) => {
       const [[vipps]] = await pool.query<any[]>("SELECT ID, donorID FROM Vipps_agreements LIMIT 1");
 
       const agreements = await t.agreements.list({ ...page, sort: sortCreated });
-      expect(agreements.rows.length).to.be.greaterThan(0);
+      expect(agreements.rows.length).toBeGreaterThan(0);
       await t.agreements.cancelled({ ...page });
       const donors = await t.donors.list({ ...page, sort: { id: "registered", desc: true } });
-      expect(donors.rows.length).to.be.greaterThan(0);
+      expect(donors.rows.length).toBeGreaterThan(0);
       await t.donors.referrals({ donorId: donors.rows[0].id });
       await t.giro.avtalegiro.list({ ...page, sort: sortCreated });
       await t.reports.reviewQueue.list({ ...page, sort: sortCreated });
@@ -148,7 +147,7 @@ const expectNow = (iso: string | Date | null | undefined) => {
         await DAO.vipps.getPaymentsByAgreementId(vipps.ID);
       }
       const registered = (await DAO.donors.getByID(donors.rows[0].id))!.registered;
-      expect(registered).to.be.instanceOf(Date);
+      expect(registered).toBeInstanceOf(Date);
     });
   },
 );

@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import express from "express";
-import sinon from "sinon";
 import request from "supertest";
 import * as impactData from "../custom_modules/impact/data";
 import * as legacyRates from "../custom_modules/impact/compat/legacyRates";
@@ -148,9 +147,9 @@ describe("impact compat routes", () => {
   const { rates, currencies } = recordedRates();
 
   beforeEach(() => {
-    sinon.stub(impactData, "getImpactData").resolves(data);
-    sinon.stub(legacyRates, "supportedCurrencies").resolves(currencies);
-    sinon.stub(legacyRates, "loadLegacyRates").resolves(rates);
+    vi.spyOn(impactData, "getImpactData").mockResolvedValue(data);
+    vi.spyOn(legacyRates, "supportedCurrencies").mockResolvedValue(currencies);
+    vi.spyOn(legacyRates, "loadLegacyRates").mockResolvedValue(rates);
     app = express();
     // What the global CORS middleware sets for an allowed origin; the compat routes replace it
     app.use((_req, res, next) => {
@@ -163,7 +162,7 @@ describe("impact compat routes", () => {
       res.status(404).json({ status: 404, content: "Not found" });
     });
   });
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("serves /impact/api/* on any host with CORS * and an hour's cache", async () => {
     const res = await request(app)

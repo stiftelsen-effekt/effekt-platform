@@ -1,7 +1,7 @@
 import { DAO } from "./DAO";
 
 const config = require("../config.js");
-import moment from "moment";
+import { formatNorwegianDate, formatNorwegianTimestamp } from "./dates";
 import { DateTime } from "luxon";
 
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
@@ -106,7 +106,7 @@ export async function sendDonationReceipt(donationID, reciever: string | null = 
       ...taxInformation,
       donorName: donation.donor,
       donationKID: donation.KID,
-      donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
+      donationDate: formatNorwegianDate(donation.timestamp),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
       isFundraiserDonation: Boolean(donation.fundraiserId),
       isFirstSingleDonation: numberOfDonations === 1 && isSingleDonation(donation.paymentId),
@@ -208,7 +208,7 @@ async function sendFirstDonationReceipt(donation, reciever: string | null = null
       ...taxInformation,
       donorName: donation.donor,
       donationKID: donation.KID,
-      donationDate: moment(donation.timestamp).format("DD.MM.YYYY"),
+      donationDate: formatNorwegianDate(donation.timestamp),
       paymentMethod: decideUIPaymentMethod(donation.paymentMethod),
       isFundraiserDonation: Boolean(donation.fundraiserId),
       isFirstSingleDonation: isSingleDonation(donation.paymentId),
@@ -1304,6 +1304,5 @@ const getOrganizationOverallPercentage = (percentage: string, causeAreaPercentag
 };
 
 function formatTimestamp(date) {
-  const timestamp = moment(date).format("HH:mm - DD.MM.YYYY");
-  return timestamp;
+  return formatNorwegianTimestamp(date);
 }

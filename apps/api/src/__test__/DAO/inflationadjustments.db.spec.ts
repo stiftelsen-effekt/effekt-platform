@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, beforeEach, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import * as mysql from "mysql2/promise";
@@ -141,21 +140,21 @@ const migration = readFileSync(
     it("lists active agreements with the amount in øre and the latest differing donation", async () => {
       const list = await candidates();
       const old = byId(list, agIds.old)!;
-      expect(old.type).to.equal("avtaleGiro");
-      expect(old.amountOre).to.equal(30000);
-      expect(old.lastDifferentDonation).to.equal(null);
+      expect(old.type).toBe("avtaleGiro");
+      expect(old.amountOre).toBe(30000);
+      expect(old.lastDifferentDonation).toBe(null);
       // Created at 12:00 in the DB clock (UTC+2) is 10:00 UTC
-      expect(old.created!.toISOString()).to.equal("2022-03-10T10:00:00.000Z");
+      expect(old.created!.toISOString()).toBe("2022-03-10T10:00:00.000Z");
 
       const changed = byId(list, agIds.changed)!;
-      expect(changed.lastDifferentDonation!.toISOString()).to.equal("2026-01-31T23:30:00.000Z");
+      expect(changed.lastDifferentDonation!.toISOString()).toBe("2026-01-31T23:30:00.000Z");
 
       const vipps = byId(list, "infl-spec-1")!;
-      expect(vipps.type).to.equal("vipps");
-      expect(vipps.amountOre).to.equal(15000);
-      expect(vipps.email).to.equal("inflation-db-spec@example.org");
+      expect(vipps.type).toBe("vipps");
+      expect(vipps.amountOre).toBe(15000);
+      expect(vipps.email).toBe("inflation-db-spec@example.org");
 
-      expect(byId(list, agIds.anon)).to.equal(undefined);
+      expect(byId(list, agIds.anon)).toBe(undefined);
     });
 
     it("leaves out agreements with an open or recent offer, not expired old ones", async () => {
@@ -166,14 +165,10 @@ const migration = readFileSync(
         proposedAmount: 32000,
         inflationPercentage: 0.06,
       });
-      expect(await DAO.inflationadjustments.createIfNoOpenOffer(offer(agIds.offered))).to.equal(
-        true,
-      );
+      expect(await DAO.inflationadjustments.createIfNoOpenOffer(offer(agIds.offered))).toBe(true);
       // Never two open offers
-      expect(await DAO.inflationadjustments.createIfNoOpenOffer(offer(agIds.offered))).to.equal(
-        false,
-      );
-      expect(byId(await candidates(), agIds.offered)).to.equal(undefined);
+      expect(await DAO.inflationadjustments.createIfNoOpenOffer(offer(agIds.offered))).toBe(false);
+      expect(byId(await candidates(), agIds.offered)).toBe(undefined);
 
       // An offer from two years ago that expired doesn't block
       await clean();
@@ -183,14 +178,14 @@ const migration = readFileSync(
          VALUES (?, 'avtaleGiro', 30000, 32000, 0.06, ?, 'expired', NOW() - INTERVAL 2 YEAR, UTC_TIMESTAMP() - INTERVAL 23 MONTH)`,
         [String(agIds.offered), "a".repeat(64)],
       );
-      expect(byId(await candidates(), agIds.offered)).to.not.equal(undefined);
+      expect(byId(await candidates(), agIds.offered)).not.toBe(undefined);
 
       // One sent four months ago blocks, even though it expired
       await pool.query(
         `UPDATE Agreement_inflation_adjustments SET created = NOW() - INTERVAL 4 MONTH WHERE token = ?`,
         ["a".repeat(64)],
       );
-      expect(byId(await candidates(), agIds.offered)).to.equal(undefined);
+      expect(byId(await candidates(), agIds.offered)).toBe(undefined);
     });
 
     it("the migration expires old new and pending offers and keeps accepted ones", async () => {
@@ -213,7 +208,7 @@ const migration = readFileSync(
         `SELECT LEFT(token, 1) AS t, status FROM Agreement_inflation_adjustments
          WHERE agreement_ID = 'infl-spec-1' ORDER BY t`,
       );
-      expect(rows.map((r) => [r.t, r.status])).to.deep.equal([
+      expect(rows.map((r) => [r.t, r.status])).toStrictEqual([
         ["1", "expired"],
         ["2", "expired"],
         ["3", "accepted"],
@@ -232,24 +227,22 @@ const migration = readFileSync(
       const [unsent] = (await DAO.inflationadjustments.getUnsent()).filter(
         (u) => u.agreementId === "infl-spec-1",
       );
-      expect(unsent.stillValid).to.equal(true);
-      expect(unsent.email).to.equal("inflation-db-spec@example.org");
+      expect(unsent.stillValid).toBe(true);
+      expect(unsent.email).toBe("inflation-db-spec@example.org");
 
       const expires = new Date(Date.now() + 30 * 24 * 3600 * 1000);
-      expect(await DAO.inflationadjustments.claimForSending(unsent.ID, expires)).to.equal(true);
-      expect(await DAO.inflationadjustments.claimForSending(unsent.ID, expires)).to.equal(false);
-      expect(await DAO.inflationadjustments.finishSending(unsent.ID, true)).to.equal(true);
-      expect(await DAO.inflationadjustments.finishSending(unsent.ID, true)).to.equal(false);
+      expect(await DAO.inflationadjustments.claimForSending(unsent.ID, expires)).toBe(true);
+      expect(await DAO.inflationadjustments.claimForSending(unsent.ID, expires)).toBe(false);
+      expect(await DAO.inflationadjustments.finishSending(unsent.ID, true)).toBe(true);
+      expect(await DAO.inflationadjustments.finishSending(unsent.ID, true)).toBe(false);
 
       const email = await DAO.inflationadjustments.getByIdForEmail(unsent.ID);
-      expect(email!.status).to.equal("pending");
-      expect(Number(email!.proposed_amount)).to.equal(160);
+      expect(email!.status).toBe("pending");
+      expect(Number(email!.proposed_amount)).toBe(160);
 
       // The open offer is not expired by expirePending
-      expect(await DAO.inflationadjustments.expirePending()).to.be.at.least(0);
-      expect((await DAO.inflationadjustments.getByIdForEmail(unsent.ID))!.status).to.equal(
-        "pending",
-      );
+      expect(await DAO.inflationadjustments.expirePending()).toBeGreaterThanOrEqual(0);
+      expect((await DAO.inflationadjustments.getByIdForEmail(unsent.ID))!.status).toBe("pending");
     });
 
     it("marks an unsent offer invalid when the agreement's amount changed", async () => {
@@ -263,8 +256,8 @@ const migration = readFileSync(
       const [unsent] = (await DAO.inflationadjustments.getUnsent()).filter(
         (u) => u.agreementId === String(agIds.old),
       );
-      expect(unsent.stillValid).to.equal(false);
-      expect(await DAO.inflationadjustments.cancelUnsent(unsent.ID)).to.equal(true);
+      expect(unsent.stillValid).toBe(false);
+      expect(await DAO.inflationadjustments.cancelUnsent(unsent.ID)).toBe(true);
     });
   },
 );

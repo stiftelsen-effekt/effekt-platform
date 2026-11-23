@@ -1,6 +1,5 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import * as mail from "../custom_modules/mail";
 
 /**
@@ -13,15 +12,14 @@ import * as mail from "../custom_modules/mail";
  * out of this list and test the real send instead.
  */
 describe("emails with no MailerSend template", function () {
-  const sandbox = sinon.createSandbox();
-  let errorStub: sinon.SinonStub;
+  let errorStub: MockInstance;
 
   beforeEach(function () {
-    errorStub = sandbox.stub(console, "error");
+    errorStub = vi.spyOn(console, "error").mockReturnValue(undefined);
   });
 
   afterEach(function () {
-    sandbox.restore();
+    vi.restoreAllMocks();
   });
 
   const cases: Array<[string, () => Promise<unknown>]> = [
@@ -34,16 +32,16 @@ describe("emails with no MailerSend template", function () {
     it(`${name} reports failure rather than claiming success`, async function () {
       const result = await invoke();
 
-      expect(result, "must not report success while sending nothing").to.equal(false);
+      expect(result, "must not report success while sending nothing").toBe(false);
     });
 
     it(`${name} logs an error naming itself`, async function () {
       await invoke();
 
-      expect(errorStub.calledOnce).to.be.true;
-      const message = errorStub.firstCall.args[0];
-      expect(message).to.contain("[unsent-email]");
-      expect(message).to.contain(name);
+      expect(errorStub).toHaveBeenCalledOnce();
+      const message = errorStub.mock.calls[0][0];
+      expect(message).toContain("[unsent-email]");
+      expect(message).toContain(name);
     });
   });
 });

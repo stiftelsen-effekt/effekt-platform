@@ -1,8 +1,7 @@
-import { describe, it, afterEach, beforeEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, afterEach, beforeEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express, { type Request } from "express";
 import request from "supertest";
-import sinon from "sinon";
 import * as impactData from "../custom_modules/impact/data";
 import { buildImpactData } from "../custom_modules/impact/data";
 import { clearImpactCostsMemo } from "../custom_modules/impact/costs";
@@ -55,12 +54,12 @@ const DATA = buildImpactData({
 });
 
 describe("site.impactCosts", () => {
-  let rates: sinon.SinonStub;
+  let rates: MockInstance;
 
   beforeEach(() => {
     clearImpactCostsMemo();
-    sinon.stub(impactData, "getImpactData").resolves(DATA);
-    rates = sinon.stub(exchangeRates, "loadUsdRates").callsFake(async (currency: string) =>
+    vi.spyOn(impactData, "getImpactData").mockResolvedValue(DATA);
+    rates = vi.spyOn(exchangeRates, "loadUsdRates").mockImplementation(async (currency: string) =>
       currency === "USD"
         ? { currency, dates: ["2013-01-01"], perUsd: [1] }
         : {
@@ -71,11 +70,11 @@ describe("site.impactCosts", () => {
     );
   });
 
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("gives the latest evaluation's cost in the language's currency", async () => {
     const costs = await site().impactCosts({ abbreviations: ["amf", "SS"], at: "2026-11-01" });
-    expect(costs).to.deep.equal([
+    expect(costs).toStrictEqual([
       {
         abbreviation: "AMF",
         charityId: 1,
@@ -112,22 +111,24 @@ describe("site.impactCosts", () => {
       currency: "dkk",
       at: "2022-06-15",
     });
-    expect(amf).to.include({
-      centsPerOutput: 551,
-      costPerOutput: 38.57,
-      currency: "DKK",
-      shortDescription: "Bednets",
-    });
-    expect(rates.lastCall.args).to.deep.equal(["DKK", "2022-06-15", "2022-06-15"]);
+    expect(amf).toEqual(
+      expect.objectContaining({
+        centsPerOutput: 551,
+        costPerOutput: 38.57,
+        currency: "DKK",
+        shortDescription: "Bednets",
+      }),
+    );
+    expect(rates.mock.lastCall!).toStrictEqual(["DKK", "2022-06-15", "2022-06-15"]);
     const [dk] = await site().impactCosts({ abbreviations: ["AMF"], language: "dk" });
-    expect(dk.currency).to.equal("DKK");
+    expect(dk.currency).toBe("DKK");
     const [en] = await site().impactCosts({ abbreviations: ["AMF"], language: "en" });
-    expect(en).to.include({ currency: "USD", costPerOutput: 5.85 });
+    expect(en).toEqual(expect.objectContaining({ currency: "USD", costPerOutput: 5.85 }));
   });
 
   it("leaves out unknown charities and charities without an evaluation", async () => {
     const costs = await site().impactCosts({ abbreviations: ["AGF", "XYZ", "AMF", "amf"] });
-    expect(costs.map((c) => c.abbreviation)).to.deep.equal(["AMF"]);
+    expect(costs.map((c) => c.abbreviation)).toStrictEqual(["AMF"]);
   });
 
   it("is public and cacheable for an hour over HTTP, and validates its input", async () => {
@@ -135,8 +136,8 @@ describe("site.impactCosts", () => {
     mountTrpc(app);
     const input = encodeURIComponent(JSON.stringify({ abbreviations: ["AMF"] }));
     const res = await request(app).get(`/trpc/site.impactCosts?input=${input}`).expect(200);
-    expect(res.headers["cache-control"]).to.equal("public, max-age=3600");
-    expect(res.body.result.data[0].abbreviation).to.equal("AMF");
+    expect(res.headers["cache-control"]).toBe("public, max-age=3600");
+    expect(res.body.result.data[0].abbreviation).toBe("AMF");
 
     const bad = encodeURIComponent(JSON.stringify({ abbreviations: ["AMF"], currency: "NO K" }));
     await request(app).get(`/trpc/site.impactCosts?input=${bad}`).expect(400);
@@ -153,14 +154,14 @@ describe("site.impactCosts", () => {
     const res = await request(app)
       .get(`/trpc/site.impactCosts,minside.donations?batch=1&input=${input}`)
       .expect(400);
-    expect(res.body.error.message).to.equal("site.impactCosts cannot be batched");
-    expect(res.headers["cache-control"]).to.equal(undefined);
+    expect(res.body.error.message).toBe("site.impactCosts cannot be batched");
+    expect(res.headers["cache-control"]).toBe(undefined);
   });
 
   it("answers any origin (server.ts CORS), only for a single call", () => {
-    expect(isPublicCachedRead("/trpc/site.impactCosts")).to.equal(true);
-    expect(isPublicCachedRead("/trpc/site.impactCosts,minside.donations")).to.equal(false);
-    expect(isPublicCachedRead("/trpc/minside.donations")).to.equal(false);
-    expect(isPublicCachedRead("/site.impactCosts")).to.equal(false);
+    expect(isPublicCachedRead("/trpc/site.impactCosts")).toBe(true);
+    expect(isPublicCachedRead("/trpc/site.impactCosts,minside.donations")).toBe(false);
+    expect(isPublicCachedRead("/trpc/minside.donations")).toBe(false);
+    expect(isPublicCachedRead("/site.impactCosts")).toBe(false);
   });
 });

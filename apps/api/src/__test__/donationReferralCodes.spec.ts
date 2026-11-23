@@ -1,21 +1,20 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { normalizeReferralCode } from "../custom_modules/referralCode";
 
 describe("donationReferralCodes", () => {
   describe("normalizeReferralCode", () => {
     it("trims whitespace", () => {
-      expect(normalizeReferralCode("  match-2026  ")).to.equal("match-2026");
+      expect(normalizeReferralCode("  match-2026  ")).toBe("match-2026");
     });
 
     it("treats empty and whitespace-only values as absent", () => {
-      expect(normalizeReferralCode("")).to.be.undefined;
-      expect(normalizeReferralCode("   ")).to.be.undefined;
+      expect(normalizeReferralCode("")).toBeUndefined();
+      expect(normalizeReferralCode("   ")).toBeUndefined();
     });
 
     it("ignores non-string values", () => {
-      expect(normalizeReferralCode(undefined)).to.be.undefined;
-      expect(normalizeReferralCode(12)).to.be.undefined;
+      expect(normalizeReferralCode(undefined)).toBeUndefined();
+      expect(normalizeReferralCode(12)).toBeUndefined();
     });
   });
 });
