@@ -3,11 +3,14 @@ describe("Navbar", () => {
     cy.viewport(1280, 900);
     cy.visit({ url: "/", headers: { "x-vercel-skip-toolbar": "1" } });
 
-    cy.waitForHydration();
+    const menuToggle = "[data-cy=navbar-menu-toggle]";
+    cy.waitForHydration(menuToggle);
 
     cy.get("[data-cy=navbar] > ul").should("not.be.visible");
-    cy.get("[data-cy=navbar-menu-toggle]").focus();
-    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.get(menuToggle).should("be.visible").focus();
+    cy.focused().should("match", menuToggle);
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.get(menuToggle).should("have.attr", "aria-expanded", "true");
     cy.get("[data-cy=navbar] > ul").should("be.visible");
     cy.get("html").should("have.css", "overflow-y", "hidden");
 
@@ -21,19 +24,19 @@ describe("Navbar", () => {
           expect($focused[0]).to.equal($trigger[0]);
         });
       });
-    cy.press(Cypress.Keyboard.Keys.ENTER);
+    cy.press(Cypress.Keyboard.Keys.SPACE);
     const submenuLink = "[data-cy=navbar] > ul > li ul a";
     cy.get(submenuLink).first().should("be.visible");
     cy.press(Cypress.Keyboard.Keys.TAB);
     cy.focused().should("match", submenuLink);
 
     cy.viewport(1281, 900);
-    cy.get("[data-cy=navbar-menu-toggle]").should("have.attr", "aria-expanded", "false");
+    cy.get(menuToggle).should("have.attr", "aria-expanded", "false");
     cy.get("html").should("not.have.css", "overflow-y", "hidden");
 
     cy.viewport(1280, 900);
     cy.get("[data-cy=navbar] > ul").should("not.be.visible");
-    cy.get("[data-cy=navbar-menu-toggle]").click();
+    cy.get(menuToggle).click();
     cy.get(submenuLink).first().should("not.be.visible");
   });
 
