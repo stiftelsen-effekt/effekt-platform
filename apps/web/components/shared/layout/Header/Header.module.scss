@@ -1,3 +1,5 @@
+@use "../../../../styles/header-breakpoints" as header;
+
 .wrapper {
   width: 100%;
   --header-navbar-height: 80px;
@@ -56,7 +58,7 @@
   transform: translateY(-100%);
 }
 
-@media only screen and (max-width: 1180px) {
+@media only screen and (width <= header.$compact-menu-max-width) {
   .wrapper:has([data-mobile-menu-expanded="true"]) [data-cy="generalbanner-container"] {
     background-color: var(--secondary);
     color: var(--primary);
@@ -73,7 +75,7 @@
   }
 }
 
-@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+@media only screen and (header.$compact-menu-max-width < width <= 1520px) {
   .wrapper {
     --header-navbar-height: 90px;
     --header-shrunk-navbar-height: 96.4px;
