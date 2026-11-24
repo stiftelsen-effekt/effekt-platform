@@ -35,7 +35,7 @@ import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 export const Route = createFileRoute("/_app/distributions/new")({
   loader: ({ context: { queryClient, trpc }, cause }) =>
     loadPage(queryClient, cause, [
-      causeAreaConfigOptions(trpc),
+      causeAreaConfigOptions(trpc, { includeInactive: true }),
       { ...trpc.meta.owners.queryOptions(), staleTime: 300_000 },
     ]),
   component: CreateDistributionPage,
@@ -51,7 +51,7 @@ type CreateField = "donorId" | "taxUnitId" | "ownerId" | "distribution";
 
 function CreateDistributionPage() {
   const trpc = useTRPC();
-  const causeAreas = useCauseAreaConfig();
+  const causeAreas = useCauseAreaConfig({ includeInactive: true });
   const owners = useQuery({ ...trpc.meta.owners.queryOptions(), staleTime: 300_000 });
   const error = causeAreas.error ?? owners.error;
 
