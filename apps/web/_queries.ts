@@ -393,6 +393,49 @@ _type == 'link' => @ {
 },
 `;
 
+/** A giftcardproduct document as the gift card blocks use it (GiftcardWidget/types.ts) */
+export const giftcardProductQuery = `
+  _id,
+  title,
+  slug { current },
+  price_label,
+  description,
+  images[] {
+    ...,
+    asset-> { _id, url, metadata { lqip, dimensions { width, height } } }
+  },
+  "has_certificate": defined(certificate.asset),
+  delivery,
+  amount_step,
+  message_step,
+  delivery_step,
+  summary_step,
+  next_button_text,
+  thank_you,
+  payment_configuration -> {
+    email_label,
+    tax_deduction_enabled,
+    tax_deduction,
+    newsletter_enabled,
+    newsletter,
+    privacy_policy {
+      ...,
+      privacy_policy_url {
+        ...,
+        "slug": page->slug.current,
+        "pagetype": page->_type,
+      }
+    },
+    bank_account_details,
+    payment_methods[] -> {
+      _type,
+      selector_text,
+      single_button_text,
+      button_text
+    }
+  },
+`;
+
 export const linksContentQuery = `links[] {
   ${linksSelectorQuery}
 }`;
@@ -634,6 +677,7 @@ export const pageContentQuery = `content[hidden!=true] {
       "currency": *[_type == "site_settings"][0].main_currency,
       giftcards[] {
         ...,
+        "giftcard_page_slug": giftcard->page->slug.current,
         links[] {
           ${linksSelectorQuery}
         },
@@ -745,6 +789,23 @@ export const pageContentQuery = `content[hidden!=true] {
       ...,
       "locale": *[ _type == "site_settings"][0].main_locale,
     },
+    _type == 'giftcardwidget' => {
+      ...,
+      product-> {
+        ${giftcardProductQuery}
+      },
+    },
+    _type == 'giftcardreceipt' => {
+      ...,
+      "products": *[_type == "giftcardproduct" && !(_id in path('drafts.**'))] {
+        _id,
+        title,
+        slug { current },
+        "has_certificate": defined(certificate.asset),
+        summary_step,
+        thank_you,
+      },
+    },
     _type == 'donationwidgetblock' => {
       ...,
       donationwidget->{
@@ -787,7 +848,7 @@ export const pageContentQuery = `content[hidden!=true] {
       ...,
       "locale": *[ _type == "site_settings"][0].main_locale,
     },
-    _type != 'splitviewhtml' && _type != 'teamintroduction' && _type!= 'fullimage' && _type != 'normalimage' && _type != 'teasers' && _type != 'giveblock' && _type != 'links' && _type != 'standalonebutton' && _type != 'questionandanswergroup' && _type != 'reference' && _type != 'testimonials' && _type != 'organizationslist' && _type != 'opendistributionbutton' && _type != 'fullvideo' && _type!= 'paragraph' && _type != 'splitview' && _type != 'contributorlist' && _type != 'inngress' && _type != 'wealthcalculator' && _type != 'giftcardteaser' && _type != 'giftcards' && _type != 'columns' && _type != 'interventionwidget' && _type != 'wealthcalculatorteaser' && _type != 'accordion' && _type != 'plausiblerevenuetracker' && _type != 'philantropicteaser' && _type != 'mediacoverageteaser' && _type != 'resultsteaser' &&_type != 'taxdeductionwidget' && _type != 'donationwidgetblock' => @,
+    _type != 'splitviewhtml' && _type != 'teamintroduction' && _type!= 'fullimage' && _type != 'normalimage' && _type != 'teasers' && _type != 'giveblock' && _type != 'links' && _type != 'standalonebutton' && _type != 'questionandanswergroup' && _type != 'reference' && _type != 'testimonials' && _type != 'organizationslist' && _type != 'opendistributionbutton' && _type != 'fullvideo' && _type!= 'paragraph' && _type != 'splitview' && _type != 'contributorlist' && _type != 'inngress' && _type != 'wealthcalculator' && _type != 'giftcardteaser' && _type != 'giftcards' && _type != 'columns' && _type != 'interventionwidget' && _type != 'wealthcalculatorteaser' && _type != 'accordion' && _type != 'plausiblerevenuetracker' && _type != 'philantropicteaser' && _type != 'mediacoverageteaser' && _type != 'resultsteaser' &&_type != 'taxdeductionwidget' && _type != 'donationwidgetblock' && _type != 'giftcardwidget' && _type != 'giftcardreceipt' => @,
   }
 },
 `;

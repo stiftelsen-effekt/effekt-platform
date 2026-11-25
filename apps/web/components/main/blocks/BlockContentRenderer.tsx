@@ -30,6 +30,8 @@ import { OrganizationsList } from "./OrganizationsList/OrganizationsList";
 import { SplitViewHtml } from "./SplitViewHtml/SplitViewHtml";
 import { GiftCard } from "./GiftCard/GiftCard";
 import { GiftCards } from "./GiftCards/GiftCards";
+import { GiftcardBlock } from "./GiftcardWidget/GiftcardBlock";
+import { GiftcardReceiptBlock } from "./GiftcardWidget/GiftcardReceipt";
 import { StandaloneButton } from "./StandaloneButton/StandaloneButton";
 import { BlockTables } from "./BlockTable/BlockTables";
 import { WealthCalculatorPeriodAdjustment } from "../../shared/components/Graphs/Area/AreaGraph";
@@ -500,6 +502,16 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
                 enabled={block.enabled}
                 type={block.type}
                 locale={block.locale}
+              />
+            );
+          case "giftcardwidget":
+            return <GiftcardBlock key={block._key || block._id} product={block.product} />;
+          case "giftcardreceipt":
+            return (
+              <GiftcardReceiptBlock
+                key={block._key || block._id}
+                products={block.products ?? []}
+                showCertificateLink={block.show_certificate_link}
               />
             );
           case "donationwidgetblock":

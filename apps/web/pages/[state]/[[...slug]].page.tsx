@@ -12,6 +12,8 @@ import { ArticlesPage as ArticlesPageData } from "../ArticlesPage";
 import { VippsAgreementPage as VippsAgreementPageData } from "../VippsAgreementPage";
 import { ResultsPage as ResultsPageData } from "../ResultsPage";
 import { FundraiserPage as FundraiserPageData, getFundraiserPagePaths } from "../FundraiserPage";
+import { getGiftcardCertificateUrl } from "../giftcardCertificate";
+import { parseGiftcardCertificatePath } from "../../util/giftcardPaths";
 import { DonationsPage as DonationsPageData } from "../dashboard/DonationsPage";
 import { AgreementsPage as AgreementsPageData } from "../dashboard/AgreementsPage";
 import { ProfilePage as ProfilePageData } from "../dashboard/ProfilePage";
@@ -27,6 +29,7 @@ enum PageType {
   ResultsPage = "results",
   ArticlePage = "article",
   FundraiserPage = "fundraiser",
+  GiftcardCertificate = "giftcard-certificate",
   VippsAgreementPage = "vipps-agreement",
   VippsAnonymousPage = "vipps-anonymous",
   AgreementsPage = "agreements",
@@ -184,6 +187,10 @@ const inferPageTypeFromPath = async (path: string[]) => {
     vippsAnonymousPagePath,
   } = await fetchRouterContext();
 
+  // A gift card product's self-fill certificate (/gavekort/<slug>/gavebevis, linked from the
+  // receipt): a redirect to the PDF in Sanity. The gift card pages themselves are generic pages
+  if (parseGiftcardCertificatePath(path)) return PageType.GiftcardCertificate;
+
   const isVippsAgreementPage =
     vippsAgreementPagePath &&
     compareArrays(path.slice(0, vippsAgreementPagePath.length), vippsAgreementPagePath);
@@ -320,6 +327,21 @@ const getPageStaticProps = async (
           pageType,
           consentState,
         },
+        revalidate,
+      } as const;
+    }
+    case PageType.GiftcardCertificate: {
+      // The receipt links here; the PDF itself is a file in Sanity
+      const url = await getGiftcardCertificateUrl(parseGiftcardCertificatePath(path)!);
+      if (!url) {
+        // Checked again later: the PDF may be uploaded after someone first asked for it
+        return {
+          notFound: true,
+          revalidate,
+        };
+      }
+      return {
+        redirect: { destination: url, permanent: false },
         revalidate,
       } as const;
     }

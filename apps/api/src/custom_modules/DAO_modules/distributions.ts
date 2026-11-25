@@ -521,6 +521,8 @@ async function getKIDbySplit(
               D.Donor_ID = ? 
               AND (D.Tax_unit_ID = ? OR (D.Tax_unit_ID IS NULL AND ? IS NULL))
               AND Fundraiser_transaction_ID IS NULL
+              -- A gift card's KID is its own: donations on it count as the gift card
+              AND NOT EXISTS (SELECT 1 FROM Giftcards AS G WHERE G.KID = D.KID)
               AND 
               (
                   -- Map out the cause area distribution

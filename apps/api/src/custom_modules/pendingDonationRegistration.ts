@@ -57,8 +57,18 @@ function isValidWidgetSsn(ssn: string): boolean {
  * Returns `ok: false` for requests the API rejects (400); database and payment provider errors
  * are thrown.
  */
+export type RegisterPendingDonationOptions = {
+  /**
+   * Always create a new KID (never reuse one with the same split), and call this with it once
+   * the distribution exists and before any payment starts. Gift cards use it to store the gift
+   * card on the KID before the donor can pay.
+   */
+  onNewKID?: (KID: string, donorID: number) => Promise<void>;
+};
+
 export async function registerPendingDonation(
   parsedData: RegisterDonationBody,
+  options: RegisterPendingDonationOptions = {},
 ): Promise<PendingDonationResult> {
   // Swish and AutoGiro (Sweden) are no longer offered; their ids remain for past donations
   if (parsedData.method === paymentMethods.swish || parsedData.method === paymentMethods.autoGiro) {
@@ -187,7 +197,7 @@ export async function registerPendingDonation(
   } else {
     //Try to get existing KID if not a fundraiser
     // For fundraisers, we always create a new KID to store the message and fundraiser ID
-    if (!fundraiser) {
+    if (!fundraiser && !options.onNewKID) {
       donationObject.KID = await DAO.distributions.getKIDbySplit(
         {
           donorId: donationObject.donorID,
@@ -221,6 +231,10 @@ export async function registerPendingDonation(
 
       await DAO.distributions.add(distribution);
     }
+  }
+
+  if (options.onNewKID) {
+    await options.onNewKID(donationObject.KID!, donationObject.donorID);
   }
 
   switch (donationObject.method) {

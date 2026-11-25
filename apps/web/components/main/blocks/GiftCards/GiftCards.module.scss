@@ -21,6 +21,17 @@
   flex-shrink: 0;
 }
 
+.giftcarditemimage > a {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.giftcarditemtext h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .giftcarditemtext {
   width: 100%;
   flex-grow: 1;

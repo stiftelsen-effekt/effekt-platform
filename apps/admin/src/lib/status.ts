@@ -178,6 +178,29 @@ export const intentStatus = define({
 });
 export type IntentStatus = keyof typeof intentStatus;
 
+/**
+ * Gift cards (gavekort) as `giftcards.*` returns them. `paid` means different things by delivery:
+ * an SMS gift card waits for its send time (shown as `waiting`), a PDF one is done.
+ */
+export const giftcardStatus = define({
+  pending: { label: "Not paid", tone: "neutral", description: "Bought, payment not received" },
+  waiting: {
+    label: "Waiting to send",
+    tone: "accent",
+    description: "Paid; the SMS goes out at its send time",
+  },
+  paid: { label: "Paid", tone: "success", description: "Paid (PDF: the buyer prints it)" },
+  sending: { label: "Sending", tone: "warning", description: "The SMS is being sent right now" },
+  sent: { label: "Sent", tone: "success", description: "The SMS went out to the recipient" },
+  failed: {
+    label: "Failed",
+    tone: "danger",
+    description: "The SMS couldn't be sent after several attempts",
+  },
+  cancelled: { label: "Cancelled", tone: "neutral", description: "Won't be sent" },
+});
+export type GiftcardStatus = keyof typeof giftcardStatus;
+
 /** Donors.trash: test data, spam and duplicates kept out of the way. */
 export const donorStatus = define({
   trash: {

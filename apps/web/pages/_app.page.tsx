@@ -2,6 +2,7 @@ import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import PlausibleProvider from "next-plausible";
+import { plausibleTransformRequest } from "../lib/plausible";
 import dynamic from "next/dynamic";
 
 // import { usePreviewSubscription } from "../lib/sanity";
@@ -50,6 +51,12 @@ export type GeneralPageProps = Record<string, unknown> & {
   };
   appStaticProps?: Awaited<ReturnType<typeof getAppStaticProps>>;
 };
+
+// Gift card recipient pages are reported as /gave/[code] (lib/plausible.ts). Plausible's
+// transformRequest isn't in next-plausible's types, but its init options are passed through as is.
+const PLAUSIBLE_INIT = {
+  transformRequest: plausibleTransformRequest,
+} as React.ComponentProps<typeof PlausibleProvider>["init"];
 
 function MyApp({
   Component,
@@ -105,7 +112,7 @@ function MyApp({
   if (pageProps.draftMode && pageProps.token) {
     return (
       <PreviewProvider token={pageProps.token}>
-        <PlausibleProvider enabled={tracking}>
+        <PlausibleProvider enabled={tracking} init={PLAUSIBLE_INIT}>
           <WidgetStoreProvider store={globalWidgetStore}>
             <RouterContext.Provider value={routerContextValue}>
               {appStaticProps.layout === LayoutType.Default ? (
@@ -128,7 +135,7 @@ function MyApp({
   }
 
   return (
-    <PlausibleProvider>
+    <PlausibleProvider init={PLAUSIBLE_INIT}>
       <WidgetStoreProvider store={globalWidgetStore}>
         <RouterContext.Provider value={routerContextValue}>
           {appStaticProps.layout === LayoutType.Default ? (

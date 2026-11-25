@@ -42,6 +42,7 @@ model Organizations {
   Distribution_cause_area_organizations Distribution_cause_area_organizations[]
   Adoveo_fundraiser_org_shares          Adoveo_fundraiser_org_shares[]
   Adoveo_giftcard_org_shares            Adoveo_giftcard_org_shares[]
+  Giftcard_products                     Giftcard_products[]
   Organization_payees                   Organization_payees[]
   Projects                              Projects[]
   Regrant_round_recipients              Regrant_round_recipients[]
@@ -263,6 +264,7 @@ model Distributions {
   Swish_orders                                  Swish_orders[]
   Vipps_matching_rules                          Vipps_matching_rules[]
   Donation_referral_codes                       Donation_referral_codes[]
+  Giftcard                                      Giftcards?
 }
 
 model Distribution_cause_areas {
@@ -542,6 +544,64 @@ model Fundraiser_transactions {
   Fundraisers Fundraisers @relation(fields: [Fundraiser_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Fundraiser_transactions_to_Fundraiser_idx")
 
   Distributions Distributions[]
+}
+
+/// A gift card product (gavekort): a fixed price per unit ("100 kr per barn") to one
+/// organization, and the SMS text sent to recipients. Page content, pictures and the self-fill
+/// PDF are in Sanity (document `giftcard`), linked by Slug. Configuration: not in migrations.
+model Giftcard_products {
+  ID              Int      @id @default(autoincrement())
+  Slug            String   @unique(map: "Giftcard_products_Slug_key") @db.VarChar(64)
+  Name            String   @db.VarChar(255)
+  Organization_ID Int
+  Unit_price      Decimal  @db.Decimal(10, 2) /// NOK per unit
+  Unit_singular   String   @db.VarChar(64) /// "barn", "myggnett"
+  Unit_plural     String   @db.VarChar(64)
+  Min_units       Int      @default(1)
+  Max_units       Int      @default(1000)
+  Sms_template    String   @db.Text /// Placeholders: see custom_modules/giftcards/smsText.ts
+  Active          Boolean  @default(true)
+  Created         DateTime @default(now()) @db.DateTime(0)
+  Last_updated    DateTime @default(now()) @updatedAt @db.DateTime(0)
+
+  Organizations Organizations @relation(fields: [Organization_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Giftcard_products_to_Organizations")
+  Giftcards     Giftcards[]
+
+  @@index([Organization_ID], map: "fk_Giftcard_products_to_Organizations_idx")
+}
+
+/// A gift card bought on its own KID (never reused for other donations). Status: pending (not
+/// paid), paid (PDF only, or SMS waiting for Send_at), sending, sent, failed, cancelled.
+/// Times the app compares (Send_at, Paid_at, Sent_at, Sender_notified_at) are UTC, written by
+/// the app (osloDays.ts).
+model Giftcards {
+  ID                 Int       @id @default(autoincrement())
+  KID                String    @unique(map: "Giftcards_KID_key") @db.VarChar(32)
+  Code               String?   @unique(map: "Giftcards_Code_key") @db.VarChar(16) /// In the recipient's link
+  Product_ID         Int
+  Units              Int
+  Amount             Decimal   @db.Decimal(15, 2)
+  Delivery           String    @db.VarChar(8) /// sms | pdf
+  Recipient_name     String    @db.VarChar(100)
+  Sender_name        String    @db.VarChar(100)
+  Message            String?   @db.VarChar(1200)
+  Recipient_phone    String?   @db.VarChar(20) /// E.164; only for sms
+  Send_at            DateTime? @db.DateTime(0)
+  Status             String    @default("pending") @db.VarChar(16)
+  Paid_at            DateTime? @db.DateTime(0)
+  Sent_at            DateTime? @db.DateTime(0)
+  Send_attempts      Int       @default(0)
+  Sms_provider_ID    String?   @db.VarChar(64)
+  Last_error         String?   @db.Text
+  Sender_notified_at DateTime? @db.DateTime(0)
+  Created            DateTime  @default(now()) @db.DateTime(0)
+  Last_updated       DateTime  @default(now()) @updatedAt @db.DateTime(0)
+
+  Distribution Distributions     @relation(fields: [KID], references: [KID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Giftcards_to_Distributions")
+  Product      Giftcard_products @relation(fields: [Product_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Giftcards_to_Giftcard_products")
+
+  @@index([Product_ID], map: "fk_Giftcards_to_Giftcard_products_idx")
+  @@index([Status, Send_at], map: "Giftcards_Status_Send_at_idx")
 }
 
 model Import_logs {
