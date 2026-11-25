@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import styles from "./Navbar.module.scss";
 import { useRouter } from "next/router";
 import AnimateHeight from "react-animate-height";
@@ -19,7 +19,8 @@ import { LiveQuery } from "../../LiveQuery";
 import { isFeatureOn } from "../../../../studio/features";
 
 /* .logoWrapper is 250px wide on large screens, .logoWrapperImage 160px below that */
-const LOGO_SIZES = "(min-width: 1521px) 250px, 160px";
+const LOGO_SIZES = "(width > 1640px) 250px, 160px";
+const COMPACT_MENU_QUERY = "(max-width: 1280px)";
 
 export type NavLink = {
   _type: "navitem";
@@ -161,23 +162,27 @@ export const Navbar = withStaticProps(
   const { loggedIn, logout } = useContext(NavbarAuthContext);
 
   const [expandMenu, setExpandMenu] = useState<boolean>(false);
-  const [expandedSubmenu, setExpandedSubmenu] = useState<{ [key: string]: boolean }>(
-    filteredElements.reduce((a, v) => ({ ...a, [v._key]: false }), {}),
-  );
+  const [expandedSubmenu, setExpandedSubmenu] = useState<Record<string, boolean>>({});
+
+  const setExpanded = useCallback((expanded: boolean) => {
+    setExpandMenu(expanded);
+    if (!expanded) setExpandedSubmenu({});
+  }, []);
 
   useEffect(() => {
-    setExpandMenu(false);
-    if (typeof document !== "undefined") {
-      document.body.style.overflow = "auto";
-    }
-  }, [router.asPath]);
+    setExpanded(false);
+  }, [router.asPath, setExpanded]);
 
-  const setExpanded = (expanded: boolean) => {
-    if (expanded && window.innerWidth < 1180) document.body.style.overflow = "hidden";
-    else if (typeof document !== "undefined") document.body.style.overflow = "auto";
+  useEffect(() => {
+    if (!expandMenu) return;
 
-    setExpandMenu(expanded);
-  };
+    const compactMenu = window.matchMedia(COMPACT_MENU_QUERY);
+    const closeOnDesktop = () => {
+      if (!compactMenu.matches) setExpanded(false);
+    };
+    compactMenu.addEventListener("change", closeOnDesktop);
+    return () => compactMenu.removeEventListener("change", closeOnDesktop);
+  }, [expandMenu, setExpanded]);
 
   const toggleExpanded = (key: string) => {
     if (expandMenu) {
@@ -253,11 +258,10 @@ export const Navbar = withStaticProps(
           )}
           <button
             className={styles.expandBtn}
-            onClick={(e) => {
-              setExpanded(!expandMenu);
-              e.currentTarget.blur();
-            }}
-            aria-label={expandMenu ? "Open menu" : "Close menu"}
+            data-cy="navbar-menu-toggle"
+            onClick={() => setExpanded(!expandMenu)}
+            aria-label={expandMenu ? "Close menu" : "Open menu"}
+            aria-expanded={expandMenu}
           >
             <AnimatedMenuIcon isOpen={expandMenu} />
           </button>
@@ -271,7 +275,11 @@ export const Navbar = withStaticProps(
                   expandedSubmenu[el._key] ? styles.expandedSubmenu : styles.collapsedSubmenu
                 }
               >
-                <button onClick={() => toggleExpanded(el._key)} tabIndex={-1}>
+                <button
+                  onClick={() => toggleExpanded(el._key)}
+                  tabIndex={expandMenu ? undefined : -1}
+                  aria-expanded={expandMenu ? Boolean(expandedSubmenu[el._key]) : undefined}
+                >
                   {el.title}
                 </button>
                 <AnimateHeight
