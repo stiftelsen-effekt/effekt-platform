@@ -55,6 +55,10 @@
 }
 
 @media only screen and (max-width: 1180px) {
+  html:has(.widgetPane[data-widget-open="true"]) {
+    overflow-y: hidden;
+  }
+
   .widgetPane {
     min-width: auto;
     width: 100vw;
