@@ -31,6 +31,7 @@ import normalimage from "./types/normalimage";
 import fullvideo from "./types/fullvideo";
 import htmlembed from "./types/htmlembed";
 import donationwidget from "./types/donationwidget";
+import pledgesignup from "./types/pledgesignup";
 import quote from "./types/quote";
 import citation from "./types/citation";
 import newslettersignup from "./types/newslettersignup";
@@ -145,6 +146,7 @@ export const types = [
   newslettersignup,
   htmlembed,
   donationwidget,
+  pledgesignup,
   quote,
   resultsteaser,
   citation,

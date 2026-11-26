@@ -1,0 +1,220 @@
+/* Pledge signup: the site's colours (--primary on --secondary, swapped in inverted sections),
+   pill inputs and the paragraph width (760px), so it reads as part of the page */
+
+.pledgeSignup {
+  width: 100%;
+  max-width: 760px;
+  font-family: "ESKlarheitGrotesk", sans-serif;
+  color: var(--primary);
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+}
+
+.step {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.stepLegend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0;
+  margin-bottom: 1.25rem;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--primary);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stepHeading {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.stepBody {
+  padding-left: 3.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.question {
+  margin: 0;
+}
+
+.optionSummary {
+  margin: 0.25rem 0 0 2em;
+  font-weight: 500;
+}
+
+.optionDescription {
+  margin: 0.25rem 0 0.5rem 2em;
+  opacity: 0.8;
+}
+
+.pledgeFields {
+  margin: 1rem 0 0.5rem 2em;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+.label {
+  font-size: 0.9rem;
+}
+
+.hint {
+  opacity: 0.6;
+}
+
+.help {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.dateInput,
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: none;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  font-family: inherit;
+  font-size: 100%;
+}
+
+.dateInput {
+  border-radius: 45px;
+  padding: 13px 22px;
+  color-scheme: light dark;
+}
+
+.textarea {
+  border-radius: 22px;
+  padding: 14px 22px;
+  resize: vertical;
+}
+
+.pledgeText {
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--primary);
+  border-radius: 22px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.signedBy {
+  margin: 0.5rem 0 0;
+}
+
+.names {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.terms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.termsText {
+  display: inline-block;
+  margin-left: 1rem;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}
+
+.fieldError,
+.failure {
+  font-size: 0.85rem;
+  color: var(--primary);
+
+  &::before {
+    content: "⚠ ";
+  }
+}
+
+.failure {
+  font-size: 1rem;
+}
+
+.submit {
+  align-self: flex-start;
+  min-width: 14rem;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.spinner {
+  filter: invert(1);
+  width: 1rem;
+  height: 1rem;
+
+  &:after {
+    width: 0.8rem;
+    height: 0.8rem;
+    margin: 0.1rem;
+    border-width: 0.125rem;
+  }
+}
+
+.success {
+  border: 1px solid var(--primary);
+  border-radius: 22px;
+  padding: 2rem;
+}
+
+.successHeading {
+  margin-top: 0;
+}
+
+@media only screen and (max-width: 1180px) {
+  .stepBody {
+    padding-left: 0;
+  }
+
+  .pledgeFields,
+  .names {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pledgeFields {
+    margin-left: 0;
+  }
+}
