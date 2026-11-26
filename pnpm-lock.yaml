@@ -265,6 +265,9 @@ overrides:
   '@vercel/frameworks>js-yaml': ^3.15.2
   '@vercel/frameworks>smol-toml': ^1.9.0
   typeid-js>uuid: ^11.1.1
+  '@prisma/config>effect': ^3.22.1
+  '@oclif/core>minimatch': ^11.0.1
+  cloudevents>uuid: ^11.1.1
 
 importers:
 
@@ -2268,6 +2271,9 @@ packages:
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
+
+  '@isaacs/nonrecursive-glob-match@1.1.0':
+    resolution: {integrity: sha512-GPm/Dbvk5RLmhRnxXIa7nTpK0xtl4E0wj0MslsuNiJ1FIROU+2+9lgUC/dgF7Ey4QCWhfEsgxilMRMCdHPfDfw==}
 
   '@isaacs/ttlcache@2.1.5':
     resolution: {integrity: sha512-VwGZqqjAWPICTmxUZnbpEfO60LhPWzquik+bmyXGY7pYRn6diEvCI5i6Ca+J6o2y4vS73HrpuMTo2dOvUevH8w==}
@@ -7263,8 +7269,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  effect@3.20.0:
-    resolution: {integrity: sha512-qMLfDJscrNG8p/aw+IkT9W7fgj50Z4wG5bLBy0Txsxz8iUHjDIkOgO3SV0WZfnQbNG2VJYb0b+rDLMrhM4+Krw==}
+  effect@3.22.4:
+    resolution: {integrity: sha512-RNshu7AXVxxDh6aS4lothhJ+QoZ4xSykbWNaaVdvDN72RMyVwhCGdALkyl1TbEydgAmRIdD1eTyJqBUGwSBGDA==}
 
   ejs@6.0.1:
     resolution: {integrity: sha512-UaaM14yby8U3k02ihS1Bmj5Kz2d7CCQM1scxpgs4Mhkq8F1wR2gl3+Ts4h5Ne4Mnt7M9m4Dw7jsuMr3+xO4vZA==}
@@ -8647,9 +8653,9 @@ packages:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
     engines: {node: '>=4'}
 
-  minimatch@10.2.6:
-    resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
-    engines: {node: 18 || 20 || >=22}
+  minimatch@11.0.8:
+    resolution: {integrity: sha512-nFQuYSTVrGvysVBps5Ih+0BdnYFN/Cj3C816r6+p7yK+FHrVLGE4O4N9AFwykrlNlvM2HYt+Rad1Uiro6h88Ig==}
+    engines: {node: 20 || >=22}
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
@@ -10477,11 +10483,6 @@ packages:
 
   uuid@14.0.3:
     resolution: {integrity: sha512-Sc5u1VVln93y1Xnz4R+CunOZc7R9LUcTmhj7Rc7Eg3HVcf7rVn2FOoa812fe0W8p3jD7xeoGSYbfqCGGH2B6xw==}
-    hasBin: true
-
-  uuid@8.3.2:
-    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuidv7@0.4.4:
@@ -12428,6 +12429,8 @@ snapshots:
     dependencies:
       minipass: 7.1.3
 
+  '@isaacs/nonrecursive-glob-match@1.1.0': {}
+
   '@isaacs/ttlcache@2.1.5': {}
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -12685,7 +12688,7 @@ snapshots:
       get-package-type: 0.1.0
       indent-string: 4.0.0
       lilconfig: 3.1.3
-      minimatch: 10.2.6
+      minimatch: 11.0.8
       semver: 7.8.5
       string-width: 4.2.3
       supports-color: 8.1.1
@@ -13018,7 +13021,7 @@ snapshots:
     dependencies:
       c12: 3.3.4(magicast@0.5.5)
       deepmerge-ts: 8.0.2
-      effect: 3.20.0
+      effect: 3.22.4
       empathic: 2.0.0
     transitivePeerDependencies:
       - magicast
@@ -17750,7 +17753,7 @@ snapshots:
       json-bigint: 1.0.0
       process: 0.11.10
       util: 0.12.5
-      uuid: 8.3.2
+      uuid: 11.1.1
 
   clsx@2.1.1: {}
 
@@ -18426,7 +18429,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effect@3.20.0:
+  effect@3.22.4:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 3.23.2
@@ -19885,8 +19888,9 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  minimatch@10.2.6:
+  minimatch@11.0.8:
     dependencies:
+      '@isaacs/nonrecursive-glob-match': 1.1.0
       brace-expansion: 5.0.12
 
   minimist@1.2.8: {}
@@ -22097,8 +22101,6 @@ snapshots:
   uuid@11.1.1: {}
 
   uuid@14.0.3: {}
-
-  uuid@8.3.2: {}
 
   uuidv7@0.4.4: {}
 
