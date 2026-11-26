@@ -981,7 +981,7 @@ async function addAgreement(
 
   try {
     // INSERT IGNORE: an agreement that is already stored counts as success
-    await DAO.query(
+    const [result] = await DAO.query<ResultSetHeader>(
       `
             INSERT IGNORE INTO Vipps_agreements
                 (ID, donorID, KID, amount, monthly_charge_day, agreement_url_code, status)
@@ -989,6 +989,17 @@ async function addAgreement(
                 (?,?,?,?,?,?,?)`,
       [agreementID, donorID, KID, amount, monthlyChargeDay, agreementUrlCode, status],
     );
+
+    // Only on an actual insert (not an IGNOREd duplicate) do we claim the code: the KID's
+    // referral code belongs to whichever agreement it first became, not a resend/retry. A failure
+    // here must not fail the agreement creation itself.
+    if (result.affectedRows > 0) {
+      try {
+        await DAO.donationReferralCodes.claimForAgreement(KID, "vipps", agreementID);
+      } catch (ex) {
+        console.error("Failed to claim referral code for Vipps agreement %s:", agreementID, ex);
+      }
+    }
 
     return true;
   } catch (ex) {

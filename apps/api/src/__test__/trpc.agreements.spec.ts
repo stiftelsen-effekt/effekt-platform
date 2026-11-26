@@ -183,8 +183,9 @@ describe("tRPC agreements router", () => {
       expect(sql.match(/UNION ALL/g)).toHaveLength(1);
       expect(sql).toContain("CAST(AG.amount / 100 AS DECIMAL(16, 2))");
       expect(sql).toContain("CampaignCodes.campaign_codes");
-      expect(sql).toContain("ON CampaignCodes.KID = VA.KID");
-      expect(sql).toContain("ON CampaignCodes.KID = AG.KID");
+      expect(sql).toContain("WHERE Agreement_provider = 'vipps'");
+      expect(sql).toContain("WHERE Agreement_provider = 'avtalegiro'");
+      expect(sql).toContain("CampaignCodes.Agreement_id");
       expect(sql).toMatch(/ORDER BY createdDb DESC, provider DESC/);
       // The created columns are filled by MySQL defaults (DB clock), returned as UTC
       expect(sql).toContain("VA.timestamp_created AS createdDb");
