@@ -115,8 +115,16 @@ const TaxUnitMobileListStandard: React.FC<{ taxUnits: TaxUnit[] } & TaxUnitMobil
 export const TaxUnitMobileList: React.FC<
   {
     taxUnits: TaxUnit[];
+    /** Only the Danish list shows the tax benefit */
+    sumTaxBenefitLabel: string;
   } & TaxUnitMobileListLabels
-> = ({ taxUnits, numberOfDonationsLabel, sumDonationsLabel, sumTaxDeductionsLabel }) => {
+> = ({
+  taxUnits,
+  numberOfDonationsLabel,
+  sumDonationsLabel,
+  sumTaxDeductionsLabel,
+  sumTaxBenefitLabel,
+}) => {
   const mainLocale = useMainLocale();
   if (mainLocale === "dk") {
     return (
@@ -125,6 +133,7 @@ export const TaxUnitMobileList: React.FC<
         numberOfDonationsLabel={numberOfDonationsLabel}
         sumDonationsLabel={sumDonationsLabel}
         sumTaxDeductionsLabel={sumTaxDeductionsLabel}
+        sumTaxBenefitLabel={sumTaxBenefitLabel}
       />
     );
   }

@@ -4,14 +4,22 @@ import type { TaxUnit } from "../../../../../models";
 import { TaxUnitEditModal } from "../../TaxUnitModal/TaxUnitEditModal";
 import { GenericList } from "../GenericList";
 import type { ListRow } from "../GenericListRow";
-import { TaxUnitMobileDetails } from "./TaxUnitMobileDetails";
+import { DKTaxUnitMobileDetails } from "./DKTaxUnitMobileDetails";
+import { formatDKTaxId } from "./dkTaxDeductions";
 
 export const DKTaxUnitMobileList: React.FC<{
   taxUnits: TaxUnit[];
   numberOfDonationsLabel: string;
   sumDonationsLabel: string;
   sumTaxDeductionsLabel: string;
-}> = ({ taxUnits, numberOfDonationsLabel, sumDonationsLabel, sumTaxDeductionsLabel }) => {
+  sumTaxBenefitLabel: string;
+}> = ({
+  taxUnits,
+  numberOfDonationsLabel,
+  sumDonationsLabel,
+  sumTaxDeductionsLabel,
+  sumTaxBenefitLabel,
+}) => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedTaxUnit, setSelectedTaxUnit] = useState<TaxUnit | null>(null);
 
@@ -30,7 +38,7 @@ export const DKTaxUnitMobileList: React.FC<{
     return {
       id: unit.id.toString(),
       defaultExpanded: false,
-      cells: [{ value: unit.name }, { value: unit.ssn }],
+      cells: [{ value: unit.name }, { value: formatDKTaxId(unit.ssn) }],
       contextOptions,
       onContextSelect: (option: string, element: TaxUnit) => {
         if (option === "Rediger") {
@@ -39,11 +47,12 @@ export const DKTaxUnitMobileList: React.FC<{
         }
       },
       details: (
-        <TaxUnitMobileDetails
+        <DKTaxUnitMobileDetails
           taxUnit={unit}
           numberOfDonationsLabel={numberOfDonationsLabel}
           sumDonationsLabel={sumDonationsLabel}
           sumTaxDeductionsLabel={sumTaxDeductionsLabel}
+          sumTaxBenefitLabel={sumTaxBenefitLabel}
         />
       ),
       element: unit,
@@ -54,7 +63,7 @@ export const DKTaxUnitMobileList: React.FC<{
     <div>
       <div>Der mangler information for skatteenheden.</div>
       <div>
-        Kontakt os på <a href={"mailto: donasjon@giveffektivt.dk"}>donasjon@giveffektivt.dk</a>.
+        Kontakt os på <a href={"mailto:donation@giveffektivt.dk"}>donation@giveffektivt.dk</a>.
       </div>
     </div>
   );
