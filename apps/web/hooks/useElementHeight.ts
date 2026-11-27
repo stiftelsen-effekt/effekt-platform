@@ -111,7 +111,10 @@ export const useMultipleElementHeights = <T extends HTMLElement>(
       clearTimeout(initialTimerId);
       observers.forEach((observer) => observer.disconnect());
     };
-  }, [elementRefs]); // Only re-run if the refs array changes
+    // Re-runs on every render (not just when `elementRefs` changes, which never happens for a
+    // fixed-size ref array): panes that are conditionally rendered have a null ref until they
+    // first mount, so re-running this effect is how a newly-mounted pane ever gets observed.
+  });
 
   // Handle array length changes by adjusting state during render
   // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
