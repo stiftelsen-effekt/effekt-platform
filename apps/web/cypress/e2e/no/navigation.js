@@ -8,7 +8,7 @@ const shouldBeTranslatedOutOfView = (selector) => {
   });
 };
 
-describe("Navigation", () => {
+describe("Navigation", { viewportWidth: 1440 }, () => {
   beforeEach(() => {
     cy.fixture("cause_areas").then((causeAreas) => {
       cy.interceptCauseAreas(causeAreas).as("getCauseAreas");
@@ -91,11 +91,11 @@ describe("Navigation", () => {
     cy.get("[data-cy=header-navbar]").should("be.visible");
   });
 
-  it("Tests buttons for opening and closing Widget from menu", () => {
+  it("opens and closes the widget from the compact menu", { viewportWidth: 1280 }, () => {
     // Widget should be closed
     cy.get("[data-cy=widget-pane]").should("not.be.visible");
 
-    // Click button in menu
+    cy.get("[data-cy=navbar-menu-toggle]").click();
     cy.get("[data-cy=send-donation-button]").click();
 
     // Wait for widget to open

@@ -1,3 +1,5 @@
+@use "../../../../styles/header-breakpoints" as header;
+
 .container {
   width: 100%;
   padding: 0px 5vw;
@@ -92,6 +94,13 @@
   a {
     border-bottom: none;
   }
+
+  /* The logo image's own aspect ratio is narrower than this box, so object-fit: contain
+     (set inline by ResponsiveImage) centers it by default, leaving the mark inset from the
+     box's left edge instead of flush with the page content. */
+  img {
+    object-position: left center !important;
+  }
 }
 
 .navbar ul li.expandedSubmenu button::after {
@@ -115,7 +124,11 @@
 }
 
 /* Mobile */
-@media only screen and (max-width: 1180px) {
+@media only screen and (width <= header.$compact-menu-max-width) {
+  html:has(.navbarExpanded) {
+    overflow-y: hidden;
+  }
+
   .navbarExpanded {
     background: var(--primary);
     color: var(--secondary);
@@ -306,14 +319,14 @@
 }
 
 /* Laoptop */
-@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+@media only screen and (header.$compact-menu-max-width < width <= 1640px) {
   .navbar .logoWrapper {
     width: 160px;
   }
 }
 
 /* Over mobile */
-@media only screen and (min-width: 1180px) {
+@media only screen and (width > header.$compact-menu-max-width) {
   .navbar ul li > div {
     height: auto !important;
     opacity: 1 !important;

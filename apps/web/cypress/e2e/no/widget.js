@@ -283,7 +283,7 @@ describe("Widget", () => {
     cy.get("[data-cy=referral-text-input]").type("Referral text");
   });
 
-  it("End-2-End for existing donor", () => {
+  it("End-2-End for existing donor", { viewportWidth: 1440 }, () => {
     cy.login();
 
     cy.interceptDonorProfile(mockDonor).as("getDonor");

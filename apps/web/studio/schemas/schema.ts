@@ -79,6 +79,7 @@ import { dashboardpages } from "./dashboard/_dashboardPages";
 import plausiblerevenuetracker from "./types/plausiblerevenuetracker";
 import opendistributionbutton from "./types/opendistributionbutton";
 import resultsheadline from "./types/results/resultsheadline";
+import fundraiserchart from "./types/fundraiserchart";
 import generalbanner from "./types/generalbanner";
 import teamintroduction from "./types/teamintroduction";
 import resultsteaser from "./types/resultsteaser";
@@ -154,6 +155,7 @@ export const types = [
   wealthcalculatorimpact,
   contributorlist,
   inngress,
+  fundraiserchart,
   giveblock,
   givewellstamp,
   organizationslist,

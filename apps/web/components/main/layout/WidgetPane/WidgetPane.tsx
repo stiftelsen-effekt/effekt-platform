@@ -68,6 +68,7 @@ export const WidgetPane: React.FC<WidgetPaneProps> = ({ darkMode, ...widgetProps
   return (
     <aside
       data-cy="widget-pane"
+      data-widget-open={widgetContext.open}
       className={`${styles.widgetPane} ${widgetOpenClass} ${useDarkmode ? styles.dark : ""}`}
       style={style}
     >

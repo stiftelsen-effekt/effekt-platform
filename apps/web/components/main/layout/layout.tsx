@@ -152,12 +152,6 @@ export const Layout = withStaticProps(
     generalBannerDismissed: false,
   });
 
-  if (widgetContext.open && window.innerWidth < 1180) {
-    document.body.style.overflow = "hidden";
-  } else if (typeof document !== "undefined") {
-    document.body.style.overflow = "hidden";
-  }
-
   return (
     <MainLocaleContext.Provider value={mainLocale}>
       <div className={styles.container}>
