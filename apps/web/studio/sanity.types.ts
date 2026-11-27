@@ -1707,6 +1707,19 @@ export type Giveblock = {
   paragraph?: string;
 };
 
+export type Fundraiserchart = {
+  _type: "fundraiserchart";
+  heading?: string;
+  background?: "light" | "dark";
+  fundraisers?: Array<{
+    name?: string;
+    fundraiser_page?: Generic_pageReference;
+    fundraiser_id?: string;
+    _key: string;
+  }>;
+  caption_template?: string;
+};
+
 export type Inngress = {
   _type: "inngress";
   heading?: string;

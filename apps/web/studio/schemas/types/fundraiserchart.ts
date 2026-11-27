@@ -1,0 +1,97 @@
+import { BarChart2 } from "react-feather";
+import { defineType, defineField } from "sanity";
+import { FundraiserChartFundraisersInput } from "../../components/fundraiserChartFundraisersInput";
+
+export default defineType({
+  name: "fundraiserchart",
+  type: "object",
+  title: "Fundraiser Chart",
+  icon: BarChart2,
+  fields: [
+    defineField({
+      name: "heading",
+      type: "string",
+      title: "Heading",
+    }),
+    defineField({
+      name: "background",
+      type: "string",
+      title: "Background",
+      description: "Chart is two-tone black / #fafafa; pick which color is the background.",
+      options: {
+        list: [
+          { title: "Light (#fafafa background, black bars)", value: "light" },
+          { title: "Dark (black background, #fafafa bars)", value: "dark" },
+        ],
+        layout: "radio",
+      },
+      initialValue: "light",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: "fundraisers",
+      type: "array",
+      description: "Search by donor name to add a registered fundraiser to the leaderboard.",
+      components: {
+        input: FundraiserChartFundraisersInput,
+      },
+      of: [
+        {
+          type: "object",
+          fields: [
+            defineField({
+              name: "name",
+              type: "string",
+              title: "Name",
+              description: "Name shown in bar chart",
+            }),
+            defineField({
+              name: "fundraiser_page",
+              type: "reference",
+              to: [{ type: "generic_page" }],
+            }),
+            defineField({
+              name: "fundraiser_id",
+              type: "string",
+              title: "Fundraiser ID",
+              description: "ID of the fundraiser in the database",
+            }),
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: "caption_template",
+      type: "string",
+      title: "Chart caption template",
+      description: "Chart caption with last updated time specified with {lastUpdated}",
+    }),
+  ],
+  preview: {
+    select: {
+      title: "heading",
+      fundraiser1name: "fundraisers.0.name",
+      fundraiser2name: "fundraisers.1.name",
+      fundraiser3name: "fundraisers.2.name",
+      fundraiser4name: "fundraisers.3.name",
+      fundraiser5name: "fundraisers.4.name",
+    },
+    prepare: (selection: any) => {
+      const fundraiserNames = [
+        selection.fundraiser1name,
+        selection.fundraiser2name,
+        selection.fundraiser3name,
+        selection.fundraiser4name,
+        selection.fundraiser5name,
+      ].filter(Boolean);
+      const fullSubtitle = fundraiserNames.join(", ");
+      const subtitle =
+        fullSubtitle.length > 60 ? fullSubtitle.substring(0, 60) + "..." : fullSubtitle;
+
+      return {
+        title: selection.title,
+        subtitle: subtitle,
+      };
+    },
+  },
+});
