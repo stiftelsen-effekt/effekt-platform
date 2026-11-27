@@ -43,6 +43,7 @@ import { OpenDistributionButton } from "./OpenDistributionButton/OpenDistributio
 import { Opendistributionbutton } from "../../../studio/sanity.types";
 import { TeamIntroduction } from "./TeamIntroduction/TeamIntroduction";
 import { ResultsTeaser } from "./ResultsTeaser/ResultsTeaser";
+import { PledgeSignup } from "./PledgeSignup/PledgeSignup";
 import { TaxDeductionWidget } from "./TaxDeductionWidget/TaxDeductionWidget";
 import { DKGavebrevTaxWidget } from "./DKGavebrevTaxWidget/DKGavebrevTaxWidget";
 import { DonationWidgetBlock } from "./DonationWidgetBlock/DonationWidgetBlock";
@@ -319,6 +320,14 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
                 sumSubtitle={block.sum_subtitle}
                 donorsSubtitle={block.donors_subtitle}
                 seeMoreButton={block.see_more_button}
+                locale={stegaClean(block.locale)}
+              />
+            );
+          case "pledgesignup":
+            return (
+              <PledgeSignup
+                key={block._key || block._id}
+                config={block}
                 locale={stegaClean(block.locale)}
               />
             );

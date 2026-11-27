@@ -76,6 +76,7 @@ export default defineType({
         { type: "wealthcalculatorteaser" },
         { type: "philantropicteaser" },
         { type: "resultsteaser" },
+        { type: "pledgesignup" },
         { type: "htmlembed" },
         { type: "teasers" },
         { type: "interventionwidget" },
