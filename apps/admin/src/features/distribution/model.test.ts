@@ -197,6 +197,45 @@ describe("draftToApi (the distributionSchema input)", () => {
       { id: 12, share: 100 },
     ]);
   });
+
+  it("offers inactive organizations in a custom split, after the active ones", () => {
+    const withInactive: CauseAreaConfig[] = [
+      {
+        ...config[0]!,
+        organizations: [{ ...org(10, 1, 0), isActive: false }, org(11, 1, 60), org(12, 1, 40)],
+      },
+      config[1]!,
+    ];
+    const standard = standardDraft(withInactive);
+    expect(standard.causeAreas[0]!.organizations.map((o) => o.id)).toEqual([11, 12]);
+
+    let draft = setStandardSplit(standard, withInactive, 1, false);
+    expect(draft.causeAreas[0]!.organizations).toEqual([
+      { id: 11, share: 60 },
+      { id: 12, share: 40 },
+      { id: 10, share: 0 },
+    ]);
+
+    draft = setShare(setShare(draft, 1, 100), 2, 0);
+    draft = setOrganizationShare(draft, 1, 10, 50);
+    draft = setOrganizationShare(draft, 1, 11, 50);
+    draft = setOrganizationShare(draft, 1, 12, 0);
+    expect(validateDraft(draft).valid).toBe(true);
+    expect(draftToApi(draft)).toEqual([
+      {
+        id: 1,
+        percentageShare: "100",
+        standardSplit: false,
+        organizations: [
+          { id: 11, percentageShare: "50" },
+          { id: 10, percentageShare: "50" },
+        ],
+      },
+    ]);
+
+    const back = setStandardSplit(draft, withInactive, 1, true);
+    expect(back.causeAreas[0]!.organizations.map((o) => o.id)).toEqual([11, 12]);
+  });
 });
 
 describe("withCurrentStandardSplits", () => {
