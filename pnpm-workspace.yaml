@@ -9,9 +9,9 @@ packages:
 catalog:
   "@auth0/auth0-react": 2.30.0
   "@google-cloud/functions-framework": 5.0.5
-  "@trpc/client": 11.28.0
-  "@trpc/server": 11.28.0
-  "@trpc/tanstack-react-query": 11.28.0
+  "@trpc/client": 11.29.5
+  "@trpc/server": 11.29.5
+  "@trpc/tanstack-react-query": 11.29.5
   "@types/luxon": 3.7.6
   "@types/node": 24.19.2
   "@types/react": 19.3.0
@@ -66,6 +66,15 @@ overrides:
   "@vercel/frameworks>js-yaml": ^3.15.2
   "@vercel/frameworks>smol-toml": ^1.9.0
   typeid-js>uuid: ^11.1.1
+  # The parents below still pin vulnerable versions in their latest releases, so the fix is forced here.
+  # Remove each line once the parent ships a fixed range.
+  # @prisma/config pins effect 3.20.0 (GHSA-7589-6fvf-x4pw, ReDoS, fixed in 3.22.1)
+  "@prisma/config>effect": ^3.22.1
+  # @oclif/core 4 (via @sanity/cli) wants minimatch ^10 (GHSA-g3hv-75wg-m249, fixed in 11.0.1)
+  "@oclif/core>minimatch": ^11.0.1
+  # cloudevents wants uuid ^8 (GHSA-w5hq-g745-h8pq, fixed in 11.1.1). It only calls v4, which the
+  # advisory does not affect, so this only clears the alert.
+  cloudevents>uuid: ^11.1.1
 
 # Supply-chain settings (docs/dependencies.md). pnpm resolves no version published less than
 # 7 days ago (10080 minutes; pnpm's built-in default is 1 day) and fails instead of picking one

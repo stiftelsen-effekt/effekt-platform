@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
 import {
   apportion,
@@ -71,12 +70,12 @@ describe("regranting FIFO attribution", () => {
       transfer("2026-07-10", "750", 2, "2026-06-30"),
       release("2026-07-10", 2),
     ]);
-    expect(takes(q1!)).to.deep.equal(["jan:100.00", "feb:150.00"]);
-    expect(q1!.leftAfter.amount.toFixed(2)).to.equal("350.00");
-    expect(q1!.leftAfter.oldest).to.equal("2026-02-15");
-    expect(takes(q2!)).to.deep.equal(["feb:50.00", "mar:300.00", "apr:400.00"]);
-    expect(q2!.previous?.tag.label).to.equal("r1");
-    expect(q2!.ahead.isZero()).to.equal(true);
+    expect(takes(q1!)).toStrictEqual(["jan:100.00", "feb:150.00"]);
+    expect(q1!.leftAfter.amount.toFixed(2)).toBe("350.00");
+    expect(q1!.leftAfter.oldest).toBe("2026-02-15");
+    expect(takes(q2!)).toStrictEqual(["feb:50.00", "mar:300.00", "apr:400.00"]);
+    expect(q2!.previous?.tag.label).toBe("r1");
+    expect(q2!.ahead.isZero()).toBe(true);
   });
 
   it("never uses money that came in after the cutoff", () => {
@@ -86,12 +85,12 @@ describe("regranting FIFO attribution", () => {
       transfer("2026-04-10", "150", 1, "2026-03-31"),
       release("2026-04-10", 1),
     ]);
-    expect(takes(q!)).to.deep.equal(["mar:100.00"]);
-    expect(q!.ahead.toFixed(2)).to.equal("50.00");
+    expect(takes(q!)).toStrictEqual(["mar:100.00"]);
+    expect(q!.ahead.toFixed(2)).toBe("50.00");
     // April money that was already in when it was paid covers what was paid ahead
     expect(
       q!.settledBy.map((t) => `${t.inflow.source.label}:${t.amount.toFixed(2)}`),
-    ).to.deep.equal(["apr:50.00"]);
+    ).toStrictEqual(["apr:50.00"]);
   });
 
   it("settles a payment made ahead with the next money, its own donation first", () => {
@@ -102,11 +101,11 @@ describe("regranting FIFO attribution", () => {
       inflow("2026-06-10", "40", "other"),
       inflow("2026-06-20", "1000", "pledged", 9),
     ]);
-    expect(takes(fronted!)).to.deep.equal(["small:10.00"]);
-    expect(fronted!.ahead.toFixed(2)).to.equal("990.00");
+    expect(takes(fronted!)).toStrictEqual(["small:10.00"]);
+    expect(fronted!.ahead.toFixed(2)).toBe("990.00");
     expect(
       fronted!.settledBy.map((t) => `${t.inflow.source.label}:${t.amount.toFixed(2)}`),
-    ).to.deep.equal(["other:40.00", "pledged:950.00"]);
+    ).toStrictEqual(["other:40.00", "pledged:950.00"]);
   });
 
   it("passes on a major donor's donation first and doesn't pay it again later", () => {
@@ -119,8 +118,8 @@ describe("regranting FIFO attribution", () => {
       transfer("2026-10-15", "500", 6, "2026-09-30"),
       release("2026-10-15", 6),
     ]);
-    expect(takes(major!)).to.deep.equal(["major:5000.00"]);
-    expect(takes(regular!)).to.deep.equal(["aug:300.00", "sep:200.00"]);
+    expect(takes(major!)).toStrictEqual(["major:5000.00"]);
+    expect(takes(regular!)).toStrictEqual(["aug:300.00", "sep:200.00"]);
   });
 
   it("keeps a reserved donation away from other rounds until its round is done", () => {
@@ -135,10 +134,10 @@ describe("regranting FIFO attribution", () => {
       transfer("2026-12-10", "2000", 6, "2026-11-30"),
       release("2026-12-10", 6),
     ]);
-    expect(takes(other!)).to.deep.equal(["small:100.00"]);
-    expect(takes(major!)).to.deep.equal(["major:3000.00"]);
+    expect(takes(other!)).toStrictEqual(["small:100.00"]);
+    expect(takes(major!)).toStrictEqual(["major:3000.00"]);
     // What it didn't use is ordinary money afterwards
-    expect(takes(later!)).to.deep.equal(["major:2000.00"]);
+    expect(takes(later!)).toStrictEqual(["major:2000.00"]);
   });
 
   it("handles a skipped round (min transfer, hold) as carry-over", () => {
@@ -153,9 +152,9 @@ describe("regranting FIFO attribution", () => {
       transfer("2026-08-10", "120", 3, "2026-07-31"),
       release("2026-08-10", 3),
     ]);
-    expect(takes(first!)).to.deep.equal(["jan:100.00"]);
-    expect(third!.previous?.tag.label).to.equal("r1");
-    expect(takes(third!)).to.deep.equal(["feb:50.00", "may:70.00"]);
+    expect(takes(first!)).toStrictEqual(["jan:100.00"]);
+    expect(third!.previous?.tag.label).toBe("r1");
+    expect(takes(third!)).toStrictEqual(["feb:50.00", "may:70.00"]);
   });
 });
 
@@ -166,18 +165,18 @@ describe("apportion", () => {
 
   it("rounds parts so they add up to the rounded total", () => {
     const parts = apportion(d(["0.333333", "0.333333", "0.333334"]));
-    expect(sumOf(parts)).to.equal("1.00");
-    expect(parts.map((p) => p.toFixed(2))).to.deep.equal(["0.33", "0.33", "0.34"]);
+    expect(sumOf(parts)).toBe("1.00");
+    expect(parts.map((p) => p.toFixed(2))).toStrictEqual(["0.33", "0.33", "0.34"]);
   });
 
   it("hits a given total exactly, each part within an øre", () => {
     const exact = d(["10.005", "20.005", "30.005", "-5.005"]);
     const parts = apportion(exact, new Decimal("55.01"));
-    expect(sumOf(parts)).to.equal("55.01");
-    parts.forEach((p, i) => expect(p.minus(exact[i]!).abs().lte("0.01")).to.equal(true));
+    expect(sumOf(parts)).toBe("55.01");
+    parts.forEach((p, i) => expect(p.minus(exact[i]!).abs().lte("0.01")).toBe(true));
   });
 
   it("leaves already-exact amounts alone", () => {
-    expect(apportion(d(["1.50", "2.25"])).map((p) => p.toFixed(2))).to.deep.equal(["1.50", "2.25"]);
+    expect(apportion(d(["1.50", "2.25"])).map((p) => p.toFixed(2))).toStrictEqual(["1.50", "2.25"]);
   });
 });

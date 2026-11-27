@@ -1,8 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import * as sinon from "sinon";
 import { validateXml, writeXMLTaxReport } from "../custom_modules/tax";
 
 const DATA_DIR = path.join(__dirname, "data", "tax");
@@ -19,29 +17,28 @@ const baseline: {
 } = readJson("libxmljs_baseline.json");
 
 describe("Tax report XML (Skatteetaten)", () => {
-  let clock: sinon.SinonFakeTimers;
   beforeEach(() => {
     // The baseline was generated with Date.now() === 1735689600000
-    clock = sinon.useFakeTimers({ now: 1735689600000, toFake: ["Date"] });
+    vi.useFakeTimers({ now: 1735689600000, toFake: ["Date"] });
   });
-  afterEach(() => clock.restore());
+  afterEach(() => vi.useRealTimers());
 
   for (const name of Object.keys(inputs)) {
     it(`serializes "${name}" identically to the libxmljs implementation`, () => {
       const { entities, contact, year } = inputs[name];
-      expect(writeXMLTaxReport(entities, contact, year)).to.equal(baseline.xml[name]);
+      expect(writeXMLTaxReport(entities, contact, year)).toBe(baseline.xml[name]);
     });
 
     it(`validates "${name}" against the XSD like libxmljs`, async () => {
       const { valid, errors } = await validateXml(baseline.xml[name], xsd);
-      expect(valid).to.equal(baseline.validity[name].valid);
-      expect(errors).to.deep.equal(baseline.validity[name].errors);
+      expect(valid).toBe(baseline.validity[name].valid);
+      expect(errors).toStrictEqual(baseline.validity[name].errors);
     });
   }
 
   it("accepts a valid document", async () => {
     const result = await validateXml(baseline.xml.typical, xsd);
-    expect(result).to.deep.equal({ valid: true, errors: [] });
+    expect(result).toStrictEqual({ valid: true, errors: [] });
   });
 
   it("rejects an invalid document with the schema error", async () => {
@@ -50,9 +47,9 @@ describe("Tax report XML (Skatteetaten)", () => {
       "<leveransetype>ukjent</leveransetype>",
     );
     const result = await validateXml(invalid, xsd);
-    expect(result.valid).to.equal(false);
-    expect(result.errors).to.have.length(1);
-    expect(result.errors[0]).to.contain("leveransetype");
+    expect(result.valid).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("leveransetype");
   });
 
   it("does not resolve external entities (XXE)", async () => {
@@ -63,7 +60,7 @@ describe("Tax report XML (Skatteetaten)", () => {
       )
       .replace("<navn>Ola Nordmann</navn>", "<navn>&xxe;</navn>");
     const result = await validateXml(xxe, xsd);
-    expect(result.valid).to.equal(false);
-    expect(result.errors.join("\n")).to.not.contain("root:");
+    expect(result.valid).toBe(false);
+    expect(result.errors.join("\n")).not.toContain("root:");
   });
 });

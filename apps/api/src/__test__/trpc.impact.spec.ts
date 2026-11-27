@@ -1,7 +1,5 @@
-import { describe, it, afterEach, beforeEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, afterEach, beforeEach, expect, vi } from "vitest";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { clearImpactDataCache, getImpactData } from "../custom_modules/impact/data";
 import {
@@ -36,9 +34,9 @@ const admin = () => callerWith(["admin"]);
 const expectCode = async (promise: Promise<unknown>, code: string) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
+    expect(err.code).toBe(code);
   }
 };
 
@@ -146,22 +144,21 @@ export const tablesFixture = (): AdminImpactTables => ({
 });
 
 describe("impact admin", () => {
-  let clock: sinon.SinonFakeTimers;
   beforeEach(() => {
     // 2026-11-15 in Oslo
-    clock = sinon.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
+    vi.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
   });
   afterEach(() => {
-    clock.restore();
-    sinon.restore();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   describe("timeline", () => {
     it("does month arithmetic across years", () => {
-      expect(addMonths("2025-11-01", 3)).to.equal("2026-02-01");
-      expect(addMonths("2026-01-01", -1)).to.equal("2025-12-01");
-      expect(monthCount("2025-11-01", "2026-02-01")).to.equal(4);
-      expect(monthCount("2026-02-01", "2025-11-01")).to.equal(0);
+      expect(addMonths("2025-11-01", 3)).toBe("2026-02-01");
+      expect(addMonths("2026-01-01", -1)).toBe("2025-12-01");
+      expect(monthCount("2025-11-01", "2026-02-01")).toBe(4);
+      expect(monthCount("2026-02-01", "2025-11-01")).toBe(0);
     });
 
     it("gives each item the months until the next one", () => {
@@ -170,13 +167,13 @@ describe("impact admin", () => {
         { validFrom: "2020-01-01" },
         { validFrom: "2021-01-01" },
       ]).map((c) => c.range);
-      expect(ranges).to.deep.equal([
+      expect(ranges).toStrictEqual([
         { from: "2020-01-01", to: "2020-12-01" },
         { from: "2021-01-01", to: "2022-12-01" },
         { from: "2023-01-01", to: null },
       ]);
-      expect(monthsApplied(ranges[2]!, "2026-11-01")).to.equal(47);
-      expect(monthsApplied(ranges[0]!, "2026-11-01")).to.equal(12);
+      expect(monthsApplied(ranges[2]!, "2026-11-01")).toBe(47);
+      expect(monthsApplied(ranges[0]!, "2026-11-01")).toBe(12);
     });
 
     it("finds the months whose figure changes", () => {
@@ -194,7 +191,7 @@ describe("impact admin", () => {
           key,
           "2026-11-01",
         ),
-      ).to.deep.equal([{ from: "2021-06-01", to: "2022-12-01" }]);
+      ).toStrictEqual([{ from: "2021-06-01", to: "2022-12-01" }]);
       // Changing the newest changes everything from it on
       expect(
         changedMonths<E>(
@@ -203,7 +200,7 @@ describe("impact admin", () => {
           key,
           "2026-11-01",
         ),
-      ).to.deep.equal([{ from: "2023-01-01", to: null }]);
+      ).toStrictEqual([{ from: "2023-01-01", to: null }]);
       // Moving the first one later leaves the months before it without an estimate
       expect(
         changedMonths<E>(
@@ -212,15 +209,15 @@ describe("impact admin", () => {
           key,
           "2026-11-01",
         ),
-      ).to.deep.equal([{ from: "2020-01-01", to: "2020-02-01" }]);
+      ).toStrictEqual([{ from: "2020-01-01", to: "2020-02-01" }]);
       // Nothing that a month shows changed
-      expect(changedMonths<E>(before, before, key, "2026-11-01")).to.deep.equal([]);
+      expect(changedMonths<E>(before, before, key, "2026-11-01")).toStrictEqual([]);
     });
 
     it("reports gaps of more than four days, newest first", () => {
       expect(
         rateGaps(["2026-03-27", "2026-03-30", "2026-04-07", "2026-04-08", "2026-04-20"]),
-      ).to.deep.equal([
+      ).toStrictEqual([
         { from: "2026-04-09", to: "2026-04-19", days: 11 },
         { from: "2026-03-31", to: "2026-04-06", days: 7 },
       ]);
@@ -229,51 +226,58 @@ describe("impact admin", () => {
 
   describe("access", () => {
     it("rejects anonymous callers and non-admins", async () => {
-      const read = sinon.stub(impactAdminDao, "readTables").resolves(tablesFixture());
+      const read = vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
       await expectCode(callerWith().impact.estimates.list(), "UNAUTHORIZED");
       await expectCode(callerWith(["read:profile"]).impact.estimates.list(), "FORBIDDEN");
       await expectCode(callerWith(["read:profile"]).impact.grants.get({ id: 33 }), "FORBIDDEN");
       await expectCode(callerWith(["read:profile"]).impact.exchangeRates(), "FORBIDDEN");
-      expect(read.called).to.be.false;
+      expect(read).not.toHaveBeenCalled();
     });
   });
 
   describe("estimates", () => {
     beforeEach(() => {
-      sinon.stub(impactAdminDao, "readTables").resolves(tablesFixture());
-      sinon.stub(impactAdminDao, "readRateOn").resolves({ date: "2026-11-13", perUsd: 10.5 });
+      vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
+      vi.spyOn(impactAdminDao, "readRateOn").mockResolvedValue({
+        date: "2026-11-13",
+        perUsd: 10.5,
+      });
     });
 
     it("lists estimates newest first with the months they cover and NOK at today's rate", async () => {
       const rows = await admin().impact.estimates.list();
-      expect(rows.map((r) => r.id)).to.deep.equal([71, 5, 1, 23]);
+      expect(rows.map((r) => r.id)).toStrictEqual([71, 5, 1, 23]);
       const amf2023 = rows[0]!;
-      expect(amf2023).to.include({
-        charityName: "Against Malaria Foundation",
-        interventionName: "Bednets",
-        validTo: null,
-        current: true,
-        monthsApplied: 47,
-        costPerOutputNok: "61.43",
-      });
-      expect(rows[1]).to.include({ validTo: "2022-12-01", current: false, monthsApplied: 24 });
+      expect(amf2023).toEqual(
+        expect.objectContaining({
+          charityName: "Against Malaria Foundation",
+          interventionName: "Bednets",
+          validTo: null,
+          current: true,
+          monthsApplied: 47,
+          costPerOutputNok: "61.43",
+        }),
+      );
+      expect(rows[1]).toEqual(
+        expect.objectContaining({ validTo: "2022-12-01", current: false, monthsApplied: 24 }),
+      );
     });
 
     it("filters by charity, intervention and the year an estimate applied in", async () => {
       const ids = async (input: object) =>
         (await admin().impact.estimates.list(input)).map((r) => r.id);
-      expect(await ids({ charityIds: [10] })).to.deep.equal([23]);
-      expect(await ids({ interventionIds: [2] })).to.deep.equal([71, 5, 1]);
-      expect(await ids({ year: 2022, charityIds: [1] })).to.deep.equal([5]);
-      expect(await ids({ year: 2019 })).to.deep.equal([]);
+      expect(await ids({ charityIds: [10] })).toStrictEqual([23]);
+      expect(await ids({ interventionIds: [2] })).toStrictEqual([71, 5, 1]);
+      expect(await ids({ year: 2022, charityIds: [1] })).toStrictEqual([5]);
+      expect(await ids({ year: 2019 })).toStrictEqual([]);
       await expectCode(admin().impact.estimates.list({ year: 1990 }), "BAD_REQUEST");
     });
 
     it("shows one charity's timeline oldest first, and NOT_FOUND for an unknown one", async () => {
       const timeline = await admin().impact.estimates.charity({ charityId: 1 });
-      expect(timeline.charity.abbreviation).to.equal("AMF");
-      expect(timeline.currentMonth).to.equal("2026-11-01");
-      expect(timeline.estimates.map((e) => [e.validFrom, e.validTo])).to.deep.equal([
+      expect(timeline.charity.abbreviation).toBe("AMF");
+      expect(timeline.currentMonth).toBe("2026-11-01");
+      expect(timeline.estimates.map((e) => [e.validFrom, e.validTo])).toStrictEqual([
         ["2020-01-01", "2020-12-01"],
         ["2021-01-01", "2022-12-01"],
         ["2023-01-01", null],
@@ -284,23 +288,23 @@ describe("impact admin", () => {
 
   describe("grants", () => {
     beforeEach(() => {
-      sinon.stub(impactAdminDao, "readTables").resolves(tablesFixture());
-      sinon.stub(impactAdminDao, "readRateOn").resolves({ date: "2026-11-13", perUsd: 10 });
+      vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
+      vi.spyOn(impactAdminDao, "readRateOn").mockResolvedValue({ date: "2026-11-13", perUsd: 10 });
     });
 
     it("lists grants per fund with what each split covers", async () => {
       const rows = await admin().impact.grants.list();
-      expect(rows.map((g) => [g.id, g.fund, g.validTo, g.current])).to.deep.equal([
+      expect(rows.map((g) => [g.id, g.fund, g.validTo, g.current])).toStrictEqual([
         [33, "TCF", null, true],
         [34, "AGF", null, true],
         [29, "TCF", "2025-01-01", false],
       ]);
-      expect(rows[2]).to.include({ allotments: 2, totalCents: 400 });
-      expect(rows[2]!.charities).to.deep.equal([
+      expect(rows[2]).toEqual(expect.objectContaining({ allotments: 2, totalCents: 400 }));
+      expect(rows[2]!.charities).toStrictEqual([
         "Malaria Consortium",
         "Against Malaria Foundation",
       ]);
-      expect((await admin().impact.grants.list({ fund: "AGF" })).map((g) => g.id)).to.deep.equal([
+      expect((await admin().impact.grants.list({ fund: "AGF" })).map((g) => g.id)).toStrictEqual([
         34,
       ]);
     });
@@ -309,44 +313,46 @@ describe("impact admin", () => {
       const grant = await admin().impact.grants.get({ id: 29 });
       expect(
         grant.allotments.map((a) => [a.charityAbbreviation, a.share, a.centsPerOutput]),
-      ).to.deep.equal([
+      ).toStrictEqual([
         ["MC", 0.75, 100],
         ["AMF", 0.25, 25],
       ]);
-      expect(grant.allotments[0]!.costPerOutputNok).to.equal("10.00");
-      expect([grant.previousId, grant.nextId]).to.deep.equal([null, 33]);
+      expect(grant.allotments[0]!.costPerOutputNok).toBe("10.00");
+      expect([grant.previousId, grant.nextId]).toStrictEqual([null, 33]);
       await expectCode(admin().impact.grants.get({ id: 1 }), "NOT_FOUND");
     });
   });
 
   describe("charities and interventions", () => {
     it("lists charities with their organization and the estimate that applies now", async () => {
-      sinon.stub(impactAdminDao, "readTables").resolves(tablesFixture());
+      vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
       const [amf, mc] = await admin().impact.charities.list();
-      expect(amf).to.include({
-        abbreviation: "AMF",
-        organizationId: 12,
-        estimates: 3,
-        allotments: 1,
-      });
-      expect(amf!.currentEstimate).to.deep.equal({
+      expect(amf).toEqual(
+        expect.objectContaining({
+          abbreviation: "AMF",
+          organizationId: 12,
+          estimates: 3,
+          allotments: 1,
+        }),
+      );
+      expect(amf!.currentEstimate).toStrictEqual({
         id: 71,
         validFrom: "2023-01-01",
         centsPerOutput: 585,
         interventionName: "Bednets",
       });
-      expect(mc).to.include({ organizationId: null, allotments: 3 });
+      expect(mc).toEqual(expect.objectContaining({ organizationId: null, allotments: 3 }));
       const interventions = await admin().impact.interventions.list();
-      expect(interventions.find((i) => i.id === 2)).to.include({ estimates: 3, allotments: 1 });
-      expect(interventions.find((i) => i.id === 2)!.texts.no!.shortDescription).to.equal(
-        "Myggnett",
+      expect(interventions.find((i) => i.id === 2)).toEqual(
+        expect.objectContaining({ estimates: 3, allotments: 1 }),
       );
+      expect(interventions.find((i) => i.id === 2)!.texts.no!.shortDescription).toBe("Myggnett");
     });
   });
 
   describe("exchange rates", () => {
     it("shows the newest rate per currency, the job's runs, staleness and gaps", async () => {
-      sinon.stub(impactAdminDao, "readLatestRates").resolves([
+      vi.spyOn(impactAdminDao, "readLatestRates").mockResolvedValue([
         {
           currency: "NOK",
           latestDate: "2026-11-13",
@@ -364,33 +370,35 @@ describe("impact admin", () => {
           firstDate: "2013-01-02",
         },
       ]);
-      sinon
-        .stub(impactAdminDao, "readJobRuns")
-        .resolves([{ id: 900, at: "2026-11-13T16:00:05.000Z", result: { days: 6, rows: 180 } }]);
-      const days = sinon
-        .stub(impactAdminDao, "readRateDays")
-        .resolves(["2026-10-01", "2026-10-09", "2026-11-13"]);
+      vi.spyOn(impactAdminDao, "readJobRuns").mockResolvedValue([
+        { id: 900, at: "2026-11-13T16:00:05.000Z", result: { days: 6, rows: 180 } },
+      ]);
+      const days = vi
+        .spyOn(impactAdminDao, "readRateDays")
+        .mockResolvedValue(["2026-10-01", "2026-10-09", "2026-11-13"]);
       const rates = await admin().impact.exchangeRates();
-      expect(days.firstCall.args[0]).to.equal("2025-11-15");
-      expect(rates).to.deep.include({
-        latestDate: "2026-11-13",
-        daysSinceLatest: 2,
-        today: "2026-11-15",
-      });
-      expect(rates.gaps.map((g) => g.from)).to.deep.equal(["2026-10-10", "2026-10-02"]);
-      expect(rates.jobRuns[0]!.id).to.equal(900);
+      expect(days.mock.calls[0][0]).toBe("2025-11-15");
+      expect(rates).toEqual(
+        expect.objectContaining({
+          latestDate: "2026-11-13",
+          daysSinceLatest: 2,
+          today: "2026-11-15",
+        }),
+      );
+      expect(rates.gaps.map((g) => g.from)).toStrictEqual(["2026-10-10", "2026-10-02"]);
+      expect(rates.jobRuns[0]!.id).toBe(900);
     });
   });
 });
 
 describe("impact admin writes", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   const conn = { query: async () => [[]] };
   /** Stubs a transaction that runs fn on a fake connection, with the fixture tables */
   const stubWrites = () => {
-    sinon.stub(impactAdminDao, "inTransaction").callsFake(async (fn: any) => fn(conn));
-    sinon.stub(impactAdminDao, "readTables").resolves(tablesFixture());
+    vi.spyOn(impactAdminDao, "inTransaction").mockImplementation(async (fn: any) => fn(conn));
+    vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
   };
   const estimate = {
     charityId: 1,
@@ -405,16 +413,16 @@ describe("impact admin writes", () => {
     try {
       await promise;
     } catch (err: any) {
-      expect(err.code, err.message).to.equal("BAD_REQUEST");
+      expect(err.code, err.message).toBe("BAD_REQUEST");
       const issues: { path: PropertyKey[]; message: string }[] = err.cause?.issues ?? [];
-      expect(issues, `no field in: ${err.message}`).to.not.be.empty;
+      expect(issues, `no field in: ${err.message}`).not.toHaveLength(0);
       return Object.fromEntries(issues.map((i) => [i.path.join("."), i.message]));
     }
-    expect.fail("expected BAD_REQUEST");
+    expect.unreachable("expected BAD_REQUEST");
   };
 
   it("rejects non-admins before touching the database", async () => {
-    const tx = sinon.stub(impactAdminDao, "inTransaction");
+    const tx = vi.spyOn(impactAdminDao, "inTransaction").mockReturnValue(undefined as any);
     const user = callerWith(["read:profile"]).impact;
     await expectCode(user.estimates.create(estimate), "FORBIDDEN");
     await expectCode(
@@ -436,7 +444,7 @@ describe("impact admin writes", () => {
       "FORBIDDEN",
     );
     await expectCode(callerWith().impact.estimates.delete({ id: 71 }), "UNAUTHORIZED");
-    expect(tx.called).to.be.false;
+    expect(tx).not.toHaveBeenCalled();
   });
 
   describe("validation", () => {
@@ -444,31 +452,31 @@ describe("impact admin writes", () => {
 
     it("checks cost, bounds, month, source and that IDs stay out of updates", async () => {
       const create = (patch: object) => admin().impact.estimates.create({ ...estimate, ...patch });
-      expect(Object.keys(await fieldErrorsOf(create({ centsPerOutput: 0 })))).to.deep.equal([
+      expect(Object.keys(await fieldErrorsOf(create({ centsPerOutput: 0 })))).toStrictEqual([
         "centsPerOutput",
       ]);
       expect(
         Object.keys(await fieldErrorsOf(create({ centsPerOutputLowerBound: 700 }))),
-      ).to.deep.equal(["centsPerOutputLowerBound"]);
+      ).toStrictEqual(["centsPerOutputLowerBound"]);
       expect(
         Object.keys(await fieldErrorsOf(create({ centsPerOutputUpperBound: 500 }))),
-      ).to.deep.equal(["centsPerOutputUpperBound"]);
-      expect(Object.keys(await fieldErrorsOf(create({ validFrom: "2026-01-15" })))).to.deep.equal([
+      ).toStrictEqual(["centsPerOutputUpperBound"]);
+      expect(Object.keys(await fieldErrorsOf(create({ validFrom: "2026-01-15" })))).toStrictEqual([
         "validFrom",
       ]);
-      expect(Object.keys(await fieldErrorsOf(create({ sourceUrl: "givewell.org" })))).to.deep.equal(
+      expect(Object.keys(await fieldErrorsOf(create({ sourceUrl: "givewell.org" })))).toStrictEqual(
         ["sourceUrl"],
       );
       expect(
         Object.keys(await fieldErrorsOf(create({ sourceName: "", sourceUrl: "" }))).sort(),
-      ).to.deep.equal(["sourceName", "sourceUrl"]);
+      ).toStrictEqual(["sourceName", "sourceUrl"]);
       // An update can't move an estimate to another charity, and never changes an ID
       await expectCode(
         admin().impact.estimates.update({ id: 71, ...estimate } as any),
         "BAD_REQUEST",
       );
       // Old rows hold several links, one per line
-      const update = sinon.stub(impactAdminDao, "updateEstimate").resolves();
+      const update = vi.spyOn(impactAdminDao, "updateEstimate").mockResolvedValue(undefined);
       const { charityId: _c, ...values } = estimate;
       await admin().impact.estimates.update({
         id: 71,
@@ -476,32 +484,32 @@ describe("impact admin writes", () => {
         validFrom: "2023-01-01",
         sourceUrl: "https://a.example/x\r\nhttps://b.example/y",
       });
-      expect(update.calledOnce).to.be.true;
+      expect(update).toHaveBeenCalledOnce();
     });
 
     it("allows one estimate per charity and month, and only known charities and interventions", async () => {
-      const insert = sinon.stub(impactAdminDao, "insertEstimate").resolves(99);
+      const insert = vi.spyOn(impactAdminDao, "insertEstimate").mockResolvedValue(99);
       expect(
         await fieldErrorsOf(
           admin().impact.estimates.create({ ...estimate, validFrom: "2023-01-01" }),
         ),
-      ).to.have.property("validFrom");
+      ).toHaveProperty("validFrom");
       expect(
         await fieldErrorsOf(admin().impact.estimates.create({ ...estimate, charityId: 77 })),
-      ).to.have.property("charityId");
+      ).toHaveProperty("charityId");
       expect(
         await fieldErrorsOf(admin().impact.estimates.create({ ...estimate, interventionId: 77 })),
-      ).to.have.property("interventionId");
+      ).toHaveProperty("interventionId");
       // Moving an estimate onto another's month is refused too; keeping its own month is fine
       const { charityId: _c, ...values } = estimate;
       expect(
         await fieldErrorsOf(
           admin().impact.estimates.update({ id: 5, ...values, validFrom: "2023-01-01" }),
         ),
-      ).to.have.property("validFrom");
-      expect(insert.called).to.be.false;
-      expect(await admin().impact.estimates.create(estimate)).to.deep.equal({ id: 99 });
-      expect(insert.firstCall.args.slice(1)).to.deep.equal([
+      ).toHaveProperty("validFrom");
+      expect(insert).not.toHaveBeenCalled();
+      expect(await admin().impact.estimates.create(estimate)).toStrictEqual({ id: 99 });
+      expect(insert.mock.calls[0].slice(1)).toStrictEqual([
         1,
         {
           interventionId: 2,
@@ -543,12 +551,10 @@ describe("impact admin writes", () => {
         create({ allotments: [{ ...allotment, numberOutputsPurchasedUpperBound: 10 }] }),
         "BAD_REQUEST",
       );
-      expect(await fieldErrorsOf(create({ validFrom: "2025-02-01" }))).to.have.property(
-        "validFrom",
-      );
+      expect(await fieldErrorsOf(create({ validFrom: "2025-02-01" }))).toHaveProperty("validFrom");
       expect(
         await fieldErrorsOf(create({ allotments: [{ ...allotment, charityId: 77 }] })),
-      ).to.have.property("allotments.0.charityId");
+      ).toHaveProperty(["allotments.0.charityId"]);
       // An allotment of another grant can't be moved in by id
       expect(
         await fieldErrorsOf(
@@ -558,7 +564,7 @@ describe("impact admin writes", () => {
             allotments: [{ ...allotment, id: 43 }],
           }),
         ),
-      ).to.have.property("allotments.0");
+      ).toHaveProperty(["allotments.0"]);
       await expectCode(
         admin().impact.grants.update({
           id: 33,
@@ -583,8 +589,8 @@ describe("impact admin writes", () => {
     });
 
     it("keeps abbreviations fixed and unique, and one charity per organization", async () => {
-      sinon.stub(impactAdminDao, "organizationExists").resolves(true);
-      const insert = sinon.stub(impactAdminDao, "insertCharity").resolves(16);
+      vi.spyOn(impactAdminDao, "organizationExists").mockResolvedValue(true);
+      const insert = vi.spyOn(impactAdminDao, "insertCharity").mockResolvedValue(16);
       expect(
         await fieldErrorsOf(
           admin().impact.charities.create({
@@ -593,7 +599,7 @@ describe("impact admin writes", () => {
             organizationId: null,
           }),
         ),
-      ).to.have.property("abbreviation");
+      ).toHaveProperty("abbreviation");
       await expectCode(
         admin().impact.charities.create({ name: "X", abbreviation: "A-B", organizationId: null }),
         "BAD_REQUEST",
@@ -606,7 +612,7 @@ describe("impact admin writes", () => {
             organizationId: 12,
           }),
         ),
-      ).to.have.property("organizationId");
+      ).toHaveProperty("organizationId");
       await expectCode(
         admin().impact.charities.update({
           id: 1,
@@ -621,7 +627,7 @@ describe("impact admin writes", () => {
         abbreviation: "lg",
         organizationId: 30,
       });
-      expect(insert.firstCall.args[1]).to.deep.equal({
+      expect(insert.mock.calls[0][1]).toStrictEqual({
         name: "Living Goods",
         abbreviation: "LG",
         organizationId: 30,
@@ -629,12 +635,12 @@ describe("impact admin writes", () => {
     });
 
     it("keeps intervention names unique and texts per known language", async () => {
-      sinon.stub(impactAdminDao, "insertIntervention").resolves(12);
+      vi.spyOn(impactAdminDao, "insertIntervention").mockResolvedValue(12);
       expect(
         await fieldErrorsOf(
           admin().impact.interventions.create({ shortDescription: "bednets", longDescription: "" }),
         ),
-      ).to.have.property("shortDescription");
+      ).toHaveProperty("shortDescription");
       await expectCode(
         admin().impact.interventions.create({
           shortDescription: "Nets",
@@ -648,16 +654,16 @@ describe("impact admin writes", () => {
 
   describe("transactions and the cache", () => {
     it("rolls a grant update back when an allotment fails, and keeps the cache", async () => {
-      const fakeConn = { query: sinon.stub().resolves([[]]), release: sinon.stub() };
-      sinon.stub(DAO, "startTransaction").resolves(fakeConn as any);
-      const commit = sinon.stub(DAO, "commitTransaction").resolves();
-      const rollback = sinon.stub(DAO, "rollbackTransaction").resolves();
-      sinon.stub(impactAdminDao, "readTables").resolves(tablesFixture());
-      const updateGrant = sinon.stub(impactAdminDao, "updateGrant").resolves();
-      sinon.stub(impactAdminDao, "replaceAllotments").rejects(new Error("lost connection"));
-      const query = sinon.stub(DAO, "query").resolves([[]] as any);
+      const fakeConn = { query: vi.fn().mockResolvedValue([[]]), release: vi.fn() };
+      vi.spyOn(DAO, "startTransaction").mockResolvedValue(fakeConn as any);
+      const commit = vi.spyOn(DAO, "commitTransaction").mockResolvedValue(undefined);
+      const rollback = vi.spyOn(DAO, "rollbackTransaction").mockResolvedValue(undefined);
+      vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
+      const updateGrant = vi.spyOn(impactAdminDao, "updateGrant").mockResolvedValue(undefined);
+      vi.spyOn(impactAdminDao, "replaceAllotments").mockRejectedValue(new Error("lost connection"));
+      const query = vi.spyOn(DAO, "query").mockResolvedValue([[]] as any);
       await getImpactData();
-      const reads = query.callCount;
+      const reads = query.mock.calls.length;
 
       await expectCode(
         admin().impact.grants.update({
@@ -677,25 +683,25 @@ describe("impact admin writes", () => {
         }),
         "INTERNAL_SERVER_ERROR",
       );
-      expect(updateGrant.firstCall.args.slice(0, 3)).to.deep.equal([fakeConn, 33, "2025-03-01"]);
-      expect(rollback.calledOnceWith(fakeConn as any)).to.be.true;
-      expect(commit.called).to.be.false;
+      expect(updateGrant.mock.calls[0].slice(0, 3)).toStrictEqual([fakeConn, 33, "2025-03-01"]);
+      expect(rollback).toHaveBeenCalledExactlyOnceWith(fakeConn as any);
+      expect(commit).not.toHaveBeenCalled();
       await getImpactData();
-      expect(query.callCount, "the cache was kept").to.equal(reads);
+      expect(query, "the cache was kept").toHaveBeenCalledTimes(reads);
       clearImpactDataCache();
     });
 
     it("commits and clears the impact cache after every write", async () => {
       stubWrites();
-      sinon.stub(impactAdminDao, "insertEstimate").resolves(99);
-      sinon.stub(impactAdminDao, "updateEstimate").resolves();
-      sinon.stub(impactAdminDao, "deleteEstimate").resolves();
-      sinon.stub(impactAdminDao, "insertGrant").resolves(40);
-      sinon.stub(impactAdminDao, "replaceAllotments").resolves();
-      sinon.stub(impactAdminDao, "updateCharity").resolves();
-      sinon.stub(impactAdminDao, "organizationExists").resolves(true);
-      sinon.stub(impactAdminDao, "updateIntervention").resolves();
-      const query = sinon.stub(DAO, "query").resolves([[]] as any);
+      vi.spyOn(impactAdminDao, "insertEstimate").mockResolvedValue(99);
+      vi.spyOn(impactAdminDao, "updateEstimate").mockResolvedValue(undefined);
+      vi.spyOn(impactAdminDao, "deleteEstimate").mockResolvedValue(undefined);
+      vi.spyOn(impactAdminDao, "insertGrant").mockResolvedValue(40);
+      vi.spyOn(impactAdminDao, "replaceAllotments").mockResolvedValue(undefined);
+      vi.spyOn(impactAdminDao, "updateCharity").mockResolvedValue(undefined);
+      vi.spyOn(impactAdminDao, "organizationExists").mockResolvedValue(true);
+      vi.spyOn(impactAdminDao, "updateIntervention").mockResolvedValue(undefined);
+      const query = vi.spyOn(DAO, "query").mockResolvedValue([[]] as any);
       const { charityId: _c, ...values } = estimate;
       const writes: (() => Promise<unknown>)[] = [
         () => admin().impact.estimates.create(estimate),
@@ -732,12 +738,12 @@ describe("impact admin writes", () => {
       ];
       for (const write of writes) {
         await getImpactData();
-        const reads = query.callCount;
+        const reads = query.mock.calls.length;
         await getImpactData();
-        expect(query.callCount, "cached").to.equal(reads);
+        expect(query, "cached").toHaveBeenCalledTimes(reads);
         await write();
         await getImpactData();
-        expect(query.callCount, "re-read after the write").to.be.greaterThan(reads);
+        expect(query.mock.calls.length, "re-read after the write").toBeGreaterThan(reads);
       }
       clearImpactDataCache();
     });
@@ -745,17 +751,16 @@ describe("impact admin writes", () => {
 
   describe("preview", () => {
     beforeEach(() => {
-      clock = sinon.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
-      sinon.stub(impactAdminDao, "readTables").resolves(tablesFixture());
-      sinon.stub(impactAdminDao, "readRateOn").resolves({ date: "2026-11-13", perUsd: 10 });
+      vi.useFakeTimers({ now: new Date("2026-11-15T10:00:00Z"), toFake: ["Date"] });
+      vi.spyOn(impactAdminDao, "readTables").mockResolvedValue(tablesFixture());
+      vi.spyOn(impactAdminDao, "readRateOn").mockResolvedValue({ date: "2026-11-13", perUsd: 10 });
     });
-    let clock: sinon.SinonFakeTimers;
-    afterEach(() => clock.restore());
+    afterEach(() => vi.useRealTimers());
 
     it("shows before → after and the donations in the months that change", async () => {
-      const count = sinon
-        .stub(impactAdminDao, "countDonations")
-        .resolves({ donations: 120, donors: 40 });
+      const count = vi
+        .spyOn(impactAdminDao, "countDonations")
+        .mockResolvedValue({ donations: 120, donors: 40 });
       const preview = await admin().impact.estimates.preview({
         id: 71,
         charityId: 1,
@@ -763,46 +768,54 @@ describe("impact admin writes", () => {
         validFrom: "2023-01-01",
         centsPerOutput: 600,
       });
-      expect(preview.before).to.deep.include({ centsPerOutput: 585, costPerOutputNok: "58.50" });
-      expect(preview.after).to.deep.include({ centsPerOutput: 600, costPerOutputNok: "60.00" });
-      expect(preview.changedMonths).to.deep.equal([{ from: "2023-01-01", to: null }]);
-      expect(preview.monthsChanged).to.equal(47);
-      expect(preview).to.include({ donations: 120, donors: 40, organizationLinked: true });
-      const [orgId, ranges] = count.firstCall.args;
-      expect(orgId).to.equal(12);
+      expect(preview.before).toEqual(
+        expect.objectContaining({ centsPerOutput: 585, costPerOutputNok: "58.50" }),
+      );
+      expect(preview.after).toEqual(
+        expect.objectContaining({ centsPerOutput: 600, costPerOutputNok: "60.00" }),
+      );
+      expect(preview.changedMonths).toStrictEqual([{ from: "2023-01-01", to: null }]);
+      expect(preview.monthsChanged).toBe(47);
+      expect(preview).toEqual(
+        expect.objectContaining({ donations: 120, donors: 40, organizationLinked: true }),
+      );
+      const [orgId, ranges] = count.mock.calls[0];
+      expect(orgId).toBe(12);
       // From midnight 1 January 2023 in Oslo, open-ended
-      expect(ranges).to.deep.equal([{ from: new Date("2022-12-31T23:00:00Z"), before: null }]);
+      expect(ranges).toStrictEqual([{ from: new Date("2022-12-31T23:00:00Z"), before: null }]);
     });
 
     it("a new estimate between two changes only its months; removing one falls back", async () => {
-      const count = sinon
-        .stub(impactAdminDao, "countDonations")
-        .resolves({ donations: 3, donors: 2 });
+      const count = vi
+        .spyOn(impactAdminDao, "countDonations")
+        .mockResolvedValue({ donations: 3, donors: 2 });
       const added = await admin().impact.estimates.preview({
         charityId: 1,
         interventionId: 2,
         validFrom: "2022-06-01",
         centsPerOutput: 500,
       });
-      expect(added.changedMonths).to.deep.equal([{ from: "2022-06-01", to: "2022-12-01" }]);
-      expect(added.monthsChanged).to.equal(7);
-      expect(added.before?.centsPerOutput).to.equal(487);
-      expect(count.firstCall.args[1]).to.deep.equal([
+      expect(added.changedMonths).toStrictEqual([{ from: "2022-06-01", to: "2022-12-01" }]);
+      expect(added.monthsChanged).toBe(7);
+      expect(added.before?.centsPerOutput).toBe(487);
+      expect(count.mock.calls[0][1]).toStrictEqual([
         { from: new Date("2022-05-31T22:00:00Z"), before: new Date("2022-12-31T23:00:00Z") },
       ]);
       const removed = await admin().impact.estimates.preview({ id: 1, remove: true });
-      expect(removed.changedMonths).to.deep.equal([{ from: "2020-01-01", to: "2020-12-01" }]);
-      expect(removed.after).to.equal(null);
+      expect(removed.changedMonths).toStrictEqual([{ from: "2020-01-01", to: "2020-12-01" }]);
+      expect(removed.after).toBe(null);
       // A charity without an organization: no donation uses it, nothing to count
       const unlinked = await admin().impact.estimates.preview({ id: 23, remove: true });
-      expect(unlinked).to.include({ organizationLinked: false, donations: 0 });
-      expect(count.callCount).to.equal(2);
+      expect(unlinked).toEqual(
+        expect.objectContaining({ organizationLinked: false, donations: 0 }),
+      );
+      expect(count).toHaveBeenCalledTimes(2);
     });
   });
 });
 
 describe("impact admin history", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   const estimateValues = {
     interventionId: 2,
@@ -814,46 +827,54 @@ describe("impact admin history", () => {
 
   it("records who changed what, before and after, in the edit's transaction", async () => {
     const conn = { query: async () => [[]] };
-    sinon.stub(impactAdminDao, "inTransaction").callsFake(async (fn: any) => fn(conn));
+    vi.spyOn(impactAdminDao, "inTransaction").mockImplementation(async (fn: any) => fn(conn));
     const after = tablesFixture();
     after.evaluations[2] = {
       ...after.evaluations[2]!,
       centsPerOutput: 600,
       sourceName: "GiveWell",
     };
-    const read = sinon.stub(impactAdminDao, "readTables");
-    read.onFirstCall().resolves(tablesFixture());
-    read.onSecondCall().resolves(after);
-    sinon.stub(impactAdminDao, "updateEstimate").resolves();
-    const insert = sinon.stub(impactAdminDao, "insertChange").resolves();
+    const read = vi.spyOn(impactAdminDao, "readTables").mockReturnValue(undefined as any);
+    read.mockResolvedValueOnce(tablesFixture());
+    read.mockResolvedValueOnce(after);
+    vi.spyOn(impactAdminDao, "updateEstimate").mockResolvedValue(undefined);
+    const insert = vi.spyOn(impactAdminDao, "insertChange").mockResolvedValue(undefined);
     await admin().impact.estimates.update({ id: 71, ...estimateValues });
-    const [txConn, change, actor] = insert.firstCall.args;
-    expect(txConn).to.equal(conn);
-    expect(actor).to.equal("ops@example.org");
-    expect(change).to.deep.include({
-      entity: "estimate",
-      entityId: 71,
-      action: "update",
-      charityId: 1,
-      summary: "AMF estimate from Jan 2023",
-    });
-    expect(change.before).to.include({ centsPerOutput: 585, sourceName: "" });
-    expect(change.after).to.include({ centsPerOutput: 600, sourceName: "GiveWell" });
-    expect(change.after).to.not.have.property("updatedBy");
+    const [txConn, change, actor] = insert.mock.calls[0];
+    expect(txConn).toBe(conn);
+    expect(actor).toBe("ops@example.org");
+    expect(change).toEqual(
+      expect.objectContaining({
+        entity: "estimate",
+        entityId: 71,
+        action: "update",
+        charityId: 1,
+        summary: "AMF estimate from Jan 2023",
+      }),
+    );
+    expect(change.before).toEqual(expect.objectContaining({ centsPerOutput: 585, sourceName: "" }));
+    expect(change.after).toEqual(
+      expect.objectContaining({ centsPerOutput: 600, sourceName: "GiveWell" }),
+    );
+    expect(change.after).not.toHaveProperty("updatedBy");
 
     // A delete keeps the row as it was; a failed history write fails the edit
-    read.resetBehavior();
-    read.resolves(tablesFixture());
-    sinon.stub(impactAdminDao, "deleteEstimate").resolves();
+    // Both queued values were consumed by the update above, so this replaces the behaviour
+    read.mockResolvedValue(tablesFixture());
+    vi.spyOn(impactAdminDao, "deleteEstimate").mockResolvedValue(undefined);
     await admin().impact.estimates.delete({ id: 5 });
-    expect(insert.secondCall.args[1]).to.deep.include({ action: "delete", after: null });
-    expect(insert.secondCall.args[1].before).to.include({ centsPerOutput: 487 });
-    insert.rejects(new Error("disk full"));
+    expect(insert.mock.calls[1][1]).toEqual(
+      expect.objectContaining({ action: "delete", after: null }),
+    );
+    expect(insert.mock.calls[1][1].before).toEqual(
+      expect.objectContaining({ centsPerOutput: 487 }),
+    );
+    insert.mockRejectedValue(new Error("disk full"));
     await expectCode(admin().impact.estimates.delete({ id: 5 }), "INTERNAL_SERVER_ERROR");
   });
 
   it("lists changes with the fields that differ", async () => {
-    sinon.stub(impactAdminDao, "readChanges").resolves([
+    vi.spyOn(impactAdminDao, "readChanges").mockResolvedValue([
       {
         id: 3,
         entity: "estimate",
@@ -868,7 +889,7 @@ describe("impact admin history", () => {
       },
     ]);
     const [change] = await admin().impact.changes.list({ charityId: 1 });
-    expect(change!.fields).to.deep.equal([
+    expect(change!.fields).toStrictEqual([
       { field: "centsPerOutput", before: 585, after: 600 },
       { field: "sourceName", before: "", after: "GiveWell" },
     ]);

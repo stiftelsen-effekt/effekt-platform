@@ -1,7 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import express from "express";
-import sinon from "sinon";
 import request from "supertest";
 import config from "../config";
 import { DAO } from "../custom_modules/DAO";
@@ -31,148 +30,156 @@ function adjustment(overrides: Record<string, unknown> = {}) {
 
 describe("inflation agreement update", () => {
   let server: express.Express;
-  let getByTokenStub: sinon.SinonStub;
-  let acceptStub: sinon.SinonStub;
-  let releaseStub: sinon.SinonStub;
-  let updateAmountStub: sinon.SinonStub;
+  let getByTokenStub: MockInstance;
+  let acceptStub: MockInstance;
+  let releaseStub: MockInstance;
+  let updateAmountStub: MockInstance;
 
   beforeEach(() => {
-    sinon.stub(config, "frontend_url").value("https://example.org");
-    sinon.stub(config, "inflation_adjustment_success_slug").value("ok");
-    sinon.stub(config, "inflation_adjustment_error_slug").value("failed");
+    vi.spyOn(config, "frontend_url", "get").mockReturnValue("https://example.org");
+    vi.spyOn(config, "inflation_adjustment_success_slug", "get").mockReturnValue("ok");
+    vi.spyOn(config, "inflation_adjustment_error_slug", "get").mockReturnValue("failed");
     server = express();
     server.use("/inflation", inflationRouter);
-    getByTokenStub = sinon.stub(DAO.inflationadjustments, "getByToken");
-    acceptStub = sinon.stub(DAO.inflationadjustments, "acceptAdjustment");
-    releaseStub = sinon.stub(DAO.inflationadjustments, "releaseAcceptedAdjustment").resolves(true);
-    sinon.stub(DAO.avtalegiroagreements, "getByID").resolves({ KID: "123" } as any);
-    updateAmountStub = sinon.stub(DAO.avtalegiroagreements, "updateAmount").resolves(true);
+    getByTokenStub = vi
+      .spyOn(DAO.inflationadjustments, "getByToken")
+      .mockReturnValue(undefined as any);
+    acceptStub = vi
+      .spyOn(DAO.inflationadjustments, "acceptAdjustment")
+      .mockReturnValue(undefined as any);
+    releaseStub = vi
+      .spyOn(DAO.inflationadjustments, "releaseAcceptedAdjustment")
+      .mockResolvedValue(true);
+    vi.spyOn(DAO.avtalegiroagreements, "getByID").mockResolvedValue({ KID: "123" } as any);
+    updateAmountStub = vi.spyOn(DAO.avtalegiroagreements, "updateAmount").mockResolvedValue(true);
   });
 
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   describe("GET (the email link)", () => {
     it("shows a confirmation page that posts back, without changing anything", async () => {
-      getByTokenStub.resolves(adjustment());
+      getByTokenStub.mockResolvedValue(adjustment());
 
       const res = await request(server).get(path).expect(200);
 
-      expect(res.text).to.contain('<form method="post">');
-      expect(res.text).to.contain("300 kr");
-      expect(res.text).to.contain("330 kr");
-      expect(res.headers["content-security-policy"]).to.contain("form-action 'self'");
-      expect(acceptStub.called).to.be.false;
-      expect(updateAmountStub.called).to.be.false;
+      expect(res.text).toContain('<form method="post">');
+      expect(res.text).toContain("300 kr");
+      expect(res.text).toContain("330 kr");
+      expect(res.headers["content-security-policy"]).toContain("form-action 'self'");
+      expect(acceptStub).not.toHaveBeenCalled();
+      expect(updateAmountStub).not.toHaveBeenCalled();
     });
 
     it("redirects to the success page if already accepted", async () => {
-      getByTokenStub.resolves(adjustment({ status: "accepted" }));
+      getByTokenStub.mockResolvedValue(adjustment({ status: "accepted" }));
       const res = await request(server).get(path).expect(302);
-      expect(res.headers.location).to.equal("https://example.org/ok");
+      expect(res.headers.location).toBe("https://example.org/ok");
     });
 
     it("says the offer has expired when its time ran out", async () => {
-      getByTokenStub.resolves(adjustment({ expires: new Date(Date.now() - 1000) }));
+      getByTokenStub.mockResolvedValue(adjustment({ expires: new Date(Date.now() - 1000) }));
       const res = await request(server).get(path).expect(200);
-      expect(res.text).to.contain("Tilbudet har utløpt");
-      expect(res.text).not.to.contain("<form");
-      expect(res.headers["content-security-policy"]).to.contain("default-src 'none'");
+      expect(res.text).toContain("Tilbudet har utløpt");
+      expect(res.text).not.toContain("<form");
+      expect(res.headers["content-security-policy"]).toContain("default-src 'none'");
     });
 
     it("says the offer has expired when it is marked expired", async () => {
-      getByTokenStub.resolves(adjustment({ status: "expired" }));
+      getByTokenStub.mockResolvedValue(adjustment({ status: "expired" }));
       const res = await request(server).get(path).expect(200);
-      expect(res.text).to.contain("Tilbudet har utløpt");
+      expect(res.text).toContain("Tilbudet har utløpt");
     });
 
     it("redirects to the error page for offers that were never sent", async () => {
       for (const status of ["new", "sending", "cancelled", "failed"]) {
-        getByTokenStub.resolves(adjustment({ status }));
+        getByTokenStub.mockResolvedValue(adjustment({ status }));
         const res = await request(server).get(path).expect(302);
-        expect(res.headers.location).to.equal("https://example.org/failed");
+        expect(res.headers.location).toBe("https://example.org/failed");
       }
     });
 
     it("redirects to the error page for an unknown or malformed token", async () => {
-      getByTokenStub.resolves(null);
+      getByTokenStub.mockResolvedValue(null);
       await request(server).get(path).expect(302);
       const res = await request(server).get("/inflation/agreement-update/x").expect(302);
-      expect(res.headers.location).to.equal("https://example.org/failed");
+      expect(res.headers.location).toBe("https://example.org/failed");
     });
   });
 
   describe("POST (the confirmation)", () => {
     it("claims the adjustment, then updates the AvtaleGiro amount", async () => {
-      acceptStub.resolves(true);
-      getByTokenStub.resolves(adjustment({ status: "accepted" }));
+      acceptStub.mockResolvedValue(true);
+      getByTokenStub.mockResolvedValue(adjustment({ status: "accepted" }));
 
       const res = await request(server).post(path).expect(303);
 
-      expect(res.headers.location).to.equal("https://example.org/ok");
-      expect(acceptStub.calledOnceWith(token)).to.be.true;
-      expect(updateAmountStub.calledOnceWith("123", 33000)).to.be.true;
-      expect(releaseStub.called).to.be.false;
+      expect(res.headers.location).toBe("https://example.org/ok");
+      expect(acceptStub).toHaveBeenCalledExactlyOnceWith(token);
+      expect(updateAmountStub).toHaveBeenCalledExactlyOnceWith("123", 33000);
+      expect(releaseStub).not.toHaveBeenCalled();
     });
 
     it("does not apply an adjustment twice", async () => {
-      acceptStub.resolves(false);
-      getByTokenStub.resolves(adjustment({ status: "accepted" }));
+      acceptStub.mockResolvedValue(false);
+      getByTokenStub.mockResolvedValue(adjustment({ status: "accepted" }));
 
       const res = await request(server).post(path).expect(303);
 
-      expect(res.headers.location).to.equal("https://example.org/ok");
-      expect(updateAmountStub.called).to.be.false;
+      expect(res.headers.location).toBe("https://example.org/ok");
+      expect(updateAmountStub).not.toHaveBeenCalled();
     });
 
     it("says the offer has expired instead of applying it", async () => {
-      acceptStub.resolves(false);
-      getByTokenStub.resolves(adjustment({ status: "expired" }));
+      acceptStub.mockResolvedValue(false);
+      getByTokenStub.mockResolvedValue(adjustment({ status: "expired" }));
 
       const res = await request(server).post(path).expect(200);
 
-      expect(res.text).to.contain("Tilbudet har utløpt");
-      expect(updateAmountStub.called).to.be.false;
+      expect(res.text).toContain("Tilbudet har utløpt");
+      expect(updateAmountStub).not.toHaveBeenCalled();
     });
 
     it("does not apply a non-pending adjustment", async () => {
-      acceptStub.resolves(false);
-      getByTokenStub.resolves(adjustment({ status: "pending" }));
+      acceptStub.mockResolvedValue(false);
+      getByTokenStub.mockResolvedValue(adjustment({ status: "pending" }));
 
       const res = await request(server).post(path).expect(303);
 
-      expect(res.headers.location).to.equal("https://example.org/failed");
-      expect(updateAmountStub.called).to.be.false;
+      expect(res.headers.location).toBe("https://example.org/failed");
+      expect(updateAmountStub).not.toHaveBeenCalled();
     });
 
     it("releases the claim if the agreement could not be updated", async () => {
-      acceptStub.resolves(true);
-      getByTokenStub.resolves(adjustment({ status: "accepted" }));
-      updateAmountStub.resolves(false);
+      acceptStub.mockResolvedValue(true);
+      getByTokenStub.mockResolvedValue(adjustment({ status: "accepted" }));
+      updateAmountStub.mockResolvedValue(false);
 
       const res = await request(server).post(path).expect(303);
 
-      expect(res.headers.location).to.equal("https://example.org/failed");
-      expect(releaseStub.calledOnceWith(token)).to.be.true;
+      expect(res.headers.location).toBe("https://example.org/failed");
+      expect(releaseStub).toHaveBeenCalledExactlyOnceWith(token);
     });
 
     it("releases the claim if Vipps rejects the price change", async () => {
-      acceptStub.resolves(true);
-      getByTokenStub.resolves(adjustment({ status: "accepted", agreement_type: "vipps" }));
-      sinon.stub(vipps, "updateAgreementPrice").resolves(false);
+      acceptStub.mockResolvedValue(true);
+      getByTokenStub.mockResolvedValue(adjustment({ status: "accepted", agreement_type: "vipps" }));
+      vi.spyOn(vipps, "updateAgreementPrice").mockResolvedValue(false);
 
       await request(server).post(path).expect(303);
 
-      expect(releaseStub.calledOnce).to.be.true;
+      expect(releaseStub).toHaveBeenCalledOnce();
     });
 
     it("does not apply adjustments of unsupported agreement types", async () => {
-      acceptStub.resolves(true);
-      getByTokenStub.resolves(adjustment({ status: "accepted", agreement_type: "autoGiro" }));
+      acceptStub.mockResolvedValue(true);
+      getByTokenStub.mockResolvedValue(
+        adjustment({ status: "accepted", agreement_type: "autoGiro" }),
+      );
 
       const res = await request(server).post(path).expect(303);
 
-      expect(res.headers.location).to.equal("https://example.org/failed");
-      expect(releaseStub.calledOnce).to.be.true;
+      expect(res.headers.location).toBe("https://example.org/failed");
+      expect(releaseStub).toHaveBeenCalledOnce();
     });
   });
 });

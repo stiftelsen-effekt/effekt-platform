@@ -1,3 +1,5 @@
+@use "../../../../styles/header-breakpoints" as header;
+
 .givebutton {
   cursor: pointer;
   position: fixed;
@@ -48,7 +50,7 @@
   }
 }
 
-@media only screen and (max-width: 1180px) {
+@media only screen and (width <= header.$compact-menu-max-width) {
   body:has([data-mobile-menu-expanded="true"]) .givebutton {
     display: none;
   }

@@ -1,11 +1,10 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { expect } from "chai";
 import express from "express";
 import fileUpload from "express-fileupload";
 import * as fs from "fs";
 import type { Request, Response } from "express";
-import sinon from "sinon";
 import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
 import * as mail from "../custom_modules/mail";
@@ -43,43 +42,45 @@ const uploadForm = (
 const expectTrpcError = async (promise: Promise<unknown>, code: string, message?: RegExp) => {
   try {
     await promise;
-    expect.fail(`expected ${code}`);
+    expect.unreachable(`expected ${code}`);
   } catch (err: any) {
-    expect(err.code).to.equal(code);
-    if (message) expect(err.message).to.match(message);
+    expect(err.code).toBe(code);
+    if (message) expect(err.message).toMatch(message);
   }
 };
 
 describe("tRPC reports router", () => {
-  let addStub: sinon.SinonStub;
-  let queueStub: sinon.SinonStub;
-  let logStub: sinon.SinonStub;
+  let addStub: MockInstance;
+  let queueStub: MockInstance;
+  let logStub: MockInstance;
 
   beforeEach(() => {
-    logStub = sinon.stub(DAO.logging, "add").resolves(77);
-    addStub = sinon.stub(DAO.donations, "add").resolves(10);
-    queueStub = sinon
-      .stub(DAO.reviewqueue, "add")
-      .callsFake(async (_source, items) => ({ added: items.length, existing: 0 }));
-    sinon
-      .stub(DAO.reviewqueue, "getCountsForImport")
-      .resolves({ open: 1, registered: 2, ignored: 3 });
-    sinon.stub(mail, "sendDonationReceipt").resolves();
-    sinon.stub(DAO.meta, "getDataOwners").resolves([
+    logStub = vi.spyOn(DAO.logging, "add").mockResolvedValue(77);
+    addStub = vi.spyOn(DAO.donations, "add").mockResolvedValue(10);
+    queueStub = vi
+      .spyOn(DAO.reviewqueue, "add")
+      .mockImplementation(async (_source, items) => ({ added: items.length, existing: 0 }));
+    vi.spyOn(DAO.reviewqueue, "getCountsForImport").mockResolvedValue({
+      open: 1,
+      registered: 2,
+      ignored: 3,
+    });
+    vi.spyOn(mail, "sendDonationReceipt").mockResolvedValue(undefined as any);
+    vi.spyOn(DAO.meta, "getDataOwners").mockResolvedValue([
       { id: 1, name: "Default", default: true },
       { id: 3, name: "Other", default: false },
     ] as any);
   });
 
   afterEach(() => {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   describe("auth and validation", () => {
     it("rejects anonymous callers", async () => {
-      const getEntries = sinon.stub(DAO.logging, "getEntries");
+      const getEntries = vi.spyOn(DAO.logging, "getEntries").mockReturnValue(undefined as any);
       await expectTrpcError(callerWith().reports.logs.list({ page: 0, limit: 10 }), "UNAUTHORIZED");
-      expect(getEntries.called).to.be.false;
+      expect(getEntries).not.toHaveBeenCalled();
     });
 
     it("rejects callers without the admin permission", async () => {
@@ -87,7 +88,7 @@ describe("tRPC reports router", () => {
         callerWith(["read:profile"]).reports.uploads.ocr(uploadForm("ocr/TBOC2072.DAT")),
         "FORBIDDEN",
       );
-      expect(addStub.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
     });
 
     it("rejects invalid list input", async () => {
@@ -113,24 +114,24 @@ describe("tRPC reports router", () => {
       twoFiles.append("report", new File(["x"], "second.DAT"));
       await expectTrpcError(admin().uploads.ocr(twoFiles), "BAD_REQUEST", /one report file/);
 
-      expect(addStub.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
     });
   });
 
   describe("uploads", () => {
     it("registers with the default owner when metaOwnerID is omitted", async () => {
       await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT", {}));
-      expect(addStub.called).to.be.true;
-      expect(addStub.firstCall.args[5]).to.equal(null);
+      expect(addStub).toHaveBeenCalled();
+      expect(addStub.mock.calls[0][5]).toBe(null);
     });
 
     it("accepts and validates metaOwnerID on every upload", async () => {
-      const bankSe = sinon
-        .stub(reportsService, "processBankSeReport")
-        .resolves({ valid: 0, invalid: 0, invalidTransactions: [] });
+      const bankSe = vi
+        .spyOn(reportsService, "processBankSeReport")
+        .mockResolvedValue({ valid: 0, invalid: 0, invalidTransactions: [] });
 
       await admin().uploads.bankSe(uploadForm("camt/camt053_mixed.xml"));
-      expect(bankSe.firstCall.args[2]).to.equal(3);
+      expect(bankSe.mock.calls[0][2]).toBe(3);
 
       await expectTrpcError(
         admin().uploads.bankSe(uploadForm("bank/sampleReport.CSV", { metaOwnerID: "99" })),
@@ -140,9 +141,9 @@ describe("tRPC reports router", () => {
     });
 
     it("rejects files that are not the expected report type, writing nothing", async () => {
-      sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
-      sinon.stub(DAO.donations, "getByExternalPaymentID").resolves(null as any);
-      const kidExists = sinon.stub(DAO.distributions, "KIDexists").resolves(true);
+      vi.spyOn(DAO.parsing, "getVippsParsingRules").mockResolvedValue([]);
+      vi.spyOn(DAO.donations, "getByExternalPaymentID").mockResolvedValue(null as any);
+      const kidExists = vi.spyOn(DAO.distributions, "KIDexists").mockResolvedValue(true);
 
       const cases: [Promise<unknown>, RegExp][] = [
         [admin().uploads.vipps(uploadForm("bank/sampleReport.CSV")), /Not a Vipps settlement/],
@@ -155,8 +156,8 @@ describe("tRPC reports router", () => {
       for (const [promise, message] of cases) {
         await expectTrpcError(promise, "BAD_REQUEST", message);
       }
-      expect(addStub.called).to.be.false;
-      expect(kidExists.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
+      expect(kidExists).not.toHaveBeenCalled();
     });
 
     it("rejects an unreadable xlsx sent as a Vipps report", async () => {
@@ -165,7 +166,7 @@ describe("tRPC reports router", () => {
       const xlsx = Buffer.concat([Buffer.from("PK\u0003\u0004"), Buffer.alloc(64, 0xff)]);
       formData.append("report", new File([xlsx], "report.xlsx"));
       await expectTrpcError(admin().uploads.vipps(formData), "BAD_REQUEST");
-      expect(addStub.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
     });
 
     it("rejects files that don't match the chosen source before writing anything", async () => {
@@ -189,55 +190,57 @@ describe("tRPC reports router", () => {
         "BAD_REQUEST",
         /Not a bank account export/,
       );
-      expect(addStub.called).to.be.false;
-      expect(logStub.called).to.be.false;
-      expect(queueStub.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
+      expect(logStub).not.toHaveBeenCalled();
+      expect(queueStub).not.toHaveBeenCalled();
     });
 
     it("ocr registers donations and lists failed ones for review", async () => {
-      addStub.onCall(0).rejects(new Error("EXISTING_DONATION"));
-      addStub.onCall(1).rejects(new Error("Invalid KID"));
+      addStub.mockRejectedValueOnce(new Error("EXISTING_DONATION"));
+      addStub.mockRejectedValueOnce(new Error("Invalid KID"));
 
       const result = await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
 
-      expect(addStub.callCount).to.equal(2);
-      expect(addStub.firstCall.args[5]).to.equal(3);
-      expect(result.ignored).to.equal(1);
-      expect(result.invalid).to.equal(1);
-      expect(result.valid).to.equal(addStub.callCount - 2);
-      expect(result.invalidTransactions).to.have.length(1);
+      expect(addStub).toHaveBeenCalledTimes(2);
+      expect(addStub.mock.calls[0][5]).toBe(3);
+      expect(result.ignored).toBe(1);
+      expect(result.invalid).toBe(1);
+      expect(result.valid).toBe(addStub.mock.calls.length - 2);
+      expect(result.invalidTransactions).toHaveLength(1);
       const [item] = result.invalidTransactions;
-      expect(item.reason).to.equal("Invalid KID");
-      expect(item.transaction.paymentID).to.be.a("number");
-      expect(item.transaction.date).to.match(/^\d{4}-\d{2}-\d{2}T/);
-      expect(item.transaction.KID).to.be.a("string");
+      expect(item.reason).toBe("Invalid KID");
+      expect(item.transaction.paymentID).toBeTypeOf("number");
+      expect(item.transaction.date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(item.transaction.KID).toBeTypeOf("string");
 
-      expect(result.queue).to.deep.equal({
+      expect(result.queue).toStrictEqual({
         added: 1,
         existing: 0,
         skipped: 0,
         statuses: { open: 1, registered: 2, ignored: 3 },
       });
-      expect(queueStub.calledOnce).to.be.true;
-      const [source, queued, importLogId, metaOwnerId] = queueStub.firstCall.args;
-      expect(source).to.equal("ocr");
-      expect(importLogId).to.equal(77);
-      expect(metaOwnerId).to.equal(3);
-      expect(result.importLogId).to.equal(77);
-      expect(queued).to.have.length(1);
-      expect(queued[0]).to.include({
-        reason: "Invalid KID",
-        KID: item.transaction.KID,
-        amount: item.transaction.amount,
-        externalId: item.transaction.transactionID,
-        paymentId: item.transaction.paymentID,
-      });
-      expect(queued[0].date).to.be.instanceOf(Date);
-      expect(queued[0].raw).to.have.property("transactionID", item.transaction.transactionID);
+      expect(queueStub).toHaveBeenCalledOnce();
+      const [source, queued, importLogId, metaOwnerId] = queueStub.mock.calls[0];
+      expect(source).toBe("ocr");
+      expect(importLogId).toBe(77);
+      expect(metaOwnerId).toBe(3);
+      expect(result.importLogId).toBe(77);
+      expect(queued).toHaveLength(1);
+      expect(queued[0]).toEqual(
+        expect.objectContaining({
+          reason: "Invalid KID",
+          KID: item.transaction.KID,
+          amount: item.transaction.amount,
+          externalId: item.transaction.transactionID,
+          paymentId: item.transaction.paymentID,
+        }),
+      );
+      expect(queued[0].date).toBeInstanceOf(Date);
+      expect(queued[0].raw).toHaveProperty("transactionID", item.transaction.transactionID);
     });
 
     it("logs the upload with file, owner and uploader, like the scheduled import", async () => {
-      addStub.rejects(new Error("Invalid KID"));
+      addStub.mockRejectedValue(new Error("Invalid KID"));
       const caller = createCaller({
         req: {} as Request,
         res: {} as Response,
@@ -246,123 +249,125 @@ describe("tRPC reports router", () => {
 
       const result = await caller.reports.uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
 
-      expect(logStub.calledOnce).to.be.true;
-      const [label, entry] = logStub.firstCall.args;
-      expect(label).to.equal("OCR - Upload");
-      expect(entry.upload).to.deep.equal({
+      expect(logStub).toHaveBeenCalledOnce();
+      const [label, entry] = logStub.mock.calls[0];
+      expect(label).toBe("OCR - Upload");
+      expect(entry.upload).toStrictEqual({
         source: "ocr",
         metaOwnerID: 3,
         uploadedBy: "admin@example.org",
       });
-      expect(entry.filename).to.equal("TBOC2072.DAT");
-      expect(entry.file).to.equal(readData("ocr/TBOC2072.DAT").toString("utf8"));
-      expect(entry.donations).to.deep.equal({
+      expect(entry.filename).toBe("TBOC2072.DAT");
+      expect(entry.file).toBe(readData("ocr/TBOC2072.DAT").toString("utf8"));
+      expect(entry.donations).toStrictEqual({
         valid: result.valid,
         invalid: result.invalid,
         ignored: result.ignored,
       });
-      expect(entry.invalidTransactions).to.deep.equal(result.invalidTransactions);
+      expect(entry.invalidTransactions).toStrictEqual(result.invalidTransactions);
       // The log is written before the items are queued, so they can link to it
-      expect(logStub.calledBefore(queueStub)).to.be.true;
+      expect(logStub).toHaveBeenCalledBefore(queueStub);
     });
 
     it("labels the log per source and stores null for the default owner", async () => {
-      sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
+      vi.spyOn(DAO.parsing, "getVippsParsingRules").mockResolvedValue([]);
       await admin().uploads.vipps(uploadForm("vipps/Vipps April 2019.CSV"));
       await admin().uploads.bankNo(uploadForm("bank/sampleReport.CSV", {}));
-      expect(logStub.firstCall.args[0]).to.equal("Vipps - Upload");
-      expect(logStub.firstCall.args[1].filename).to.equal("Vipps April 2019.CSV");
-      expect(logStub.secondCall.args[0]).to.equal("Bank NO - Upload");
-      expect(logStub.secondCall.args[1].upload.metaOwnerID).to.equal(null);
+      expect(logStub.mock.calls[0][0]).toBe("Vipps - Upload");
+      expect(logStub.mock.calls[0][1].filename).toBe("Vipps April 2019.CSV");
+      expect(logStub.mock.calls[1][0]).toBe("Bank NO - Upload");
+      expect(logStub.mock.calls[1][1].upload.metaOwnerID).toBe(null);
     });
 
     it("queues without a log link when writing the log fails", async () => {
-      sinon.stub(console, "error");
-      logStub.rejects(new Error("db down"));
-      addStub.rejects(new Error("Invalid KID"));
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      logStub.mockRejectedValue(new Error("db down"));
+      addStub.mockRejectedValue(new Error("Invalid KID"));
 
       const result = await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
 
-      expect(result.importLogId).to.equal(null);
-      expect(result.queue).to.not.equal(null);
-      expect(queueStub.firstCall.args[2]).to.equal(null);
+      expect(result.importLogId).toBe(null);
+      expect(result.queue).not.toBe(null);
+      expect(queueStub.mock.calls[0][2]).toBe(null);
     });
 
     it("still returns the upload result when queueing for review fails", async () => {
-      sinon.stub(console, "error");
-      queueStub.rejects(new Error("db down"));
-      addStub.rejects(new Error("Invalid KID"));
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+      queueStub.mockRejectedValue(new Error("db down"));
+      addStub.mockRejectedValue(new Error("Invalid KID"));
 
       const result = await admin().uploads.ocr(uploadForm("ocr/TBOC2072.DAT"));
 
-      expect(result.invalidTransactions.length).to.be.greaterThan(0);
-      expect(result.queue).to.deep.include({ added: 0, existing: 0 });
-      expect(result.queue!.skipped).to.equal(result.invalidTransactions.length);
+      expect(result.invalidTransactions.length).toBeGreaterThan(0);
+      expect(result.queue).toEqual(expect.objectContaining({ added: 0, existing: 0 }));
+      expect(result.queue!.skipped).toBe(result.invalidTransactions.length);
     });
 
     it("vipps adds donations with a KID and queues the rest", async () => {
-      sinon.stub(DAO.parsing, "getVippsParsingRules").resolves([]);
+      vi.spyOn(DAO.parsing, "getVippsParsingRules").mockResolvedValue([]);
 
       const result = await admin().uploads.vipps(uploadForm("vipps/Vipps April 2019.CSV"));
 
-      expect(result.valid).to.equal(10);
-      expect(result.invalidTransactions.length).to.be.greaterThan(0);
+      expect(result.valid).toBe(10);
+      expect(result.invalidTransactions.length).toBeGreaterThan(0);
       const [item] = result.invalidTransactions;
-      expect(item.reason).to.equal("Could not find valid KID or matching parsing rule");
-      expect(item.transaction).to.include.keys(
-        "KID",
-        "amount",
-        "date",
-        "transactionID",
-        "paymentID",
-        "message",
-        "name",
-        "location",
+      expect(item.reason).toBe("Could not find valid KID or matching parsing rule");
+      expect(Object.keys(item.transaction)).toEqual(
+        expect.arrayContaining([
+          "KID",
+          "amount",
+          "date",
+          "transactionID",
+          "paymentID",
+          "message",
+          "name",
+          "location",
+        ]),
       );
-      expect(item.transaction.paymentID).to.equal(4);
-      expect(item.transaction.date).to.be.a("string");
+      expect(item.transaction.paymentID).toBe(4);
+      expect(item.transaction.date).toBeTypeOf("string");
     });
 
     it("bankNo registers transactions with a KID", async () => {
       const result = await admin().uploads.bankNo(uploadForm("bank/sampleReport.CSV"));
 
-      expect(result.valid).to.equal(addStub.callCount);
-      expect(result.valid + result.invalid).to.be.greaterThan(0);
+      expect(result.valid).toBe(addStub.mock.calls.length);
+      expect(result.valid + result.invalid).toBeGreaterThan(0);
       for (const item of result.invalidTransactions) {
-        expect(item.transaction.paymentID).to.equal(5);
+        expect(item.transaction.paymentID).toBe(5);
       }
     });
 
     it("bankSe dry run writes nothing and reports would-be donations", async () => {
-      sinon.stub(DAO.donations, "getByExternalPaymentID").resolves(null as any);
-      sinon.stub(DAO.distributions, "KIDexists").resolves(true);
-      sinon.stub(DAO.distributions, "getKIDsByPrefix").resolves([]);
-      sinon.stub(DAO.donations, "getLatestByLegacySeDistribution").resolves(null as any);
+      vi.spyOn(DAO.donations, "getByExternalPaymentID").mockResolvedValue(null as any);
+      vi.spyOn(DAO.distributions, "KIDexists").mockResolvedValue(true);
+      vi.spyOn(DAO.distributions, "getKIDsByPrefix").mockResolvedValue([]);
+      vi.spyOn(DAO.donations, "getLatestByLegacySeDistribution").mockResolvedValue(null as any);
 
       const result = await admin().uploads.bankSe(
         uploadForm("camt/camt053_mixed.xml", { dryRun: "true" }),
       );
 
-      expect(addStub.called).to.be.false;
-      expect(result.dryRun).to.not.equal(null);
-      expect(result.dryRun!.fileFormat).to.equal("xml");
-      expect(result.dryRun!.totalParsed).to.be.greaterThan(0);
-      expect(result.dryRun!.validTransactions).to.have.length(result.valid);
-      expect(result.queue).to.equal(null);
-      expect(result.importLogId).to.equal(null);
-      expect(queueStub.called).to.be.false;
-      expect(logStub.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
+      expect(result.dryRun).not.toBe(null);
+      expect(result.dryRun!.fileFormat).toBe("xml");
+      expect(result.dryRun!.totalParsed).toBeGreaterThan(0);
+      expect(result.dryRun!.validTransactions).toHaveLength(result.valid);
+      expect(result.queue).toBe(null);
+      expect(result.importLogId).toBe(null);
+      expect(queueStub).not.toHaveBeenCalled();
+      expect(logStub).not.toHaveBeenCalled();
     });
 
     it("bankSe without dryRun returns no dry run info", async () => {
-      const processStub = sinon
-        .stub(reportsService, "processBankSeReport")
-        .resolves({ valid: 1, invalid: 0, invalidTransactions: [] });
+      const processStub = vi
+        .spyOn(reportsService, "processBankSeReport")
+        .mockResolvedValue({ valid: 1, invalid: 0, invalidTransactions: [] });
 
       const result = await admin().uploads.bankSe(uploadForm("camt/camt053_mixed.xml", {}));
 
-      expect(processStub.firstCall.args[1]).to.equal(false);
-      expect(result).to.deep.equal({
+      expect(processStub.mock.calls[0][1]).toBe(false);
+      expect(result).toStrictEqual({
         valid: 1,
         invalid: 0,
         invalidTransactions: [],
@@ -375,7 +380,7 @@ describe("tRPC reports router", () => {
         importLogId: 77,
         dryRun: null,
       });
-      expect(logStub.firstCall.args[0]).to.equal("Bank SE - Upload");
+      expect(logStub.mock.calls[0][0]).toBe("Bank SE - Upload");
     });
   });
 
@@ -393,7 +398,7 @@ describe("tRPC reports router", () => {
           split: [],
         },
       ];
-      const rangeStub = sinon.stub(DAO.donations, "getFromRange").resolves(rows);
+      const rangeStub = vi.spyOn(DAO.donations, "getFromRange").mockResolvedValue(rows);
 
       const file = await admin().transactions.range({
         fromDate: "2024-01-01",
@@ -402,26 +407,26 @@ describe("tRPC reports router", () => {
       });
 
       // Whole Oslo days: from the start of 1 January to the start of 1 February (CET)
-      expect(rangeStub.firstCall.args[0]).to.deep.equal(new Date("2023-12-31T23:00:00Z"));
-      expect(rangeStub.firstCall.args[1]).to.deep.equal(new Date("2024-01-31T23:00:00Z"));
-      expect(rangeStub.firstCall.args[2]).to.deep.equal([2, 5]);
-      expect(rangeStub.firstCall.args[3]).to.deep.equal({ exclusiveEnd: true });
-      expect(file).to.deep.equal({ filename: "transactions_2024-01-01_2024-01-31", rows });
+      expect(rangeStub.mock.calls[0][0]).toStrictEqual(new Date("2023-12-31T23:00:00Z"));
+      expect(rangeStub.mock.calls[0][1]).toStrictEqual(new Date("2024-01-31T23:00:00Z"));
+      expect(rangeStub.mock.calls[0][2]).toStrictEqual([2, 5]);
+      expect(rangeStub.mock.calls[0][3]).toStrictEqual({ exclusiveEnd: true });
+      expect(file).toStrictEqual({ filename: "transactions_2024-01-01_2024-01-31", rows });
     });
 
     it("range rejects a reversed date range", async () => {
-      const rangeStub = sinon.stub(DAO.donations, "getFromRange").resolves([]);
+      const rangeStub = vi.spyOn(DAO.donations, "getFromRange").mockResolvedValue([]);
       await expectTrpcError(
         admin().transactions.range({ fromDate: "2024-02-01", toDate: "2024-01-31" }),
         "BAD_REQUEST",
       );
-      expect(rangeStub.called).to.be.false;
+      expect(rangeStub).not.toHaveBeenCalled();
     });
 
     it("range passes null for all payment methods", async () => {
-      const rangeStub = sinon.stub(DAO.donations, "getFromRange").resolves([]);
+      const rangeStub = vi.spyOn(DAO.donations, "getFromRange").mockResolvedValue([]);
       await admin().transactions.range({ fromDate: "2024-01-01", toDate: "2024-01-31" });
-      expect(rangeStub.firstCall.args[2]).to.equal(null);
+      expect(rangeStub.mock.calls[0][2]).toBe(null);
     });
   });
 
@@ -436,10 +441,10 @@ describe("tRPC reports router", () => {
 
       const file = await admin().tax.ku65(formData);
 
-      expect(file.filename).to.equal("ku65_2025.xml");
-      expect(file.contentType).to.equal("application/xml");
-      expect(file.content).to.contain("<?xml");
-      expect(file.content).to.contain("750");
+      expect(file.filename).toBe("ku65_2025.xml");
+      expect(file.contentType).toBe("application/xml");
+      expect(file.content).toContain("<?xml");
+      expect(file.content).toContain("750");
     });
 
     it("ku65 accepts .csv files with the content types Windows browsers send", async () => {
@@ -447,7 +452,7 @@ describe("tRPC reports router", () => {
         const formData = new FormData();
         formData.append("report", new File(["191212121212,500\n"], "KU65.CSV", { type }));
         formData.append("year", "2025");
-        expect((await admin().tax.ku65(formData)).content).to.contain("500");
+        expect((await admin().tax.ku65(formData)).content).toContain("500");
       }
 
       const notCsvName = new FormData();
@@ -475,9 +480,9 @@ describe("tRPC reports router", () => {
   describe("logs", () => {
     it("list pages through log entries", async () => {
       const rows = [{ ID: 1, label: "Vipps", timestamp: new Date(), meta: "" }];
-      const getEntries = sinon
-        .stub(DAO.logging, "getEntries")
-        .resolves({ results: rows, pages: 3, total: 70 });
+      const getEntries = vi
+        .spyOn(DAO.logging, "getEntries")
+        .mockResolvedValue({ results: rows, pages: 3, total: 70 });
 
       const result = await admin().logs.list({
         page: 2,
@@ -485,21 +490,21 @@ describe("tRPC reports router", () => {
         filter: { fileSearch: "002370000101" },
       });
 
-      expect(getEntries.firstCall.args).to.deep.equal([
+      expect(getEntries.mock.calls[0]).toStrictEqual([
         25,
         50,
         "002370000101",
         { id: "timestamp", desc: true },
         { searchFilename: true, uploadDetails: true },
       ]);
-      expect(result).to.deep.equal({
+      expect(result).toStrictEqual({
         rows: [{ ...rows[0], displayLabel: "Vipps", source: null, filename: null, summary: null }],
         pages: 3,
         total: 70,
       });
 
       await admin().logs.list({ page: 0, limit: 10, sort: { id: "label", desc: false } });
-      expect(getEntries.secondCall.args[3]).to.deep.equal({ id: "label", desc: false });
+      expect(getEntries.mock.calls[1][3]).toStrictEqual({ id: "label", desc: false });
       await expectTrpcError(
         admin().logs.list({ page: 0, limit: 10, sort: { id: "result" as any, desc: false } }),
         "BAD_REQUEST",
@@ -507,37 +512,37 @@ describe("tRPC reports router", () => {
     });
 
     it("sorts with an id tie-break, keeping the REST order when unsorted", async () => {
-      const query = sinon.stub(DAO, "query");
-      query.resolves([[{ count: 3 }], []] as any);
+      const query = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      query.mockResolvedValue([[{ count: 3 }], []] as any);
 
       await DAO.logging.getEntries(25, 0, null, { id: "label", desc: false });
-      expect(query.firstCall.args[0]).to.match(/ORDER BY label ASC, ID ASC\s+LIMIT/);
+      expect(query.mock.calls[0][0]).toMatch(/ORDER BY label ASC, ID ASC\s+LIMIT/);
 
       await DAO.logging.getEntries(25, 0, null);
-      expect(query.thirdCall.args[0]).to.match(/ORDER BY Import_logs.timestamp DESC\s+LIMIT/);
+      expect(query.mock.calls[2][0]).toMatch(/ORDER BY Import_logs.timestamp DESC\s+LIMIT/);
     });
 
     it("reads the DB-filled timestamp as UTC in the list and the detail", async () => {
-      const query = sinon.stub(DAO, "query");
-      query.resolves([[{ count: 0 }], []] as any);
+      const query = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      query.mockResolvedValue([[{ count: 0 }], []] as any);
       const convert =
         "CONVERT_TZ(Import_logs.timestamp, @@session.time_zone, '+00:00') AS timestamp";
 
       await DAO.logging.getEntries(25, 0, null, { id: "timestamp", desc: true });
       // Sorted by the column itself (indexed), not the converted alias
-      expect(query.firstCall.args[0]).to.contain(convert);
-      expect(query.firstCall.args[0]).to.match(/ORDER BY Import_logs.timestamp DESC, ID DESC/);
+      expect(query.mock.calls[0][0]).toContain(convert);
+      expect(query.mock.calls[0][0]).toMatch(/ORDER BY Import_logs.timestamp DESC, ID DESC/);
 
-      query.resetHistory();
-      query.resolves([[], []] as any);
+      query.mockClear();
+      query.mockResolvedValue([[], []] as any);
       await DAO.logging.get(7);
-      expect(query.firstCall.args[0]).to.contain(convert);
-      expect(query.firstCall.args[0]).not.to.contain("SELECT *");
+      expect(query.mock.calls[0][0]).toContain(convert);
+      expect(query.mock.calls[0][0]).not.toContain("SELECT *");
     });
 
     it("labels upload entries with the admin's source names and a summary", async () => {
       const timestamp = new Date();
-      sinon.stub(DAO.logging, "getEntries").resolves({
+      vi.spyOn(DAO.logging, "getEntries").mockResolvedValue({
         results: [
           {
             ID: 1,
@@ -565,7 +570,7 @@ describe("tRPC reports router", () => {
         total: 3,
       });
       const { rows } = await admin().logs.list({ page: 0, limit: 10 });
-      expect(rows.map((row) => [row.displayLabel, row.source, row.summary])).to.deep.equal([
+      expect(rows.map((row) => [row.displayLabel, row.source, row.summary])).toStrictEqual([
         ["Bank account export", "bankNo", "konto.csv: 12 donations registered, 3 sent to review"],
         [
           "Bank OCR",
@@ -577,41 +582,41 @@ describe("tRPC reports router", () => {
     });
 
     it("searches file names too when asked", async () => {
-      const query = sinon.stub(DAO, "query");
-      query.onCall(0).resolves([[], []] as any);
-      query.onCall(1).resolves([[{ count: 0 }], []] as any);
+      const query = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      query.mockResolvedValueOnce([[], []] as any);
+      query.mockResolvedValueOnce([[{ count: 0 }], []] as any);
       await DAO.logging.getEntries(25, 0, "TBOC", undefined, {
         searchFilename: true,
         uploadDetails: true,
       });
-      const sql = query.firstCall.args[0] as string;
-      expect(sql).to.contain(
+      const sql = query.mock.calls[0][0] as string;
+      expect(sql).toContain(
         `WHERE JSON_EXTRACT(result, "$.file") LIKE '%TBOC%' OR JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) LIKE '%TBOC%'`,
       );
-      expect(sql).to.contain("AS reviewCount");
+      expect(sql).toContain("AS reviewCount");
     });
 
     it("counts pages with the file search filter applied", async () => {
-      const query = sinon.stub(DAO, "query");
-      query.onCall(0).resolves([[], []] as any);
-      query.onCall(1).resolves([[{ count: 30 }], []] as any);
+      const query = vi.spyOn(DAO, "query").mockReturnValue(undefined as any);
+      query.mockResolvedValueOnce([[], []] as any);
+      query.mockResolvedValueOnce([[{ count: 30 }], []] as any);
 
       const result = await DAO.logging.getEntries(25, 0, "0023");
 
-      expect(query.secondCall.args[0]).to.match(
+      expect(query.mock.calls[1][0]).toMatch(
         /WHERE JSON_EXTRACT\(result, "\$\.file"\) LIKE '%0023%'/,
       );
-      expect(result.pages).to.equal(2);
-      expect(result.total).to.equal(30);
+      expect(result.pages).toBe(2);
+      expect(result.total).toBe(30);
     });
 
     it("get returns an entry or NOT_FOUND", async () => {
       const entry = { ID: 7, label: "OCR", result: { file: "..." }, timestamp: new Date() };
-      const get = sinon.stub(DAO.logging, "get");
-      get.withArgs(7).resolves(entry);
-      get.resolves(null);
+      vi.spyOn(DAO.logging, "get").mockImplementation(
+        async (id) => (id === 7 ? entry : null) as any,
+      );
 
-      expect(await admin().logs.get({ id: 7 })).to.deep.equal({ ...entry, displayLabel: "OCR" });
+      expect(await admin().logs.get({ id: 7 })).toStrictEqual({ ...entry, displayLabel: "OCR" });
       await expectTrpcError(admin().logs.get({ id: 8 }), "NOT_FOUND");
     });
   });
@@ -631,7 +636,7 @@ describe("tRPC reports router", () => {
         statistics: { totalCount: 0, totalSum: 0, avgDonation: 0 },
         pages: 0,
       };
-      const getList = sinon.stub(DAO.fundraisers, "getList").resolves(list);
+      const getList = vi.spyOn(DAO.fundraisers, "getList").mockResolvedValue(list);
 
       const result = await admin().fundraisers.list({
         page: 1,
@@ -645,11 +650,11 @@ describe("tRPC reports router", () => {
         },
       });
 
-      expect(result).to.deep.equal(list);
-      const [page, limit, filter, sort, includeSecrets] = getList.firstCall.args;
-      expect([page, limit, includeSecrets]).to.deep.equal([1, 20, true]);
-      expect(sort).to.deep.equal({ id: "totalSum", desc: true });
-      expect(filter).to.deep.equal({
+      expect(result).toStrictEqual(list);
+      const [page, limit, filter, sort, includeSecrets] = getList.mock.calls[0];
+      expect([page, limit, includeSecrets]).toStrictEqual([1, 20, true]);
+      expect(sort).toStrictEqual({ id: "totalSum", desc: true });
+      expect(filter).toStrictEqual({
         registrationRange: { from: new Date("2024-12-31T23:00:00Z"), before: undefined },
         donationSum: { from: 100 },
         donor: "Ola",
@@ -658,17 +663,19 @@ describe("tRPC reports router", () => {
     });
 
     it("get combines the fundraiser with its totals and transactions", async () => {
-      sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
+      vi.spyOn(DAO.fundraisers, "getFundraiserWithSecret").mockResolvedValue(fundraiser);
       const transactions = [
         { id: 3, name: null, message: "Go!", amount: 100, date: new Date(), recurring: false },
       ];
-      sinon
-        .stub(DAO.fundraisers, "getFundraiserByID")
-        .resolves({ totalSum: 100, donationCount: 1, transactions });
+      vi.spyOn(DAO.fundraisers, "getFundraiserByID").mockResolvedValue({
+        totalSum: 100,
+        donationCount: 1,
+        transactions,
+      });
 
       const result = await admin().fundraisers.get({ id: 5 });
 
-      expect(result).to.deep.equal({
+      expect(result).toStrictEqual({
         ...fundraiser,
         totalSum: 100,
         donationCount: 1,
@@ -677,27 +684,29 @@ describe("tRPC reports router", () => {
     });
 
     it("get throws NOT_FOUND for unknown fundraisers", async () => {
-      sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(null);
+      vi.spyOn(DAO.fundraisers, "getFundraiserWithSecret").mockResolvedValue(null);
       await expectTrpcError(admin().fundraisers.get({ id: 5 }), "NOT_FOUND");
     });
 
     it("create makes a fundraiser for an existing donor", async () => {
-      sinon.stub(DAO.donors, "getByID").resolves({ id: 42 } as any);
-      const create = sinon
-        .stub(DAO.fundraisers, "createFundraiser")
-        .resolves({ id: 5, secret: "s3cret" });
-      sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
+      vi.spyOn(DAO.donors, "getByID").mockResolvedValue({ id: 42 } as any);
+      const create = vi
+        .spyOn(DAO.fundraisers, "createFundraiser")
+        .mockResolvedValue({ id: 5, secret: "s3cret" });
+      vi.spyOn(DAO.fundraisers, "getFundraiserWithSecret").mockResolvedValue(fundraiser);
 
-      expect(await admin().fundraisers.create({ donorId: 42 })).to.deep.equal(fundraiser);
-      expect(create.firstCall.args).to.deep.equal([42]);
+      expect(await admin().fundraisers.create({ donorId: 42 })).toStrictEqual(fundraiser);
+      expect(create.mock.calls[0]).toStrictEqual([42]);
     });
 
     it("create rejects unknown donors", async () => {
-      sinon.stub(DAO.donors, "getByID").resolves(null);
-      const create = sinon.stub(DAO.fundraisers, "createFundraiser");
+      vi.spyOn(DAO.donors, "getByID").mockResolvedValue(null);
+      const create = vi
+        .spyOn(DAO.fundraisers, "createFundraiser")
+        .mockReturnValue(undefined as any);
 
       await expectTrpcError(admin().fundraisers.create({ donorId: 42 }), "BAD_REQUEST");
-      expect(create.called).to.be.false;
+      expect(create).not.toHaveBeenCalled();
     });
 
     describe("moving a donation into or out of a fundraiser", () => {
@@ -710,18 +719,18 @@ describe("tRPC reports router", () => {
         taxUnitId: 7,
         causeAreas: [{ id: 1, percentageShare: "100", standardSplit: true, organizations: [] }],
       } as any;
-      let commit: sinon.SinonStub;
-      let rollback: sinon.SinonStub;
-      let copy: sinon.SinonStub;
-      let move: sinon.SinonStub;
+      let commit: MockInstance;
+      let rollback: MockInstance;
+      let copy: MockInstance;
+      let move: MockInstance;
 
       beforeEach(() => {
-        sinon.stub(DAO, "startTransaction").resolves(connection);
-        commit = sinon.stub(DAO, "commitTransaction").resolves();
-        rollback = sinon.stub(DAO, "rollbackTransaction").resolves();
-        sinon.stub(donationHelpers, "createKID").resolves("99998888");
-        copy = sinon.stub(DAO.distributions, "copyToNewKID").resolves();
-        move = sinon.stub(DAO.donations, "updateKIDById").resolves(true);
+        vi.spyOn(DAO, "startTransaction").mockResolvedValue(connection);
+        commit = vi.spyOn(DAO, "commitTransaction").mockResolvedValue(undefined);
+        rollback = vi.spyOn(DAO, "rollbackTransaction").mockResolvedValue(undefined);
+        vi.spyOn(donationHelpers, "createKID").mockResolvedValue("99998888");
+        copy = vi.spyOn(DAO.distributions, "copyToNewKID").mockResolvedValue(undefined);
+        move = vi.spyOn(DAO.donations, "updateKIDById").mockResolvedValue(true);
       });
 
       const attachInput = {
@@ -733,31 +742,31 @@ describe("tRPC reports router", () => {
       };
 
       it("attach moves the donation to a new KID in a new transaction of the fundraiser", async () => {
-        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
-        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
-        const addTransaction = sinon
-          .stub(DAO.fundraisers, "addFundraiserTransaction")
-          .resolves(300);
+        vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(null));
+        vi.spyOn(DAO.fundraisers, "getFundraiserWithSecret").mockResolvedValue(fundraiser);
+        const addTransaction = vi
+          .spyOn(DAO.fundraisers, "addFundraiserTransaction")
+          .mockResolvedValue(300);
 
         const result = await admin().fundraisers.attachDonation(attachInput);
 
-        expect(result).to.deep.equal({ donationId: 10, fundraiserId: 5, kid: "99998888" });
-        expect(addTransaction.firstCall.args).to.deep.equal([
+        expect(result).toStrictEqual({ donationId: 10, fundraiserId: 5, kid: "99998888" });
+        expect(addTransaction.mock.calls[0]).toStrictEqual([
           { fundraiserId: 5, message: "Lykke til!", messageSenderName: "Kari", showName: true },
           connection,
         ]);
-        expect(copy.firstCall.args).to.deep.equal(["11112222", "99998888", 300, connection]);
-        expect(move.firstCall.args).to.deep.equal([10, "99998888", connection]);
-        expect(commit.calledOnceWith(connection)).to.be.true;
-        expect(rollback.called).to.be.false;
+        expect(copy.mock.calls[0]).toStrictEqual(["11112222", "99998888", 300, connection]);
+        expect(move.mock.calls[0]).toStrictEqual([10, "99998888", connection]);
+        expect(commit).toHaveBeenCalledExactlyOnceWith(connection);
+        expect(rollback).not.toHaveBeenCalled();
       });
 
       it("attach hides the name when there is none to show", async () => {
-        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
-        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
-        const addTransaction = sinon
-          .stub(DAO.fundraisers, "addFundraiserTransaction")
-          .resolves(300);
+        vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(null));
+        vi.spyOn(DAO.fundraisers, "getFundraiserWithSecret").mockResolvedValue(fundraiser);
+        const addTransaction = vi
+          .spyOn(DAO.fundraisers, "addFundraiserTransaction")
+          .mockResolvedValue(300);
 
         await admin().fundraisers.attachDonation({
           ...attachInput,
@@ -765,7 +774,7 @@ describe("tRPC reports router", () => {
           messageSenderName: " ",
         });
 
-        expect(addTransaction.firstCall.args[0]).to.deep.equal({
+        expect(addTransaction.mock.calls[0][0]).toStrictEqual({
           fundraiserId: 5,
           message: "",
           messageSenderName: null,
@@ -774,76 +783,76 @@ describe("tRPC reports router", () => {
       });
 
       it("attach rolls back when a step fails", async () => {
-        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
-        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(fundraiser);
-        sinon.stub(DAO.fundraisers, "addFundraiserTransaction").resolves(300);
-        copy.rejects(new Error("Distribution 11112222 not found"));
+        vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(null));
+        vi.spyOn(DAO.fundraisers, "getFundraiserWithSecret").mockResolvedValue(fundraiser);
+        vi.spyOn(DAO.fundraisers, "addFundraiserTransaction").mockResolvedValue(300);
+        copy.mockRejectedValue(new Error("Distribution 11112222 not found"));
 
         try {
           await admin().fundraisers.attachDonation(attachInput);
-          expect.fail("expected an error");
+          expect.unreachable("expected an error");
         } catch (err: any) {
-          expect(err.message).to.match(/not found/);
+          expect(err.message).toMatch(/not found/);
         }
-        expect(rollback.calledOnceWith(connection)).to.be.true;
-        expect(commit.called).to.be.false;
-        expect(move.called).to.be.false;
+        expect(rollback).toHaveBeenCalledExactlyOnceWith(connection);
+        expect(commit).not.toHaveBeenCalled();
+        expect(move).not.toHaveBeenCalled();
       });
 
       it("attach refuses a donation that is already in a fundraiser", async () => {
-        sinon.stub(DAO.donations, "getByID").resolves(donation(8));
+        vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(8));
         await expectTrpcError(
           admin().fundraisers.attachDonation(attachInput),
           "CONFLICT",
           /fundraiser 8/,
         );
-        expect(copy.called).to.be.false;
+        expect(copy).not.toHaveBeenCalled();
       });
 
       it("attach rejects unknown fundraisers and donations", async () => {
-        const getDonation = sinon.stub(DAO.donations, "getByID").resolves(donation(null));
-        sinon.stub(DAO.fundraisers, "getFundraiserWithSecret").resolves(null);
+        const getDonation = vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(null));
+        vi.spyOn(DAO.fundraisers, "getFundraiserWithSecret").mockResolvedValue(null);
         await expectTrpcError(admin().fundraisers.attachDonation(attachInput), "BAD_REQUEST");
 
-        getDonation.rejects(new Error("Could not find donation with ID 10"));
+        getDonation.mockRejectedValue(new Error("Could not find donation with ID 10"));
         await expectTrpcError(admin().fundraisers.attachDonation(attachInput), "NOT_FOUND");
-        expect(copy.called).to.be.false;
+        expect(copy).not.toHaveBeenCalled();
       });
 
       it("detach reuses a KID with the same split outside fundraisers", async () => {
-        sinon.stub(DAO.donations, "getByID").resolves(donation(5));
-        sinon.stub(DAO.distributions, "getSplitByKID").resolves(split);
-        const bySplit = sinon.stub(DAO.distributions, "getKIDbySplit").resolves("55554444");
+        vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(5));
+        vi.spyOn(DAO.distributions, "getSplitByKID").mockResolvedValue(split);
+        const bySplit = vi.spyOn(DAO.distributions, "getKIDbySplit").mockResolvedValue("55554444");
 
         const result = await admin().fundraisers.detachDonation({ donationId: 10 });
 
-        expect(result).to.deep.equal({ donationId: 10, fundraiserId: 5, kid: "55554444" });
-        expect(bySplit.firstCall.args[0]).to.deep.equal({
+        expect(result).toStrictEqual({ donationId: 10, fundraiserId: 5, kid: "55554444" });
+        expect(bySplit.mock.calls[0][0]).toStrictEqual({
           donorId: 42,
           taxUnitId: 7,
           causeAreas: split.causeAreas,
         });
-        expect(copy.called).to.be.false;
-        expect(move.firstCall.args).to.deep.equal([10, "55554444", connection]);
-        expect(commit.calledOnce).to.be.true;
+        expect(copy).not.toHaveBeenCalled();
+        expect(move.mock.calls[0]).toStrictEqual([10, "55554444", connection]);
+        expect(commit).toHaveBeenCalledOnce();
       });
 
       it("detach copies the split to a new KID when there is none", async () => {
-        sinon.stub(DAO.donations, "getByID").resolves(donation(5));
-        sinon.stub(DAO.distributions, "getSplitByKID").resolves(split);
-        sinon.stub(DAO.distributions, "getKIDbySplit").resolves(null);
+        vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(5));
+        vi.spyOn(DAO.distributions, "getSplitByKID").mockResolvedValue(split);
+        vi.spyOn(DAO.distributions, "getKIDbySplit").mockResolvedValue(null);
 
         const result = await admin().fundraisers.detachDonation({ donationId: 10 });
 
-        expect(result.kid).to.equal("99998888");
-        expect(copy.firstCall.args).to.deep.equal(["11112222", "99998888", null, connection]);
-        expect(move.firstCall.args).to.deep.equal([10, "99998888", connection]);
+        expect(result.kid).toBe("99998888");
+        expect(copy.mock.calls[0]).toStrictEqual(["11112222", "99998888", null, connection]);
+        expect(move.mock.calls[0]).toStrictEqual([10, "99998888", connection]);
       });
 
       it("detach refuses a donation that is not in a fundraiser", async () => {
-        sinon.stub(DAO.donations, "getByID").resolves(donation(null));
+        vi.spyOn(DAO.donations, "getByID").mockResolvedValue(donation(null));
         await expectTrpcError(admin().fundraisers.detachDonation({ donationId: 10 }), "CONFLICT");
-        expect(move.called).to.be.false;
+        expect(move).not.toHaveBeenCalled();
       });
     });
   });
@@ -872,8 +881,8 @@ describe("tRPC reports router", () => {
         .attach("report", readData("ocr/TBOC2072.DAT"), "TBOC2072.DAT")
         .expect(200);
 
-      expect(res.body.result.data.valid).to.equal(addStub.callCount);
-      expect(addStub.firstCall.args[5]).to.equal(3);
+      expect(res.body.result.data.valid).toBe(addStub.mock.calls.length);
+      expect(addStub.mock.calls[0][5]).toBe(3);
     });
 
     it("rejects multipart requests with invalid fields", async () => {
@@ -882,7 +891,7 @@ describe("tRPC reports router", () => {
         .field("metaOwnerID", "x")
         .attach("report", readData("ocr/TBOC2072.DAT"), "TBOC2072.DAT")
         .expect(400);
-      expect(addStub.called).to.be.false;
+      expect(addStub).not.toHaveBeenCalled();
     });
 
     it("still parses uploads for REST routes", async () => {
@@ -891,7 +900,7 @@ describe("tRPC reports router", () => {
         .field("metaOwnerID", "3")
         .attach("report", readData("ocr/TBOC2072.DAT"), "TBOC2072.DAT")
         .expect(200);
-      expect(res.body).to.deep.equal({ hasFile: true, metaOwnerID: "3" });
+      expect(res.body).toStrictEqual({ hasFile: true, metaOwnerID: "3" });
     });
   });
 });

@@ -1,5 +1,4 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
-import { expect } from "chai";
+import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import type { Request, Response } from "express";
 import * as mysql from "mysql2/promise";
 import { DAO } from "../../custom_modules/DAO";
@@ -66,7 +65,7 @@ const SOURCE_KID = "990000000017";
         await sql("SELECT ID, cause_area_ID FROM Organizations WHERE cause_area_ID = 1 LIMIT 2"),
         await sql("SELECT ID FROM Payment ORDER BY ID LIMIT 1"),
       ];
-      expect(organizations, "two seeded organizations in cause area 1").to.have.length(2);
+      expect(organizations, "two seeded organizations in cause area 1").toHaveLength(2);
 
       donorId = (
         await sql("INSERT INTO Donors (full_name, email) VALUES (?, ?)", [
@@ -131,9 +130,9 @@ const SOURCE_KID = "990000000017";
         showName: true,
       });
 
-      expect(result.kid).to.not.equal(SOURCE_KID);
-      expect(await kidOf(first)).to.equal(result.kid);
-      expect(await kidOf(second), "the other donation on the KID stays").to.equal(SOURCE_KID);
+      expect(result.kid).not.toBe(SOURCE_KID);
+      expect(await kidOf(first)).toBe(result.kid);
+      expect(await kidOf(second), "the other donation on the KID stays").toBe(SOURCE_KID);
 
       const [distribution] = await sql(
         `SELECT D.Donor_ID, D.Tax_unit_ID, D.Meta_owner_ID, FT.Fundraiser_ID, FT.Message,
@@ -142,7 +141,7 @@ const SOURCE_KID = "990000000017";
          WHERE D.KID = ?`,
         [result.kid],
       );
-      expect(distribution).to.deep.equal({
+      expect(distribution).toStrictEqual({
         Donor_ID: donorId,
         Tax_unit_ID: null,
         Meta_owner_ID: 2,
@@ -151,12 +150,12 @@ const SOURCE_KID = "990000000017";
         Message_sender_name: "Ola",
         Show_name: 1,
       });
-      expect(await splitOf(result.kid)).to.deep.equal(await splitOf(SOURCE_KID));
+      expect(await splitOf(result.kid)).toStrictEqual(await splitOf(SOURCE_KID));
 
       const fundraiser = await fundraisers().get({ id: fundraiserId });
-      expect(fundraiser.totalSum).to.equal(1500);
-      expect(fundraiser.donationCount).to.equal(1);
-      expect(fundraiser.transactions.map((t) => [t.name, t.message, t.amount])).to.deep.equal([
+      expect(fundraiser.totalSum).toBe(1500);
+      expect(fundraiser.donationCount).toBe(1);
+      expect(fundraiser.transactions.map((t) => [t.name, t.message, t.amount])).toStrictEqual([
         ["Ola", "Lykke til!", 1500],
       ]);
       const donation = await createCaller({
@@ -164,17 +163,17 @@ const SOURCE_KID = "990000000017";
         res: {} as Response,
         auth: { permissions: ["admin"] } as any,
       }).donations.get({ id: first });
-      expect(donation.fundraiserId).to.equal(fundraiserId);
+      expect(donation.fundraiserId).toBe(fundraiserId);
     });
 
     it("detach moves the donation back to the KID with the same split", async () => {
       const result = await fundraisers().detachDonation({ donationId: first });
 
-      expect(result).to.deep.equal({ donationId: first, fundraiserId, kid: SOURCE_KID });
-      expect(await kidOf(first)).to.equal(SOURCE_KID);
+      expect(result).toStrictEqual({ donationId: first, fundraiserId, kid: SOURCE_KID });
+      expect(await kidOf(first)).toBe(SOURCE_KID);
       const fundraiser = await fundraisers().get({ id: fundraiserId });
-      expect(fundraiser.totalSum).to.equal(0);
-      expect(fundraiser.transactions).to.deep.equal([]);
+      expect(fundraiser.totalSum).toBe(0);
+      expect(fundraiser.transactions).toStrictEqual([]);
     });
 
     it("detach copies the split to a new KID when no other KID has it", async () => {
@@ -195,24 +194,24 @@ const SOURCE_KID = "990000000017";
       });
       const before = await splitOf(SOURCE_KID);
       await sql("DELETE FROM Distributions WHERE KID = ?", [SOURCE_KID]);
-      expect((await fundraisers().get({ id: fundraiserId })).totalSum).to.equal(2200);
+      expect((await fundraisers().get({ id: fundraiserId })).totalSum).toBe(2200);
 
       const result = await fundraisers().detachDonation({ donationId: first });
 
-      expect([SOURCE_KID, firstKid]).to.not.include(result.kid);
-      expect(await kidOf(first)).to.equal(result.kid);
+      expect([SOURCE_KID, firstKid]).not.toContain(result.kid);
+      expect(await kidOf(first)).toBe(result.kid);
       const [distribution] = await sql(
         "SELECT Donor_ID, Fundraiser_transaction_ID, Meta_owner_ID FROM Distributions WHERE KID = ?",
         [result.kid],
       );
-      expect(distribution).to.deep.equal({
+      expect(distribution).toStrictEqual({
         Donor_ID: donorId,
         Fundraiser_transaction_ID: null,
         Meta_owner_ID: 2,
       });
-      expect(await splitOf(result.kid)).to.deep.equal(before);
+      expect(await splitOf(result.kid)).toStrictEqual(before);
       const fundraiser = await fundraisers().get({ id: fundraiserId });
-      expect([fundraiser.totalSum, fundraiser.donationCount]).to.deep.equal([700, 1]);
+      expect([fundraiser.totalSum, fundraiser.donationCount]).toStrictEqual([700, 1]);
     });
   },
 );

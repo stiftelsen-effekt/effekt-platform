@@ -1,6 +1,4 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import { httpRequest, HttpStatusError } from "../custom_modules/http";
 import { loggableRequestError, redactForAlert } from "../custom_modules/requestErrors";
 
@@ -12,93 +10,95 @@ const SECRET_HEADERS = {
 };
 
 describe("httpRequest", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("resolves the response text when not in json mode", async () => {
-    const fetchStub = sinon
-      .stub(globalThis, "fetch")
-      .resolves(new Response('{"status":"ACTIVE"}', { status: 200 }));
+    const fetchStub = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response('{"status":"ACTIVE"}', { status: 200 }));
     const text = await httpRequest(URL, { method: "GET", headers: SECRET_HEADERS });
-    expect(text).to.equal('{"status":"ACTIVE"}');
+    expect(text).toBe('{"status":"ACTIVE"}');
 
-    const [url, init] = fetchStub.firstCall.args as [string, RequestInit];
-    expect(url).to.equal(URL);
-    expect(init.method).to.equal("GET");
-    expect(init.body).to.equal(undefined);
-    expect(init.signal).to.equal(undefined);
-    expect(init.headers).to.deep.equal(SECRET_HEADERS);
+    const [url, init] = fetchStub.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(URL);
+    expect(init.method).toBe("GET");
+    expect(init.body).toBe(undefined);
+    expect(init.signal).toBe(undefined);
+    expect(init.headers).toStrictEqual(SECRET_HEADERS);
   });
 
   it("sends a raw body as is", async () => {
-    const fetchStub = sinon.stub(globalThis, "fetch").resolves(new Response(null, { status: 204 }));
+    const fetchStub = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 204 }));
     const text = await httpRequest(URL, { method: "PATCH", body: '{"status":"STOPPED"}' });
-    expect(text).to.equal("");
-    expect(fetchStub.firstCall.args[1]?.body).to.equal('{"status":"STOPPED"}');
+    expect(text).toBe("");
+    expect(fetchStub.mock.calls[0][1]?.body).toBe('{"status":"STOPPED"}');
   });
 
   it("sends and parses JSON in json mode, keeping a given content-type", async () => {
-    const fetchStub = sinon
-      .stub(globalThis, "fetch")
-      .resolves(new Response('{"url":"https://vipps"}', { status: 200 }));
+    const fetchStub = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response('{"url":"https://vipps"}', { status: 200 }));
     const res = await httpRequest(URL, {
       method: "POST",
       headers: { "content-type": "application/json; charset=utf-8" },
       json: { amount: 10000 },
     });
-    expect(res).to.deep.equal({ url: "https://vipps" });
+    expect(res).toStrictEqual({ url: "https://vipps" });
 
-    const init = fetchStub.firstCall.args[1] as RequestInit;
-    expect(init.body).to.equal('{"amount":10000}');
-    expect(init.headers).to.deep.equal({
+    const init = fetchStub.mock.calls[0][1] as RequestInit;
+    expect(init.body).toBe('{"amount":10000}');
+    expect(init.headers).toStrictEqual({
       "content-type": "application/json; charset=utf-8",
       accept: "application/json",
     });
   });
 
   it("resolves undefined for an empty body (204) in json mode, and text if not JSON", async () => {
-    sinon
-      .stub(globalThis, "fetch")
-      .onFirstCall()
-      .resolves(new Response(null, { status: 204 }))
-      .onSecondCall()
-      .resolves(new Response("OK", { status: 200 }));
-    expect(await httpRequest(URL, { method: "POST", json: {} })).to.equal(undefined);
-    expect(await httpRequest(URL, { method: "POST", json: {} })).to.equal("OK");
+    vi.spyOn(globalThis, "fetch")
+      .mockReturnValue(undefined as any)
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response("OK", { status: 200 }));
+    expect(await httpRequest(URL, { method: "POST", json: {} })).toBe(undefined);
+    expect(await httpRequest(URL, { method: "POST", json: {} })).toBe("OK");
   });
 
   it("throws HttpStatusError with status and parsed body on non-2xx", async () => {
-    sinon.stub(globalThis, "fetch").resolves(new Response('[{"errorCode":61}]', { status: 400 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response('[{"errorCode":61}]', { status: 400 }),
+    );
     let caught: unknown;
     try {
       await httpRequest(URL, { method: "GET", headers: SECRET_HEADERS });
     } catch (ex) {
       caught = ex;
     }
-    expect(caught).to.be.instanceOf(HttpStatusError);
+    expect(caught).toBeInstanceOf(HttpStatusError);
     const err = caught as HttpStatusError;
-    expect(err.statusCode).to.equal(400);
-    expect(err.body).to.deep.equal([{ errorCode: 61 }]);
-    expect(err.message).to.equal('400 - [{"errorCode":61}]');
-    expect(err.request).to.deep.equal({ method: "GET", url: URL });
+    expect(err.statusCode).toBe(400);
+    expect(err.body).toStrictEqual([{ errorCode: 61 }]);
+    expect(err.message).toBe('400 - [{"errorCode":61}]');
+    expect(err.request).toStrictEqual({ method: "GET", url: URL });
   });
 
   it("keeps a non-JSON error body as text, and an empty one as undefined", async () => {
-    sinon
-      .stub(globalThis, "fetch")
-      .onFirstCall()
-      .resolves(new Response("Bad gateway", { status: 502 }))
-      .onSecondCall()
-      .resolves(new Response(null, { status: 404 }));
+    vi.spyOn(globalThis, "fetch")
+      .mockReturnValue(undefined as any)
+      .mockResolvedValueOnce(new Response("Bad gateway", { status: 502 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }));
     const first = await httpRequest(URL, { method: "GET" }).catch((ex) => ex);
-    expect(first.statusCode).to.equal(502);
-    expect(first.body).to.equal("Bad gateway");
+    expect(first.statusCode).toBe(502);
+    expect(first.body).toBe("Bad gateway");
     const second = await httpRequest(URL, { method: "GET" }).catch((ex) => ex);
-    expect(second.statusCode).to.equal(404);
-    expect(second.body).to.equal(undefined);
+    expect(second.statusCode).toBe(404);
+    expect(second.body).toBe(undefined);
   });
 
   it("never carries credential headers into errors or their logs", async () => {
-    sinon.stub(globalThis, "fetch").resolves(new Response('{"message":"no"}', { status: 401 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response('{"message":"no"}', { status: 401 }),
+    );
     const err = await httpRequest(URL, { method: "POST", headers: SECRET_HEADERS, json: {} }).catch(
       (ex) => ex,
     );
@@ -108,23 +108,25 @@ describe("httpRequest", () => {
       JSON.stringify(redactForAlert(err)),
       JSON.stringify(redactForAlert({ wrapped: err })),
     ]) {
-      expect(out).to.not.include("t0k");
-      expect(out).to.not.include("k3y");
-      expect(out).to.not.include("s3cret");
+      expect(out).not.toContain("t0k");
+      expect(out).not.toContain("k3y");
+      expect(out).not.toContain("s3cret");
     }
-    expect(JSON.stringify(loggableRequestError(err))).to.include("401");
+    expect(JSON.stringify(loggableRequestError(err))).toContain("401");
   });
 
   it("passes a timeout signal only when asked", async () => {
-    const fetchStub = sinon.stub(globalThis, "fetch").resolves(new Response("", { status: 200 }));
+    const fetchStub = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("", { status: 200 }));
     await httpRequest(URL, { method: "GET", timeoutMs: 1000 });
-    expect(fetchStub.firstCall.args[1]?.signal).to.be.instanceOf(AbortSignal);
+    expect(fetchStub.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("rethrows network errors unchanged", async () => {
     const networkError = new TypeError("fetch failed");
-    sinon.stub(globalThis, "fetch").rejects(networkError);
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(networkError);
     const caught = await httpRequest(URL, { method: "GET" }).catch((ex) => ex);
-    expect(caught).to.equal(networkError);
+    expect(caught).toBe(networkError);
   });
 });

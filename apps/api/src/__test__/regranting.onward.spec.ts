@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import {
   checkAllocation,
   onwardFigures,
@@ -68,7 +67,7 @@ const other = (amountNok: string, overrides: Partial<OtherAllocation> = {}): Oth
 
 describe("regranting onward: status of a line", () => {
   it("is awaiting with nothing entered", () => {
-    expect(onwardFigures("420000.00", [])).to.deep.equal({
+    expect(onwardFigures("420000.00", [])).toStrictEqual({
       reportedNok: "0.00",
       assumedNok: "0.00",
       awaitingNok: "420000.00",
@@ -77,11 +76,13 @@ describe("regranting onward: status of a line", () => {
   });
 
   it("is partly forwarded while something awaits", () => {
-    expect(onwardFigures("210000.00", [{ basis: "reported", amountNok: "157500.00" }])).to.include({
-      reportedNok: "157500.00",
-      awaitingNok: "52500.00",
-      status: "partly_forwarded",
-    });
+    expect(onwardFigures("210000.00", [{ basis: "reported", amountNok: "157500.00" }])).toEqual(
+      expect.objectContaining({
+        reportedNok: "157500.00",
+        awaitingNok: "52500.00",
+        status: "partly_forwarded",
+      }),
+    );
   });
 
   it("is forwarded when reported covers the line", () => {
@@ -90,7 +91,7 @@ describe("regranting onward: status of a line", () => {
         { basis: "reported", amountNok: "157500.00" },
         { basis: "reported", amountNok: "52500.00" },
       ]).status,
-    ).to.equal("forwarded");
+    ).toBe("forwarded");
   });
 
   it("is forwarded (assumed) when assumed amounts cover the rest", () => {
@@ -99,7 +100,7 @@ describe("regranting onward: status of a line", () => {
         { basis: "reported", amountNok: "10000.00" },
         { basis: "assumed", amountNok: "200000.00" },
       ]),
-    ).to.deep.equal({
+    ).toStrictEqual({
       reportedNok: "10000.00",
       assumedNok: "200000.00",
       awaitingNok: "0.00",
@@ -108,7 +109,7 @@ describe("regranting onward: status of a line", () => {
   });
 
   it("counts retained (reported) amounts as reported", () => {
-    expect(onwardFigures("100.00", [{ basis: "reported", amountNok: "100.00" }]).status).to.equal(
+    expect(onwardFigures("100.00", [{ basis: "reported", amountNok: "100.00" }]).status).toBe(
       "forwarded",
     );
   });
@@ -117,9 +118,9 @@ describe("regranting onward: status of a line", () => {
 describe("regranting onward: validation", () => {
   it("accepts the worked example and converts USD at the transfer's rate", () => {
     const check = checkAllocation(line(), draft(), []);
-    expect(check.errors).to.deep.equal([]);
-    expect(check.warnings).to.deep.equal([]);
-    expect(check.amountNok).to.equal("157500.00");
+    expect(check.errors).toStrictEqual([]);
+    expect(check.warnings).toStrictEqual([]);
+    expect(check.amountNok).toBe("157500.00");
   });
 
   it("takes the remainder when the allocations come within rounding of the line", () => {
@@ -134,27 +135,27 @@ describe("regranting onward: validation", () => {
       }),
       [],
     );
-    expect(check.amountNok).to.equal("1200000.00");
+    expect(check.amountNok).toBe("1200000.00");
   });
 
   it("errors when the line isn't paid to an intermediary or isn't paid", () => {
     const check = checkAllocation(line({ intermediary: false, paidAt: null }), draft(), []);
-    expect(check.errors).to.have.length(2);
-    expect(check.amountNok).to.equal(null);
+    expect(check.errors).toHaveLength(2);
+    expect(check.amountNok).toBe(null);
   });
 
   it("errors when the allocations would exceed the line", () => {
     const check = checkAllocation(line(), draft(), [other("100000.00")]);
-    expect(check.errors.join()).to.match(/more than the line's 210\s000,00\skr/);
+    expect(check.errors.join()).toMatch(/more than the line's 210\s000,00\skr/);
   });
 
   it("needs exactly one target for a grant", () => {
     expect(
       checkAllocation(tcf, draft({ organizationId: null, projectId: null }), []).errors.join(),
-    ).to.match(/exactly one recipient or external grantee/);
+    ).toMatch(/exactly one recipient or external grantee/);
     expect(
       checkAllocation(tcf, draft({ externalGranteeId: 4, projectId: null }), []).errors.join(),
-    ).to.match(/exactly one/);
+    ).toMatch(/exactly one/);
   });
 
   it("allows an external grantee on a regranting-fund line", () => {
@@ -168,7 +169,7 @@ describe("regranting onward: validation", () => {
       }),
       [],
     );
-    expect(check.errors).to.deep.equal([]);
+    expect(check.errors).toStrictEqual([]);
   });
 
   it("needs no target and a note for retained", () => {
@@ -179,38 +180,38 @@ describe("regranting onward: validation", () => {
       projectOrganizationId: null,
       amountForeign: "10",
     });
-    expect(checkAllocation(line(), retained, []).errors.join()).to.match(/Say why/);
-    expect(checkAllocation(line(), { ...retained, note: "Wire fee" }, []).errors).to.deep.equal([]);
+    expect(checkAllocation(line(), retained, []).errors.join()).toMatch(/Say why/);
+    expect(checkAllocation(line(), { ...retained, note: "Wire fee" }, []).errors).toStrictEqual([]);
     expect(
       checkAllocation(line(), { ...retained, organizationId: 3, note: "x" }, []).errors.join(),
-    ).to.match(/no recipient/);
+    ).toMatch(/no recipient/);
   });
 
   it("errors when the project belongs to another recipient", () => {
-    expect(checkAllocation(line(), draft({ projectOrganizationId: 9 }), []).errors.join()).to.match(
+    expect(checkAllocation(line(), draft({ projectOrganizationId: 9 }), []).errors.join()).toMatch(
       /project belongs to another recipient/,
     );
   });
 
   it("needs a report from the same payee for reported allocations", () => {
-    expect(checkAllocation(line(), draft({ reportId: null }), []).errors.join()).to.match(
+    expect(checkAllocation(line(), draft({ reportId: null }), []).errors.join()).toMatch(
       /Pick the report/,
     );
-    expect(checkAllocation(line(), draft({ reportPayeeId: 2 }), []).errors.join()).to.match(
+    expect(checkAllocation(line(), draft({ reportPayeeId: 2 }), []).errors.join()).toMatch(
       /another payee/,
     );
   });
 
   it("warns, with a note required, when a pass-through line went elsewhere", () => {
     const redirected = draft({ organizationId: 6, projectId: null, projectOrganizationId: null });
-    expect(checkAllocation(line(), redirected, []).errors.join()).to.match(/Explain in the note/);
+    expect(checkAllocation(line(), redirected, []).errors.join()).toMatch(/Explain in the note/);
     const check = checkAllocation(
       line(),
       { ...redirected, note: "HKI lost top-charity status" },
       [],
     );
-    expect(check.errors).to.deep.equal([]);
-    expect(check.warnings.join()).to.match(/someone other than the line's recipient/);
+    expect(check.errors).toStrictEqual([]);
+    expect(check.warnings.join()).toMatch(/someone other than the line's recipient/);
   });
 
   it("warns when forwarded before we paid and on a currency mismatch", () => {
@@ -219,13 +220,13 @@ describe("regranting onward: validation", () => {
       draft({ forwardedAt: "2025-05-01", currency: "GBP", amountNok: "50000.00" }),
       [],
     );
-    expect(check.errors).to.deep.equal([]);
-    expect(check.warnings).to.have.length(2);
-    expect(check.amountNok).to.equal("50000.00");
+    expect(check.errors).toStrictEqual([]);
+    expect(check.warnings).toHaveLength(2);
+    expect(check.amountNok).toBe("50000.00");
   });
 
   it("needs a NOK amount in another currency than the transfer's", () => {
-    expect(checkAllocation(line(), draft({ currency: "GBP" }), []).errors.join()).to.match(
+    expect(checkAllocation(line(), draft({ currency: "GBP" }), []).errors.join()).toMatch(
       /Enter the NOK amount/,
     );
   });
@@ -235,8 +236,8 @@ describe("regranting onward: validation", () => {
     const check = checkAllocation(line(), draft({ amountForeign: "6000", amountNok: "52500.00" }), [
       other("157500.00", { amountForeign: "15000" }),
     ]);
-    expect(check.errors).to.deep.equal([]);
-    expect(check.warnings.join()).to.match(/USD amounts add up to 21000.00/);
+    expect(check.errors).toStrictEqual([]);
+    expect(check.warnings.join()).toMatch(/USD amounts add up to 21000.00/);
   });
 
   it("allows assumed only on pass-through lines, to the line's recipient and project", () => {
@@ -246,27 +247,27 @@ describe("regranting onward: validation", () => {
       reportPayeeId: null,
       amountForeign: "20000",
     });
-    expect(checkAllocation(line(), assumed, []).errors).to.deep.equal([]);
+    expect(checkAllocation(line(), assumed, []).errors).toStrictEqual([]);
     expect(
       checkAllocation(
         line(),
         { ...assumed, projectId: null, projectOrganizationId: null },
         [],
       ).errors.join(),
-    ).to.match(/own recipient/);
+    ).toMatch(/own recipient/);
     expect(
       checkAllocation(
         tcf,
         { ...assumed, organizationId: 12, projectId: null, projectOrganizationId: null },
         [],
       ).errors.join(),
-    ).to.match(/regrants by its own decision/);
+    ).toMatch(/regrants by its own decision/);
   });
 });
 
 describe("regranting onward: Confirm forwarded", () => {
   it("prefills the line's recipient, project and awaiting amount in the transfer's currency", () => {
-    expect(prefillForwarded(line(), "52500.00")).to.deep.equal({
+    expect(prefillForwarded(line(), "52500.00")).toStrictEqual({
       kind: "grant",
       basis: "reported",
       organizationId: 3,

@@ -1,6 +1,5 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
-import { expect } from "chai";
-import sinon from "sinon";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
+import type { MockInstance } from "vitest";
 import * as mail from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { agreementType } from "../custom_modules/inflationadjustment";
@@ -15,9 +14,8 @@ const config = require("../config.js");
  * `statusCode` with 202.
  */
 describe("MailerSend transport", function () {
-  const sandbox = sinon.createSandbox();
-  let fetchStub: sinon.SinonStub;
-  let errorStub: sinon.SinonStub;
+  let fetchStub: MockInstance;
+  let errorStub: MockInstance;
   let savedApiKey: string | undefined;
 
   const accepted = () =>
@@ -30,7 +28,7 @@ describe("MailerSend transport", function () {
 
   /** The url, headers and JSON body of the n-th request the SDK made */
   const request = (n = 0) => {
-    const [url, init] = fetchStub.getCall(n).args;
+    const [url, init] = fetchStub.mock.calls[n];
     return {
       url: String(url instanceof Request ? url.url : url),
       method: init?.method,
@@ -42,77 +40,82 @@ describe("MailerSend transport", function () {
   beforeEach(function () {
     savedApiKey = config.mailersend_api_key;
     config.mailersend_api_key = "test-api-key";
-    fetchStub = sandbox.stub(globalThis, "fetch");
-    errorStub = sandbox.stub(console, "error");
+    fetchStub = vi.spyOn(globalThis, "fetch").mockReturnValue(undefined as any);
+    errorStub = vi.spyOn(console, "error").mockReturnValue(undefined);
   });
 
   afterEach(function () {
     config.mailersend_api_key = savedApiKey;
-    sandbox.restore();
+    vi.restoreAllMocks();
   });
 
   describe("template sends (sendSanitySecurityNotice)", function () {
     const notice = { fields: ["title"], document: "doc-1", sanityUser: "editor" } as any;
 
     it("posts the template, recipient, bcc and personalization, and returns the response", async function () {
-      sandbox.stub(config, "mailersend_sanity_security_notification_template_id").value("tmpl-1");
-      fetchStub.resolves(accepted());
+      vi.spyOn(
+        config,
+        "mailersend_sanity_security_notification_template_id",
+        "get",
+      ).mockReturnValue("tmpl-1");
+      fetchStub.mockResolvedValue(accepted());
 
       const result: any = await mail.sendSanitySecurityNotice(notice);
 
-      expect(result.statusCode).to.equal(202);
-      expect(result.headers["x-message-id"]).to.equal("msg-123");
+      expect(result.statusCode).toBe(202);
+      expect(result.headers["x-message-id"]).toBe("msg-123");
 
       const sent = request();
-      expect(sent.url).to.equal("https://api.mailersend.com/v1/email");
-      expect(sent.method).to.equal("POST");
-      expect(sent.headers.get("authorization")).to.equal("Bearer test-api-key");
-      expect(sent.body.to).to.deep.equal([{ email: "teknisk@gieffektivt.no" }]);
-      expect(sent.body.template_id).to.equal("tmpl-1");
-      expect(sent.body.personalization).to.deep.equal([
+      expect(sent.url).toBe("https://api.mailersend.com/v1/email");
+      expect(sent.method).toBe("POST");
+      expect(sent.headers.get("authorization")).toBe("Bearer test-api-key");
+      expect(sent.body.to).toStrictEqual([{ email: "teknisk@gieffektivt.no" }]);
+      expect(sent.body.template_id).toBe("tmpl-1");
+      expect(sent.body.personalization).toStrictEqual([
         { email: "teknisk@gieffektivt.no", data: notice },
       ]);
-      expect(sent.body.bcc).to.be.an("array");
+      expect(sent.body.bcc).toBeInstanceOf(Array);
     });
 
     it("returns false on an API error", async function () {
-      fetchStub.resolves(rejected());
+      fetchStub.mockResolvedValue(rejected());
 
-      expect(await mail.sendSanitySecurityNotice(notice)).to.equal(false);
-      expect(errorStub.called).to.be.true;
+      expect(await mail.sendSanitySecurityNotice(notice)).toBe(false);
+      expect(errorStub).toHaveBeenCalled();
     });
 
     it("returns false on a network error", async function () {
-      fetchStub.rejects(new TypeError("fetch failed"));
+      fetchStub.mockRejectedValue(new TypeError("fetch failed"));
 
-      expect(await mail.sendSanitySecurityNotice(notice)).to.equal(false);
+      expect(await mail.sendSanitySecurityNotice(notice)).toBe(false);
     });
   });
 
   describe("internal alerts (sendVippsErrorWarning)", function () {
     it("sends html and text from the technical inbox and returns true", async function () {
-      fetchStub.resolves(accepted());
+      fetchStub.mockResolvedValue(accepted());
 
-      expect(await mail.sendVippsErrorWarning("DRAFT", "boom", { kid: "1" })).to.equal(true);
+      expect(await mail.sendVippsErrorWarning("DRAFT", "boom", { kid: "1" })).toBe(true);
 
       const { body } = request();
-      expect(body.from).to.deep.equal({ email: "teknisk@gieffektivt.no", name: "Gi Effektivt" });
-      expect(body.to).to.deep.equal([{ email: "teknisk@gieffektivt.no" }]);
-      expect(body.subject).to.be.a("string").and.not.empty;
-      expect(body.text).to.contain("DRAFT");
-      expect(body.html).to.contain("DRAFT");
+      expect(body.from).toStrictEqual({ email: "teknisk@gieffektivt.no", name: "Gi Effektivt" });
+      expect(body.to).toStrictEqual([{ email: "teknisk@gieffektivt.no" }]);
+      expect(body.subject).toBeTypeOf("string");
+      expect(body.subject).not.toHaveLength(0);
+      expect(body.text).toContain("DRAFT");
+      expect(body.html).toContain("DRAFT");
     });
 
     it("returns false on an API error", async function () {
-      fetchStub.resolves(rejected());
+      fetchStub.mockResolvedValue(rejected());
 
-      expect(await mail.sendVippsErrorWarning("DRAFT", "boom", {})).to.equal(false);
+      expect(await mail.sendVippsErrorWarning("DRAFT", "boom", {})).toBe(false);
     });
 
     it("returns false on a network error", async function () {
-      fetchStub.rejects(new TypeError("fetch failed"));
+      fetchStub.mockRejectedValue(new TypeError("fetch failed"));
 
-      expect(await mail.sendVippsErrorWarning("DRAFT", "boom", {})).to.equal(false);
+      expect(await mail.sendVippsErrorWarning("DRAFT", "boom", {})).toBe(false);
     });
   });
 
@@ -128,36 +131,38 @@ describe("MailerSend transport", function () {
     } as any;
 
     beforeEach(function () {
-      sandbox
-        .stub(DAO.avtalegiroagreements, "getByID")
-        .resolves({ KID: "12345678", created: new Date("2024-01-15") } as any);
-      sandbox
-        .stub(DAO.donors, "getByKID")
-        .resolves({ email: "donor@example.org", name: "Ola Nordmann" } as any);
-      sandbox.stub(DAO.donations, "getAllByKID").resolves([]);
+      vi.spyOn(DAO.avtalegiroagreements, "getByID").mockResolvedValue({
+        KID: "12345678",
+        created: new Date("2024-01-15"),
+      } as any);
+      vi.spyOn(DAO.donors, "getByKID").mockResolvedValue({
+        email: "donor@example.org",
+        name: "Ola Nordmann",
+      } as any);
+      vi.spyOn(DAO.donations, "getAllByKID").mockResolvedValue([]);
     });
 
     it("returns true when MailerSend accepts the email", async function () {
-      fetchStub.resolves(accepted());
+      fetchStub.mockResolvedValue(accepted());
 
-      expect(await mail.sendAgreementInflationAdjustment(adjustment)).to.equal(true);
+      expect(await mail.sendAgreementInflationAdjustment(adjustment)).toBe(true);
 
       const { body } = request();
-      expect(body.to).to.deep.equal([{ email: "donor@example.org" }]);
-      expect(body.personalization[0].data.firstName).to.equal("Ola");
-      expect(body.personalization[0].data.newAmount).to.contain("530");
+      expect(body.to).toStrictEqual([{ email: "donor@example.org" }]);
+      expect(body.personalization[0].data.firstName).toBe("Ola");
+      expect(body.personalization[0].data.newAmount).toContain("530");
     });
 
     it("returns false on an API error", async function () {
-      fetchStub.resolves(rejected());
+      fetchStub.mockResolvedValue(rejected());
 
-      expect(await mail.sendAgreementInflationAdjustment(adjustment)).to.equal(false);
+      expect(await mail.sendAgreementInflationAdjustment(adjustment)).toBe(false);
     });
 
     it("returns false on a network error", async function () {
-      fetchStub.rejects(new TypeError("fetch failed"));
+      fetchStub.mockRejectedValue(new TypeError("fetch failed"));
 
-      expect(await mail.sendAgreementInflationAdjustment(adjustment)).to.equal(false);
+      expect(await mail.sendAgreementInflationAdjustment(adjustment)).toBe(false);
     });
   });
 });

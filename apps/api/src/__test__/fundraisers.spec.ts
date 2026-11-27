@@ -1,16 +1,14 @@
-import { describe, it, afterEach } from "vitest";
-import { expect } from "chai";
+import { describe, it, afterEach, expect, vi } from "vitest";
 import express from "express";
-import sinon from "sinon";
 import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
 import { fundraisersRouter } from "../routes/fundraisers";
 
 describe("GET /fundraisers/dashboard/:secret", () => {
-  afterEach(() => sinon.restore());
+  afterEach(() => vi.restoreAllMocks());
 
   it("HTML-escapes donor-supplied names and messages", async () => {
-    sinon.stub(DAO.fundraisers, "getFundraiserTransactionsBySecret").resolves([
+    vi.spyOn(DAO.fundraisers, "getFundraiserTransactionsBySecret").mockResolvedValue([
       {
         id: 1,
         message: "<img src=x onerror=alert(document.domain)>",
@@ -26,9 +24,9 @@ describe("GET /fundraisers/dashboard/:secret", () => {
     app.use("/fundraisers", fundraisersRouter);
     const res = await request(app).get("/fundraisers/dashboard/secret").expect(200);
 
-    expect(res.text).to.not.include("<img");
-    expect(res.text).to.not.include("<b>x</b>");
-    expect(res.text).to.include("&lt;img src=x onerror=alert(document.domain)&gt;");
-    expect(res.headers["content-security-policy"]).to.include("default-src 'none'");
+    expect(res.text).not.toContain("<img");
+    expect(res.text).not.toContain("<b>x</b>");
+    expect(res.text).toContain("&lt;img src=x onerror=alert(document.domain)&gt;");
+    expect(res.headers["content-security-policy"]).toContain("default-src 'none'");
   });
 });

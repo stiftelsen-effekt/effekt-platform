@@ -1,8 +1,6 @@
-import { afterEach, beforeEach, describe, it } from "vitest";
-import { expect } from "chai";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import express from "express";
 import request from "supertest";
-import sinon from "sinon";
 import config from "../config";
 import { createSqlMcpServer } from "../custom_modules/mcp/sqlMcpServer";
 import { claudeTagDb } from "../custom_modules/analysisDbPool";
@@ -43,12 +41,12 @@ describe("SQL MCP server factory", function () {
     });
     const res = await server.handleJsonRpcMessage({ jsonrpc: "2.0", id: 1, method: "tools/list" });
     const tools = res!.result.tools;
-    expect(tools.map((t: any) => t.description)).to.deep.equal([
+    expect(tools.map((t: any) => t.description)).toStrictEqual([
       "List all tables and views available in the analysis database, with their type (BASE TABLE or VIEW).",
       "Return the columns (name, data type, nullability, comment) of a given table or view in the analysis database.",
       "Execute a single read-only SQL SELECT (or WITH ... SELECT) against the analysis database and return the rows as JSON. Only SELECT queries are permitted.",
     ]);
-    expect(Object.keys(tools[1].inputSchema.properties)).to.deep.equal(["table"]);
+    expect(Object.keys(tools[1].inputSchema.properties)).toStrictEqual(["table"]);
   });
 
   it("rejects forbidden schemas, blocked columns and writes", async function () {
@@ -70,9 +68,9 @@ describe("SQL MCP server factory", function () {
       "SELECT 1; SELECT 2",
     ]) {
       const res = await server.handleJsonRpcMessage(call("run_sql", { query }));
-      expect(res!.result.isError, query).to.equal(true);
+      expect(res!.result.isError, query).toBe(true);
     }
-    expect(calls).to.have.length(0);
+    expect(calls).toHaveLength(0);
   });
 
   it("describes tables in either schema of a multi-schema server", async function () {
@@ -92,11 +90,11 @@ describe("SQL MCP server factory", function () {
     const bad = await server.handleJsonRpcMessage(
       call("describe_table", { table: "Donors", database: "EffektDonasjonDB" }),
     );
-    expect(calls.map((c) => c.params)).to.deep.equal([
+    expect(calls.map((c) => c.params)).toStrictEqual([
       ["EffektPseudoDB", "Donors"],
       ["EffektAnalysisDB", "Donors"],
     ]);
-    expect(bad!.result.isError).to.equal(true);
+    expect(bad!.result.isError).toBe(true);
   });
 });
 
@@ -111,14 +109,14 @@ describe("Claude Tag MCP route (/mcp-tag)", function () {
       mcp_tag_db_password: "p",
       mcp_tag_db_name: "EffektPseudoDB",
     });
-    sinon.stub(claudeTagDb, "runReadOnlyQuery").resolves({ rows: [], fields: [] as any });
+    vi.spyOn(claudeTagDb, "runReadOnlyQuery").mockResolvedValue({ rows: [], fields: [] as any });
     const { mcpClaudeTagRouter } = await import("../routes/mcpClaudeTag");
     app = express();
     app.use("/mcp-tag", mcpClaudeTagRouter);
   });
 
   afterEach(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
     for (const k of [
       "mcp_tag_token",
       "mcp_tag_db_username",
@@ -142,7 +140,7 @@ describe("Claude Tag MCP route (/mcp-tag)", function () {
       .set("Authorization", "Bearer tag-token-for-tests")
       .send(init)
       .expect(200);
-    expect(res.body.result.serverInfo.name).to.equal("effekt-claude-tag-mcp");
+    expect(res.body.result.serverInfo.name).toBe("effekt-claude-tag-mcp");
   });
 
   it("is disabled when no token is configured", async function () {

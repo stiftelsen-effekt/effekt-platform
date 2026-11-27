@@ -1,5 +1,4 @@
-import { describe, it } from "vitest";
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { dec, fmt, ZERO } from "../custom_modules/regranting/money";
 import {
   proposeRound,
@@ -66,13 +65,13 @@ const transfers = (result: ReturnType<typeof proposeRound>) =>
 describe("regranting proposal rules", () => {
   it("regular: proposes every recipient's balance, never an own fund, one transfer per payee", () => {
     const result = proposeRound(input());
-    expect(proposed(result)).to.deep.equal({
+    expect(proposed(result)).toStrictEqual({
       "1:": "1000.00",
       "2:": "500.00",
       "3:": "300.00",
       "4:": "0.00",
     });
-    expect(transfers(result)).to.deep.equal([
+    expect(transfers(result)).toStrictEqual([
       {
         payee: givewell.id,
         currency: "NOK",
@@ -89,7 +88,7 @@ describe("regranting proposal rules", () => {
     const result = proposeRound(
       input({ positions: [pos(GD, null, 3000), pos(GD, MOMS, 0, { fundGrants: 2000 })] }),
     );
-    expect(transfers(result)).to.deep.equal([
+    expect(transfers(result)).toStrictEqual([
       {
         payee: giveDirectly.id,
         currency: "NOK",
@@ -105,8 +104,8 @@ describe("regranting proposal rules", () => {
     const result = proposeRound(
       input({ positions: [pos(AGF, null, 1000, { committed: 400 }), pos(MC, null, -500)] }),
     );
-    expect(proposed(result)).to.deep.equal({ "1:": "600.00", "3:": "0.00" });
-    expect(result.positions.find((p) => p.organizationId === MC)!.available.toFixed(2)).to.equal(
+    expect(proposed(result)).toStrictEqual({ "1:": "600.00", "3:": "0.00" });
+    expect(result.positions.find((p) => p.organizationId === MC)!.available.toFixed(2)).toBe(
       "-500.00",
     );
   });
@@ -123,7 +122,7 @@ describe("regranting proposal rules", () => {
           ],
         }),
       );
-      expect(proposed(result)).to.deep.equal({ "1:": "250.00", "2:": "0.00", "4:": "0.00" });
+      expect(proposed(result)).toStrictEqual({ "1:": "250.00", "2:": "0.00", "4:": "0.00" });
     });
   }
 
@@ -131,20 +130,20 @@ describe("regranting proposal rules", () => {
     const result = proposeRound(
       input({ kind: "fund_grant", positions: [pos(MC, null, -400, { fundGrants: 1000 })] }),
     );
-    expect(proposed(result)["3:"]).to.equal("600.00");
+    expect(proposed(result)["3:"]).toBe("600.00");
   });
 
   it("the Include direct donations switch overrides the kind's default both ways", () => {
     const on = proposeRound(
       input({ kind: "fund_grant", includeDirectOverrides: new Map([[TCF, true]]) }),
     );
-    expect(proposed(on)).to.include({ "1:": "0.00", "2:": "500.00" });
-    expect(on.positions.find((p) => p.organizationId === TCF)!.includeDirect).to.be.true;
+    expect(proposed(on)).toEqual(expect.objectContaining({ "1:": "0.00", "2:": "500.00" }));
+    expect(on.positions.find((p) => p.organizationId === TCF)!.includeDirect).toBe(true);
 
     const off = proposeRound(
       input({ kind: "regular", includeDirectOverrides: new Map([[AGF, false]]) }),
     );
-    expect(proposed(off)).to.include({ "1:": "0.00", "2:": "500.00" });
+    expect(proposed(off)).toEqual(expect.objectContaining({ "1:": "0.00", "2:": "500.00" }));
   });
 
   describe("major_donor", () => {
@@ -156,7 +155,7 @@ describe("regranting proposal rules", () => {
           chosenAllocations: new Map([[MC, dec(10000)]]),
         }),
       );
-      expect(proposed(result)).to.deep.equal({ "3:": "10000.00", "1:": "0.00" });
+      expect(proposed(result)).toStrictEqual({ "3:": "10000.00", "1:": "0.00" });
     });
 
     it("caps at the recipient's balance", () => {
@@ -167,7 +166,7 @@ describe("regranting proposal rules", () => {
           chosenAllocations: new Map([[MC, dec(10000)]]),
         }),
       );
-      expect(proposed(result)["3:"]).to.equal("6000.00");
+      expect(proposed(result)["3:"]).toBe("6000.00");
     });
 
     it("adds an unrestricted position for a chosen recipient with no balance row (proposes 0)", () => {
@@ -178,7 +177,7 @@ describe("regranting proposal rules", () => {
           chosenAllocations: new Map([[TCF, dec(100)]]),
         }),
       );
-      expect(proposed(result)).to.deep.equal({ "2:": "0.00" });
+      expect(proposed(result)).toStrictEqual({ "2:": "0.00" });
     });
 
     it("pays the whole balance for a recipient switched on", () => {
@@ -190,7 +189,7 @@ describe("regranting proposal rules", () => {
           includeDirectOverrides: new Map([[MC, true]]),
         }),
       );
-      expect(proposed(result)["3:"]).to.equal("10300.00");
+      expect(proposed(result)["3:"]).toBe("10300.00");
     });
   });
 
@@ -204,7 +203,7 @@ describe("regranting proposal rules", () => {
         ]),
       }),
     );
-    expect(transfers(result)).to.deep.equal([
+    expect(transfers(result)).toStrictEqual([
       {
         payee: givewell.id,
         currency: "NOK",
@@ -219,8 +218,8 @@ describe("regranting proposal rules", () => {
 
   it("recipients without a payee are proposed but get no transfer", () => {
     const result = proposeRound(input({ payees: new Map([[AGF, givewell]]) }));
-    expect(proposed(result)["2:"]).to.equal("500.00");
-    expect(transfers(result)).to.deep.equal([
+    expect(proposed(result)["2:"]).toBe("500.00");
+    expect(transfers(result)).toStrictEqual([
       { payee: givewell.id, currency: "NOK", lines: [[AGF, null, "1000.00"]] },
     ]);
   });
@@ -230,13 +229,13 @@ describe("regranting proposal rules", () => {
     const whole = proposeRound(
       input({ positions, holds: [{ organizationId: GD, projectId: null }] }),
     );
-    expect(proposed(whole)).to.deep.equal({ "6:": "0.00", "6:61": "0.00", "1:": "1000.00" });
-    expect(whole.positions.filter((p) => p.held).length).to.equal(2);
+    expect(proposed(whole)).toStrictEqual({ "6:": "0.00", "6:61": "0.00", "1:": "1000.00" });
+    expect(whole.positions.filter((p) => p.held).length).toBe(2);
 
     const project = proposeRound(
       input({ positions, holds: [{ organizationId: GD, projectId: MOMS }] }),
     );
-    expect(proposed(project)).to.deep.equal({ "6:": "3000.00", "6:61": "0.00", "1:": "1000.00" });
+    expect(proposed(project)).toStrictEqual({ "6:": "3000.00", "6:61": "0.00", "1:": "1000.00" });
   });
 
   it("minTransfer: a recipient whose total is under it is proposed 0 (it stays in the balance)", () => {
@@ -252,7 +251,7 @@ describe("regranting proposal rules", () => {
       }),
     );
     // GD's total 700 is over the minimum even though each line is under it
-    expect(proposed(result)).to.deep.equal({
+    expect(proposed(result)).toStrictEqual({
       "1:": "1000.00",
       "2:": "0.00",
       "6:": "400.00",
@@ -266,10 +265,10 @@ describe("regranting proposal rules", () => {
       pos(GD, MOMS, 0, { roundAdjustments: 1000 }),
     ];
     const regular = proposeRound(input({ positions: earmarked }));
-    expect(proposed(regular)).to.deep.equal({ "6:": "2000.00", "6:61": "1000.00" });
-    expect(regular.positions.map((p) => fmt(p.available))).to.deep.equal(["2000.00", "1000.00"]);
+    expect(proposed(regular)).toStrictEqual({ "6:": "2000.00", "6:61": "1000.00" });
+    expect(regular.positions.map((p) => fmt(p.available))).toStrictEqual(["2000.00", "1000.00"]);
     // Without direct donations the round pays what it decided: the earmarked project
     const grantRound = proposeRound(input({ kind: "fund_grant", positions: earmarked }));
-    expect(proposed(grantRound)).to.deep.equal({ "6:": "0.00", "6:61": "1000.00" });
+    expect(proposed(grantRound)).toStrictEqual({ "6:": "0.00", "6:61": "1000.00" });
   });
 });

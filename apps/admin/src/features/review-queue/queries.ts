@@ -5,10 +5,10 @@ import { useTRPC } from "@/lib/trpc";
 import { param } from "@/components/filters/list-state";
 import { queueSources } from "./model";
 
-/** What the registration form needs: active cause areas, payment methods, data owners. */
+/** What the registration form needs: all cause areas (inactive organizations can be given a share), payment methods, data owners. */
 export function useRegistrationReferenceData() {
   const trpc = useTRPC();
-  const causeAreas = useCauseAreaConfig();
+  const causeAreas = useCauseAreaConfig({ includeInactive: true });
   const methods = useQuery({
     ...trpc.config.paymentMethods.list.queryOptions(),
     staleTime: 300_000,

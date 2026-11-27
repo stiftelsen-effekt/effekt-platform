@@ -267,6 +267,14 @@ export function DistributionEditor({
                         )}
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {orgConfig?.name ?? org.id}
+                          {orgConfig && !orgConfig.isActive && (
+                            <span
+                              className="ml-2 text-xs text-muted-foreground"
+                              title="Hidden from donors on the website, but can be given a share here"
+                            >
+                              Inactive
+                            </span>
+                          )}
                         </span>
                         <PercentInput
                           label={`${orgConfig?.name ?? org.id} share of ${areaConfig.name}`}

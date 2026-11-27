@@ -1,9 +1,7 @@
-import { describe, it, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import { describe, it, beforeAll, afterAll, beforeEach, afterEach, expect, vi } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import sinon from "sinon";
 import express from "express";
-import { expect } from "chai";
 import * as giroSftp from "../custom_modules/giroSftp";
 import request from "supertest";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
@@ -56,33 +54,45 @@ describe("POST /scheduled/avtalegiro", function () {
   let claimedKIDsStub;
   let addChargesStub;
   let deletionsStub;
+  // What getByPaymentDate resolves per payment day (persisting across tests), and its default
+  // for other days
+  const agreementsByPaymentDate = new Map<number, unknown>();
+  const defaultAgreements = vi.fn();
 
   beforeAll(function () {
-    sinon.replace(authMiddleware, "isAdmin", []);
+    vi.spyOn(authMiddleware, "isAdmin", "get").mockReturnValue([]);
 
-    deletionsStub = sinon
-      .stub(avtalegiroDeletions, "processAvtaleGiroDeletions")
-      .resolves({} as any);
+    deletionsStub = vi
+      .spyOn(avtalegiroDeletions, "processAvtaleGiroDeletions")
+      .mockResolvedValue({} as any);
 
-    claimedKIDsStub = sinon.stub(DAO.avtalegirocharges, "getClaimedKIDsForMonth");
-    addChargesStub = sinon.stub(DAO.avtalegirocharges, "addCharges").resolves();
+    claimedKIDsStub = vi
+      .spyOn(DAO.avtalegirocharges, "getClaimedKIDsForMonth")
+      .mockReturnValue(undefined as any);
+    addChargesStub = vi.spyOn(DAO.avtalegirocharges, "addCharges").mockResolvedValue(undefined);
 
-    avtalegiroFileStub = sinon
-      .stub(avtalegiro, "generateAvtaleGiroFile")
-      .resolves(Buffer.from("", "utf-8"));
+    avtalegiroFileStub = vi
+      .spyOn(avtalegiro, "generateAvtaleGiroFile")
+      .mockResolvedValue(Buffer.from("", "utf-8"));
 
-    sendNotificationStub = sinon.stub(mail, "sendAvtalegiroNotification").resolves(true);
+    sendNotificationStub = vi.spyOn(mail, "sendAvtalegiroNotification").mockResolvedValue(true);
 
-    shipmentStub = sinon.stub(DAO.avtalegiroagreements, "addShipment").resolves(42);
+    shipmentStub = vi.spyOn(DAO.avtalegiroagreements, "addShipment").mockResolvedValue(42);
 
-    agreementsStub = sinon.stub(DAO.avtalegiroagreements, "getByPaymentDate");
-    agreementsStub.withArgs(29).resolves([]);
-    agreementsStub.withArgs(30).resolves([]);
-    agreementsStub.withArgs(31).resolves([]);
+    agreementsStub = vi
+      .spyOn(DAO.avtalegiroagreements, "getByPaymentDate")
+      .mockImplementation((paymentDate) =>
+        agreementsByPaymentDate.has(paymentDate)
+          ? Promise.resolve(agreementsByPaymentDate.get(paymentDate))
+          : defaultAgreements(paymentDate),
+      );
+    agreementsByPaymentDate.set(29, []);
+    agreementsByPaymentDate.set(30, []);
+    agreementsByPaymentDate.set(31, []);
 
-    loggingStub = sinon.stub(DAO.logging, "add").resolves();
+    loggingStub = vi.spyOn(DAO.logging, "add").mockResolvedValue(undefined as any);
 
-    sendFileStub = sinon.stub(giroSftp, "sendFile");
+    sendFileStub = vi.spyOn(giroSftp, "sendFile").mockReturnValue(undefined as any);
 
     const scheduledRoute = require("../routes/scheduled");
     server = express();
@@ -90,28 +100,28 @@ describe("POST /scheduled/avtalegiro", function () {
   });
 
   beforeEach(function () {
-    sinon.resetHistory();
-    claimedKIDsStub.resolves(new Set());
+    vi.clearAllMocks();
+    claimedKIDsStub.mockResolvedValue(new Set());
   });
 
   it("Does nothing with no agreements", async function () {
-    agreementsStub.resolves([]);
+    defaultAgreements.mockResolvedValue([]);
 
     await request(server).post("/scheduled/avtalegiro?date=2021-10-04").expect(200);
 
-    expect(agreementsStub.calledOnce).to.be.true;
-    expect(sendNotificationStub.called).to.be.false;
-    expect(sendFileStub.called).to.be.false;
-    expect(loggingStub.withArgs("AvtaleGiro").calledOnce).to.be.true;
+    expect(agreementsStub).toHaveBeenCalledOnce();
+    expect(sendNotificationStub).not.toHaveBeenCalled();
+    expect(sendFileStub).not.toHaveBeenCalled();
+    expect(loggingStub.mock.calls.filter(([label]) => label === "AvtaleGiro")).toHaveLength(1);
   });
 
   it("Generates claim file when provided a date", async function () {
-    agreementsStub.resolves(mockAgreements);
+    defaultAgreements.mockResolvedValue(mockAgreements);
 
     await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-    expect(sendNotificationStub.called).to.be.false;
-    expect(sendFileStub.calledOnce).to.be.true;
+    expect(sendNotificationStub).not.toHaveBeenCalled();
+    expect(sendFileStub).toHaveBeenCalledOnce();
   });
 
   /**
@@ -120,16 +130,16 @@ describe("POST /scheduled/avtalegiro", function () {
    * the file on the tuesday before. Same goes for the following monday.
    */
   it("Generates multiple claims files when provided a tuesday", async function () {
-    agreementsStub.resolves(mockAgreements);
+    defaultAgreements.mockResolvedValue(mockAgreements);
 
     await request(server).post("/scheduled/avtalegiro/?date=2021-10-05").expect(200);
 
-    expect(sendNotificationStub.called).to.be.false;
-    expect(sendFileStub.callCount).to.be.eq(3);
+    expect(sendNotificationStub).not.toHaveBeenCalled();
+    expect(sendFileStub).toHaveBeenCalledTimes(3);
   });
 
   it("Notifies claimants when they have asked for it", async function () {
-    agreementsStub.resolves(mockAgreements);
+    defaultAgreements.mockResolvedValue(mockAgreements);
 
     // Used to force mail to be sent (but method is stubbed)
     let tempEnv = config.env;
@@ -139,17 +149,17 @@ describe("POST /scheduled/avtalegiro", function () {
 
     config.env = tempEnv;
 
-    expect(sendNotificationStub.callCount).to.be.equal(2);
-    expect(sendFileStub.calledOnce).to.be.true;
+    expect(sendNotificationStub).toHaveBeenCalledTimes(2);
+    expect(sendFileStub).toHaveBeenCalledOnce();
   });
 
   it("Recognizes when claim date is last day of the month", async function () {
-    agreementsStub.withArgs(0).resolves(mockAgreements);
+    agreementsByPaymentDate.set(0, mockAgreements);
 
     await request(server).post("/scheduled/avtalegiro/?date=2022-09-26&notify=true").expect(200);
 
-    sinon.assert.calledWithExactly(agreementsStub, 0);
-    sinon.assert.calledWithExactly(shipmentStub, mockAgreements.length);
+    expect(agreementsStub).toHaveBeenCalledWith(0);
+    expect(shipmentStub).toHaveBeenCalledWith(mockAgreements.length);
   });
 
   it("Includes the 28th when the 28th is last day of month", async function () {
@@ -160,117 +170,119 @@ describe("POST /scheduled/avtalegiro", function () {
       KID: `99${agreement.KID.substring(2)}`,
       paymentDate: 0,
     }));
-    agreementsStub.withArgs(0).resolves(lastDayAgreements);
-    agreementsStub.withArgs(28).resolves(mockAgreements);
+    agreementsByPaymentDate.set(0, lastDayAgreements);
+    agreementsByPaymentDate.set(28, mockAgreements);
 
     await request(server)
       .post("/scheduled/avtalegiro/?date=2022-02-22&notify=true")
       .set("Authorization", "Bearer abc")
       .expect(200);
 
-    sinon.assert.calledWithExactly(agreementsStub, 0);
-    sinon.assert.calledWithExactly(agreementsStub, 28);
+    expect(agreementsStub).toHaveBeenCalledWith(0);
+    expect(agreementsStub).toHaveBeenCalledWith(28);
     // Should have 2x mock agreements, one x for the last of the month, one x for the 28th
-    sinon.assert.calledWithExactly(shipmentStub, mockAgreements.length * 2);
+    expect(shipmentStub).toHaveBeenCalledWith(mockAgreements.length * 2);
   });
 
   describe("deletions", function () {
     it("Processes deletions without sending unaccepted files again", async function () {
-      agreementsStub.resolves([]);
+      defaultAgreements.mockResolvedValue([]);
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      expect(deletionsStub.calledOnce).to.be.true;
-      expect(deletionsStub.firstCall.args[1]).to.be.false;
-      expect(loggingStub.calledWith("AvtaleGiro - Deletions")).to.be.true;
+      expect(deletionsStub).toHaveBeenCalledOnce();
+      expect(deletionsStub.mock.calls[0][1]).toBe(false);
+      expect(loggingStub.mock.calls.some(([label]) => label === "AvtaleGiro - Deletions")).toBe(
+        true,
+      );
     });
 
     it("Still sends claims when processing deletions fails", async function () {
-      agreementsStub.resolves(mockAgreements);
-      deletionsStub.rejects(new Error("SFTP is down"));
-      const consoleStub = sinon.stub(console, "error");
+      defaultAgreements.mockResolvedValue(mockAgreements);
+      deletionsStub.mockRejectedValue(new Error("SFTP is down"));
+      const consoleStub = vi.spyOn(console, "error").mockReturnValue(undefined);
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      consoleStub.restore();
-      deletionsStub.resolves({});
-      expect(sendFileStub.calledOnce).to.be.true;
+      consoleStub.mockRestore();
+      deletionsStub.mockResolvedValue({});
+      expect(sendFileStub).toHaveBeenCalledOnce();
     });
   });
 
   describe("charge tracking", function () {
     beforeEach(function () {
-      agreementsStub.resolves(mockAgreements);
+      defaultAgreements.mockResolvedValue(mockAgreements);
     });
 
     it("Records a charge for every claimed agreement", async function () {
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      expect(addChargesStub.calledOnce).to.be.true;
-      const [shipmentID, agreements, dueDate] = addChargesStub.firstCall.args;
-      expect(shipmentID).to.equal(42);
-      expect(agreements.map((a) => a.KID)).to.deep.equal(mockAgreements.map((a) => a.KID));
-      expect(dueDate.toISODate()).to.equal("2021-10-08");
+      expect(addChargesStub).toHaveBeenCalledOnce();
+      const [shipmentID, agreements, dueDate] = addChargesStub.mock.calls[0];
+      expect(shipmentID).toBe(42);
+      expect(agreements.map((a) => a.KID)).toStrictEqual(mockAgreements.map((a) => a.KID));
+      expect(dueDate.toISODate()).toBe("2021-10-08");
     });
 
     it("Looks up claims for the due date's month", async function () {
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      expect(claimedKIDsStub.calledOnce).to.be.true;
-      expect(claimedKIDsStub.firstCall.args[0].toISODate()).to.equal("2021-10-08");
+      expect(claimedKIDsStub).toHaveBeenCalledOnce();
+      expect(claimedKIDsStub.mock.calls[0][0].toISODate()).toBe("2021-10-08");
     });
 
     it("Records the charges before sending the file", async function () {
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      expect(addChargesStub.calledBefore(avtalegiroFileStub)).to.be.true;
-      expect(addChargesStub.calledBefore(sendFileStub)).to.be.true;
+      expect(addChargesStub).toHaveBeenCalledBefore(avtalegiroFileStub);
+      expect(addChargesStub).toHaveBeenCalledBefore(sendFileStub);
     });
 
     it("Does not send the file if recording the charges fails", async function () {
-      addChargesStub.rejects(new Error("Database is down"));
+      addChargesStub.mockRejectedValue(new Error("Database is down"));
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(500);
 
-      expect(sendFileStub.called).to.be.false;
-      addChargesStub.resolves();
+      expect(sendFileStub).not.toHaveBeenCalled();
+      addChargesStub.mockResolvedValue(undefined);
     });
 
     it("Skips agreements already claimed this month", async function () {
-      claimedKIDsStub.resolves(new Set([mockAgreements[1].KID]));
+      claimedKIDsStub.mockResolvedValue(new Set([mockAgreements[1].KID]));
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
       const expectedKIDs = [mockAgreements[0].KID, mockAgreements[2].KID];
-      sinon.assert.calledWithExactly(shipmentStub, 2);
-      expect(addChargesStub.firstCall.args[1].map((a) => a.KID)).to.deep.equal(expectedKIDs);
-      expect(avtalegiroFileStub.firstCall.args[1].map((a) => a.KID)).to.deep.equal(expectedKIDs);
-      expect(sendFileStub.calledOnce).to.be.true;
+      expect(shipmentStub).toHaveBeenCalledWith(2);
+      expect(addChargesStub.mock.calls[0][1].map((a) => a.KID)).toStrictEqual(expectedKIDs);
+      expect(avtalegiroFileStub.mock.calls[0][1].map((a) => a.KID)).toStrictEqual(expectedKIDs);
+      expect(sendFileStub).toHaveBeenCalledOnce();
     });
 
     it("Logs which agreements were skipped", async function () {
-      claimedKIDsStub.resolves(new Set([mockAgreements[1].KID]));
+      claimedKIDsStub.mockResolvedValue(new Set([mockAgreements[1].KID]));
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      const [, result] = loggingStub.withArgs("AvtaleGiro").firstCall.args;
-      expect(result.alreadyClaimedKIDs).to.deep.equal([mockAgreements[1].KID]);
+      const [, result] = loggingStub.mock.calls.filter(([label]) => label === "AvtaleGiro")[0];
+      expect(result.alreadyClaimedKIDs).toStrictEqual([mockAgreements[1].KID]);
     });
 
     it("Sends nothing when every agreement is already claimed", async function () {
-      claimedKIDsStub.resolves(new Set(mockAgreements.map((a) => a.KID)));
+      claimedKIDsStub.mockResolvedValue(new Set(mockAgreements.map((a) => a.KID)));
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      expect(shipmentStub.called).to.be.false;
-      expect(addChargesStub.called).to.be.false;
-      expect(sendFileStub.called).to.be.false;
-      expect(loggingStub.withArgs("AvtaleGiro").calledOnce).to.be.true;
+      expect(shipmentStub).not.toHaveBeenCalled();
+      expect(addChargesStub).not.toHaveBeenCalled();
+      expect(sendFileStub).not.toHaveBeenCalled();
+      expect(loggingStub.mock.calls.filter(([label]) => label === "AvtaleGiro")).toHaveLength(1);
     });
 
     it("Only notifies agreements that are claimed", async function () {
       // The first agreement asked for notice, but was already claimed this month
-      claimedKIDsStub.resolves(new Set([mockAgreements[0].KID]));
+      claimedKIDsStub.mockResolvedValue(new Set([mockAgreements[0].KID]));
 
       let tempEnv = config.env;
       config.env = "production";
@@ -279,24 +291,24 @@ describe("POST /scheduled/avtalegiro", function () {
 
       config.env = tempEnv;
 
-      expect(sendNotificationStub.callCount).to.equal(1);
-      expect(sendNotificationStub.firstCall.args[0].KID).to.equal(mockAgreements[2].KID);
+      expect(sendNotificationStub).toHaveBeenCalledTimes(1);
+      expect(sendNotificationStub.mock.calls[0][0].KID).toBe(mockAgreements[2].KID);
     });
 
     it("Does not claim agreements without an amount", async function () {
-      agreementsStub.resolves([
+      defaultAgreements.mockResolvedValue([
         ...mockAgreements,
         { ...mockAgreements[0], id: 4, KID: "4", amount: 0 },
       ]);
 
       await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
-      expect(addChargesStub.firstCall.args[1]).to.have.length(mockAgreements.length);
+      expect(addChargesStub.mock.calls[0][1]).toHaveLength(mockAgreements.length);
     });
   });
 
   afterAll(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 });
 
@@ -315,18 +327,20 @@ describe("POST /initiate-follow-ups", function () {
     server = express();
     server.use("/scheduled", scheduledRoute);
 
-    getPaymentIntentsFromLastMonthStub = sinon.stub(
-      initialpaymentmethod,
-      "getPaymentIntentsFromLastMonth",
-    );
-    getFollowUpsForPaymentIntentStub = sinon.stub(
-      initialpaymentmethod,
-      "getFollowUpsForPaymentIntent",
-    );
-    donorDonationsStub = sinon.stub(donations, "getByDonorId");
-    addPaymentFollowUpStub = sinon.stub(initialpaymentmethod, "addPaymentFollowUp");
-    sendDonationFollowUpStub = sinon.stub(mail, "sendPaymentIntentFollowUp");
-    getDonorByKidStub = sinon.stub(donors, "getByKID");
+    getPaymentIntentsFromLastMonthStub = vi
+      .spyOn(initialpaymentmethod, "getPaymentIntentsFromLastMonth")
+      .mockReturnValue(undefined as any);
+    getFollowUpsForPaymentIntentStub = vi
+      .spyOn(initialpaymentmethod, "getFollowUpsForPaymentIntent")
+      .mockReturnValue(undefined as any);
+    donorDonationsStub = vi.spyOn(donations, "getByDonorId").mockReturnValue(undefined as any);
+    addPaymentFollowUpStub = vi
+      .spyOn(initialpaymentmethod, "addPaymentFollowUp")
+      .mockReturnValue(undefined as any);
+    sendDonationFollowUpStub = vi
+      .spyOn(mail, "sendPaymentIntentFollowUp")
+      .mockReturnValue(undefined);
+    getDonorByKidStub = vi.spyOn(donors, "getByKID").mockReturnValue(undefined as any);
 
     const donor = {
       id: 1,
@@ -335,17 +349,17 @@ describe("POST /initiate-follow-ups", function () {
       registered: new Date(),
     };
 
-    getDonorByKidStub.resolves(donor);
+    getDonorByKidStub.mockResolvedValue(donor);
   });
 
   afterEach(function () {
     // Reset the history of stubs after each test
-    sinon.resetHistory();
+    vi.clearAllMocks();
   });
 
   afterAll(function () {
     // Restore the original functions after all tests
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   it("should initiate follow-ups for eligible payment intents", async function () {
@@ -367,16 +381,16 @@ describe("POST /initiate-follow-ups", function () {
       },
     ];
 
-    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
-    getFollowUpsForPaymentIntentStub.resolves([]);
-    donorDonationsStub.resolves([]);
-    sendDonationFollowUpStub.resolves(true);
+    getPaymentIntentsFromLastMonthStub.mockResolvedValue(paymentIntents);
+    getFollowUpsForPaymentIntentStub.mockResolvedValue([]);
+    donorDonationsStub.mockResolvedValue([]);
+    sendDonationFollowUpStub.mockResolvedValue(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
-    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
-    expect(sendDonationFollowUpStub.callCount).to.equal(2);
-    expect(addPaymentFollowUpStub.callCount).to.equal(2);
+    expect(response.body.message).toBe("Follow-up process initiated successfully.");
+    expect(sendDonationFollowUpStub).toHaveBeenCalledTimes(2);
+    expect(addPaymentFollowUpStub).toHaveBeenCalledTimes(2);
   });
 
   it("should not initiate follow-ups for payment intents with received donations", async function () {
@@ -406,16 +420,16 @@ describe("POST /initiate-follow-ups", function () {
       },
     ];
 
-    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
-    getFollowUpsForPaymentIntentStub.resolves([]);
-    donorDonationsStub.resolves(recievedDonations);
-    sendDonationFollowUpStub.resolves(true);
+    getPaymentIntentsFromLastMonthStub.mockResolvedValue(paymentIntents);
+    getFollowUpsForPaymentIntentStub.mockResolvedValue([]);
+    donorDonationsStub.mockResolvedValue(recievedDonations);
+    sendDonationFollowUpStub.mockResolvedValue(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
-    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
-    expect(addPaymentFollowUpStub.called).to.be.false;
-    expect(sendDonationFollowUpStub.called).to.be.false;
+    expect(response.body.message).toBe("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub).not.toHaveBeenCalled();
+    expect(sendDonationFollowUpStub).not.toHaveBeenCalled();
   });
 
   it("should not initiate follow-ups for payment intents where the donor has donated any donations after the intent", async function () {
@@ -446,16 +460,16 @@ describe("POST /initiate-follow-ups", function () {
       },
     ];
 
-    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
-    getFollowUpsForPaymentIntentStub.resolves([]);
-    donorDonationsStub.resolves(recievedDonations);
-    sendDonationFollowUpStub.resolves(true);
+    getPaymentIntentsFromLastMonthStub.mockResolvedValue(paymentIntents);
+    getFollowUpsForPaymentIntentStub.mockResolvedValue([]);
+    donorDonationsStub.mockResolvedValue(recievedDonations);
+    sendDonationFollowUpStub.mockResolvedValue(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
-    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
-    expect(addPaymentFollowUpStub.called).to.be.false;
-    expect(sendDonationFollowUpStub.called).to.be.false;
+    expect(response.body.message).toBe("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub).not.toHaveBeenCalled();
+    expect(sendDonationFollowUpStub).not.toHaveBeenCalled();
   });
 
   it("should not initiate follow-ups for payment intents that are not due yet", async function () {
@@ -469,15 +483,15 @@ describe("POST /initiate-follow-ups", function () {
       },
     ];
 
-    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
-    getFollowUpsForPaymentIntentStub.resolves([]);
-    sendDonationFollowUpStub.resolves(true);
+    getPaymentIntentsFromLastMonthStub.mockResolvedValue(paymentIntents);
+    getFollowUpsForPaymentIntentStub.mockResolvedValue([]);
+    sendDonationFollowUpStub.mockResolvedValue(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
-    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
-    expect(addPaymentFollowUpStub.called).to.be.false;
-    expect(sendDonationFollowUpStub.called).to.be.false;
+    expect(response.body.message).toBe("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub).not.toHaveBeenCalled();
+    expect(sendDonationFollowUpStub).not.toHaveBeenCalled();
   });
 
   it("should not initiate follow-ups for payment intents that have reached the max follow-ups", async function () {
@@ -492,15 +506,15 @@ describe("POST /initiate-follow-ups", function () {
     ];
     const followUps = [{ Follow_up_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) }];
 
-    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
-    getFollowUpsForPaymentIntentStub.resolves(followUps);
-    sendDonationFollowUpStub.resolves(true);
+    getPaymentIntentsFromLastMonthStub.mockResolvedValue(paymentIntents);
+    getFollowUpsForPaymentIntentStub.mockResolvedValue(followUps);
+    sendDonationFollowUpStub.mockResolvedValue(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
-    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
-    expect(addPaymentFollowUpStub.called).to.be.false;
-    expect(sendDonationFollowUpStub.called).to.be.false;
+    expect(response.body.message).toBe("Follow-up process initiated successfully.");
+    expect(addPaymentFollowUpStub).not.toHaveBeenCalled();
+    expect(sendDonationFollowUpStub).not.toHaveBeenCalled();
   });
 
   it("should initiate only one follow-up for multiple intents with the same KID within 30 days", async function () {
@@ -529,29 +543,29 @@ describe("POST /initiate-follow-ups", function () {
       },
     ];
 
-    getPaymentIntentsFromLastMonthStub.resolves(paymentIntents);
-    getFollowUpsForPaymentIntentStub.resolves([]);
-    donorDonationsStub.resolves([]);
-    sendDonationFollowUpStub.resolves(true);
+    getPaymentIntentsFromLastMonthStub.mockResolvedValue(paymentIntents);
+    getFollowUpsForPaymentIntentStub.mockResolvedValue([]);
+    donorDonationsStub.mockResolvedValue([]);
+    sendDonationFollowUpStub.mockResolvedValue(true);
 
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
-    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+    expect(response.body.message).toBe("Follow-up process initiated successfully.");
 
     // Check that only two follow-ups were initiated (one for KID "001" and one for KID "002")
-    expect(sendDonationFollowUpStub.callCount).to.equal(2);
-    expect(addPaymentFollowUpStub.callCount).to.equal(2);
+    expect(sendDonationFollowUpStub).toHaveBeenCalledTimes(2);
+    expect(addPaymentFollowUpStub).toHaveBeenCalledTimes(2);
 
     // Verify that the follow-up was sent for the most recent intent with KID "001"
-    const followUpCalls = sendDonationFollowUpStub.getCalls();
-    const followUpForKID001 = followUpCalls.find((call) => call.args[0] === "001");
-    expect(followUpForKID001).to.exist;
-    expect(followUpForKID001.args[1]).to.equal(20000); // Amount of the most recent intent
+    const followUpCalls = sendDonationFollowUpStub.mock.calls;
+    const followUpForKID001 = followUpCalls.find((args) => args[0] === "001");
+    expect(followUpForKID001).not.toBeNullable();
+    expect(followUpForKID001[1]).toBe(20000); // Amount of the most recent intent
 
     // Verify that a follow-up was also sent for KID "002"
-    const followUpForKID002 = followUpCalls.find((call) => call.args[0] === "002");
-    expect(followUpForKID002).to.exist;
-    expect(followUpForKID002.args[1]).to.equal(10000);
+    const followUpForKID002 = followUpCalls.find((args) => args[0] === "002");
+    expect(followUpForKID002).not.toBeNullable();
+    expect(followUpForKID002[1]).toBe(10000);
   });
 
   it("should not send follow-ups for older intents of a KID after sending one for the most recent", async function () {
@@ -574,36 +588,40 @@ describe("POST /initiate-follow-ups", function () {
     ];
 
     // Set up initial conditions
-    getPaymentIntentsFromLastMonthStub.resolves(initialPaymentIntents);
-    getFollowUpsForPaymentIntentStub.resolves([]);
-    donorDonationsStub.resolves([]);
-    sendDonationFollowUpStub.resolves(true);
+    getPaymentIntentsFromLastMonthStub.mockResolvedValue(initialPaymentIntents);
+    getFollowUpsForPaymentIntentStub.mockResolvedValue([]);
+    donorDonationsStub.mockResolvedValue([]);
+    sendDonationFollowUpStub.mockResolvedValue(true);
 
     // First run of the follow-up process
     await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
     // Verify that only one follow-up was sent (for the most recent intent)
-    expect(sendDonationFollowUpStub.callCount).to.equal(1);
-    expect(addPaymentFollowUpStub.callCount).to.equal(1);
-    expect(sendDonationFollowUpStub.firstCall.args[1]).to.equal(20000); // Amount of the most recent intent
+    expect(sendDonationFollowUpStub).toHaveBeenCalledTimes(1);
+    expect(addPaymentFollowUpStub).toHaveBeenCalledTimes(1);
+    expect(sendDonationFollowUpStub.mock.calls[0][1]).toBe(20000); // Amount of the most recent intent
 
     // Reset call counts
-    sendDonationFollowUpStub.resetHistory();
-    addPaymentFollowUpStub.resetHistory();
+    sendDonationFollowUpStub.mockClear();
+    addPaymentFollowUpStub.mockClear();
 
     // Set up conditions for the second run
 
     // The newer intent now has a follow-up recorded
-    getFollowUpsForPaymentIntentStub.withArgs(2).resolves([{ Follow_up_date: new Date() }]);
+    // (other intents keep the `[]` set above)
+    const newerIntentFollowUps = [{ Follow_up_date: new Date() }];
+    getFollowUpsForPaymentIntentStub.mockImplementation(async (id) =>
+      id === 2 ? newerIntentFollowUps : [],
+    );
 
     // Second run of the follow-up process
     const response = await request(server).post("/scheduled/initiate-follow-ups").expect(200);
 
-    expect(response.body.message).to.equal("Follow-up process initiated successfully.");
+    expect(response.body.message).toBe("Follow-up process initiated successfully.");
 
     // Check that no new follow-ups were sent
-    expect(sendDonationFollowUpStub.callCount).to.equal(0);
-    expect(addPaymentFollowUpStub.callCount).to.equal(0);
+    expect(sendDonationFollowUpStub).toHaveBeenCalledTimes(0);
+    expect(addPaymentFollowUpStub).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -611,73 +629,77 @@ describe("POST /scheduled/mailchimp/newsletter/sync", function () {
   let server;
 
   beforeEach(function () {
-    sinon.replace(authMiddleware, "isAdmin", []);
+    vi.spyOn(authMiddleware, "isAdmin", "get").mockReturnValue([]);
     const scheduledRoute = require("../routes/scheduled");
     server = express();
     server.use("/scheduled", scheduledRoute);
   });
 
   afterEach(function () {
-    sinon.restore();
+    vi.restoreAllMocks();
   });
 
   it("syncs both ways in bulk and logs counts without email addresses", async function () {
     const mailchimp = require("@mailchimp/mailchimp_marketing");
-    sinon.stub(mailchimp, "setConfig");
-    sinon.stub(mailchimp.lists, "getListMembersInfo").resolves({
+    vi.spyOn(mailchimp, "setConfig").mockReturnValue(undefined);
+    vi.spyOn(mailchimp.lists, "getListMembersInfo").mockResolvedValue({
       members: [
         { email_address: "subscribed@example.org", status: "subscribed" },
         { email_address: "Unsubscribed@example.org", status: "unsubscribed" },
       ],
     });
-    const addOne = sinon.stub(mailchimp.lists, "addListMember").resolves();
-    const batch = sinon.stub(mailchimp.lists, "batchListMembers").resolves({
+    const addOne = vi.spyOn(mailchimp.lists, "addListMember").mockResolvedValue(undefined);
+    const batch = vi.spyOn(mailchimp.lists, "batchListMembers").mockResolvedValue({
       total_created: 1,
       errors: [{ email_address: "fake@example", error: "fake@example looks fake or invalid" }],
     });
-    sinon.stub(donors, "getNewsletterSyncRows").resolves([
+    vi.spyOn(donors, "getNewsletterSyncRows").mockResolvedValue([
       { id: 1, email: "subscribed@example.org", newsletter: false },
       { id: 2, email: "unsubscribed@example.org", newsletter: true },
       { id: 3, email: "new@example.org", newsletter: true },
       { id: 4, email: "fake@example", newsletter: true },
     ]);
-    const setNewsletter = sinon.stub(donors, "setNewsletterForDonors").resolves();
-    const log = sinon.stub(DAO.logging, "add").resolves();
-    const consoleLog = sinon.stub(console, "log");
+    const setNewsletter = vi.spyOn(donors, "setNewsletterForDonors").mockResolvedValue(undefined);
+    const log = vi.spyOn(DAO.logging, "add").mockResolvedValue(undefined as any);
+    const consoleLog = vi.spyOn(console, "log").mockReturnValue(undefined);
 
     const response = await request(server).post("/scheduled/mailchimp/newsletter/sync");
 
-    expect(response.status).to.equal(200);
-    expect(setNewsletter.calledWith([2], false)).to.be.true;
-    expect(setNewsletter.calledWith([1], true)).to.be.true;
-    expect(addOne.called).to.be.false;
-    expect(batch.calledOnce).to.be.true;
-    expect(batch.firstCall.args[1].members.map((m) => m.email_address)).to.deep.equal([
+    expect(response.status).toBe(200);
+    expect(setNewsletter).toHaveBeenCalledWith([2], false);
+    expect(setNewsletter).toHaveBeenCalledWith([1], true);
+    expect(addOne).not.toHaveBeenCalled();
+    expect(batch).toHaveBeenCalledOnce();
+    expect((batch.mock.calls[0][1] as any).members.map((m) => m.email_address)).toStrictEqual([
       "new@example.org",
       "fake@example",
     ]);
-    expect(log.firstCall.args[0]).to.equal("MailChimp sync");
-    expect(log.firstCall.args[1]).to.include({
-      addedToMailchimp: 1,
-      rejectedByMailchimp: 1,
-      failedAddedToMailchimp: 0,
-      addedToDonor: 1,
-      removedFromDonor: 1,
-    });
-    const logged = JSON.stringify([log.args, consoleLog.args]);
-    expect(logged).not.to.include("@example");
+    expect(log.mock.calls[0][0]).toBe("MailChimp sync");
+    expect(log.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        addedToMailchimp: 1,
+        rejectedByMailchimp: 1,
+        failedAddedToMailchimp: 0,
+        addedToDonor: 1,
+        removedFromDonor: 1,
+      }),
+    );
+    const logged = JSON.stringify([log.mock.calls, consoleLog.mock.calls]);
+    expect(logged).not.toContain("@example");
   });
 
   it("records the error and answers when the sync fails", async function () {
     const mailchimp = require("@mailchimp/mailchimp_marketing");
-    sinon.stub(mailchimp, "setConfig");
-    sinon.stub(mailchimp.lists, "getListMembersInfo").rejects(new Error("Mailchimp is down"));
-    const log = sinon.stub(DAO.logging, "add").resolves();
+    vi.spyOn(mailchimp, "setConfig").mockReturnValue(undefined);
+    vi.spyOn(mailchimp.lists, "getListMembersInfo").mockRejectedValue(
+      new Error("Mailchimp is down"),
+    );
+    const log = vi.spyOn(DAO.logging, "add").mockResolvedValue(undefined as any);
 
     const response = await request(server).post("/scheduled/mailchimp/newsletter/sync");
 
-    expect(response.status).to.equal(500);
-    expect(log.firstCall.args[0]).to.equal("(Failed - Partial) Mailchimp sync");
-    expect(log.firstCall.args[1].error).to.equal("Mailchimp is down");
+    expect(response.status).toBe(500);
+    expect(log.mock.calls[0][0]).toBe("(Failed - Partial) Mailchimp sync");
+    expect(log.mock.calls[0][1].error).toBe("Mailchimp is down");
   });
 });

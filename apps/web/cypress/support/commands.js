@@ -133,8 +133,8 @@ const pickAnonymous = () => {
  * props to its DOM node (`__reactProps$…`) as it hydrates it. Content pages make no request on
  * load that could tell a test this instead (the donation widget only loads when opened).
  */
-const waitForHydration = () =>
-  cy.get("#__next > *", { timeout: 30000 }).should(($el) => {
+const waitForHydration = (selector = "#__next > *") =>
+  cy.get(selector, { timeout: 30000 }).should(($el) => {
     expect(Object.keys($el[0]).some((key) => key.startsWith("__reactProps$"))).to.equal(true);
   });
 

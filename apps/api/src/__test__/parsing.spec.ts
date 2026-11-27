@@ -1,13 +1,8 @@
-import { describe, it } from "vitest";
-import * as chai from "chai";
-import chaiDatetime from "chai-datetime";
+import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import { DateTime } from "luxon";
 import { parseReport as vippsParseReport } from "../custom_modules/parsers/vipps";
 import { parseReport as bankParseReport } from "../custom_modules/parsers/bank";
-
-const expect = chai.expect;
-chai.use(chaiDatetime);
 
 const reportType = {
   vipps: "vipps",
@@ -18,30 +13,32 @@ describe("Vipps CSV", () => {
     const sample = readCSV(reportType.vipps, "Vipps April 2019");
 
     const data = vippsParseReport(sample);
-    expect(data.transactions).to.be.length(15);
+    expect(data.transactions).toHaveLength(15);
   });
 
   it("Parses the new Vipps details settlement CSV", () => {
     const sample = readCSV(reportType.vipps, "Vipps Details June 2026");
 
     const data = vippsParseReport(sample);
-    expect(data.transactions).to.be.length(4);
-    expect(data.minDate.getTime()).to.equal(Date.UTC(2026, 5, 17));
-    expect(data.maxDate.getTime()).to.equal(Date.UTC(2026, 5, 17));
+    expect(data.transactions).toHaveLength(4);
+    expect(data.minDate.getTime()).toBe(Date.UTC(2026, 5, 17));
+    expect(data.maxDate.getTime()).toBe(Date.UTC(2026, 5, 17));
 
-    expect(data.transactions[0]).to.include({
-      location: "Gi Effektivt.",
-      transactionID: "36173222624",
-      amount: 15,
-      name: "Ada Lovelace",
-      message: "",
-    });
-    expect(+data.transactions[0].date === Date.UTC(2026, 5, 17)).to.equal(true);
-    expect(data.transactions[0].KID).to.equal(null);
+    expect(data.transactions[0]).toEqual(
+      expect.objectContaining({
+        location: "Gi Effektivt.",
+        transactionID: "36173222624",
+        amount: 15,
+        name: "Ada Lovelace",
+        message: "",
+      }),
+    );
+    expect(+data.transactions[0].date === Date.UTC(2026, 5, 17)).toBe(true);
+    expect(data.transactions[0].KID).toBe(null);
 
-    expect(data.transactions[1].KID).to.equal(62354782);
-    expect(data.transactions[2].message).to.equal("Elvebakken innsamling");
-    expect(data.transactions.some((transaction) => transaction.amount < 0)).to.equal(false);
+    expect(data.transactions[1].KID).toBe(62354782);
+    expect(data.transactions[2].message).toBe("Elvebakken innsamling");
+    expect(data.transactions.some((transaction) => transaction.amount < 0)).toBe(false);
   });
 });
 
@@ -49,10 +46,10 @@ describe("Bank CSV", () => {
   it("Parses bank report correctly when downloaded from google drive", () => {
     let transactions = bankParseReport(readCSV("bank", "sampleReport"));
 
-    expect(transactions[0].KID).to.be.equal(57967549);
-    expect(transactions[6].date.equals(DateTime.utc(2019, 1, 2))).to.be.equal(true);
-    expect(transactions[2].amount).to.be.equal(250.15);
-    expect(transactions[4].transactionID).to.be.equal("1264");
+    expect(transactions[0].KID).toBe(57967549);
+    expect(transactions[6].date.equals(DateTime.utc(2019, 1, 2))).toBe(true);
+    expect(transactions[2].amount).toBe(250.15);
+    expect(transactions[4].transactionID).toBe("1264");
   });
 });
 

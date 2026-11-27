@@ -2,8 +2,8 @@ import ts from "typescript";
 import { defineConfig, type Plugin } from "vitest/config";
 
 /**
- * The API is CommonJS, and its specs depend on CommonJS semantics: they stub module exports with
- * sinon (`sinon.stub(authMiddleware, "auth")`) and `require()` routes after stubbing, sometimes
+ * The API is CommonJS, and its specs depend on CommonJS semantics: they spy on module exports
+ * (`vi.spyOn(authMiddleware, "auth")`) and `require()` routes after stubbing, sometimes
  * after deleting them from `require.cache`. Vite would load the specs as ES modules, giving them
  * frozen namespace objects and a module graph separate from `require`. So, like ts-node under
  * Mocha before, compile each spec to CommonJS with TypeScript and let every import (including

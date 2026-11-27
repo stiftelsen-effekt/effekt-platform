@@ -231,6 +231,7 @@ export default defineType({
         { type: "normalimage" },
         { type: "accordion" },
         { type: "itncoverage" },
+        { type: "fundraiserchart" },
         { type: "newslettersignup" },
         { type: "blocktables" },
       ],

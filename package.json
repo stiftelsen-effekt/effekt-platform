@@ -50,7 +50,7 @@
   "license": "ISC",
   "devDependencies": {
     "husky": "^9.1.7",
-    "lint-staged": "^17.6.0",
+    "lint-staged": "^17.6.1",
     "oxlint": "catalog:",
     "prettier": "catalog:"
   },

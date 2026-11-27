@@ -14,7 +14,7 @@ if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
 // Compile each file to CommonJS with TypeScript's own emit, as ts-node's transpile-only mode did
 // and as `tsc` does for production. Not tsx: esbuild exports through getters that cannot be
-// redefined, so the specs could no longer stub module exports (`sinon.stub(module, "fn")`).
+// redefined, so the specs could no longer stub module exports (`vi.spyOn(module, "fn")`).
 const apiRoot = path.resolve(__dirname, "../../..");
 const tsconfig = ts.getParsedCommandLineOfConfigFile(
   path.join(apiRoot, "tsconfig.json"),

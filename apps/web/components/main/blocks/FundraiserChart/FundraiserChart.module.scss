@@ -1,0 +1,134 @@
+/* Light keeps its own boxed card; dark bleeds edge to edge with the inner content still
+   centered and capped at the usual reading width */
+.band {
+  --fc-bg: #fafafa;
+  --fc-fg: #000000;
+  width: 100%;
+}
+
+/* The exact side gutter to cancel varies with the page layout (SectionContainer's padding,
+   any scroll/transition transform ancestors), so FundraiserChart.tsx measures the viewport
+   width at runtime and sets --fc-bleed-width instead of guessing a fixed vw offset here. The
+   parent's "align-items: center" then centers this oversized box on its own, landing it flush
+   with both viewport edges without any manual margin math. */
+.band.dark {
+  --fc-bg: #000000;
+  --fc-fg: #fafafa;
+  width: var(--fc-bleed-width, 100%);
+  background: var(--fc-bg);
+}
+
+.wrapper {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  background: var(--fc-bg);
+  padding: 2rem;
+}
+
+.band.dark .wrapper {
+  padding: 3rem 2rem;
+}
+
+.heading {
+  margin-bottom: 1.5rem;
+  color: var(--fc-fg);
+}
+
+.graphWrapper {
+  width: 100%;
+}
+
+.row {
+  position: relative;
+  margin-top: 3rem;
+
+  &:first-child {
+    margin-top: 2rem;
+  }
+}
+
+.name {
+  position: absolute;
+  left: 0;
+  top: -1.6rem;
+  font-size: 1rem;
+  white-space: nowrap;
+  color: var(--fc-fg);
+}
+
+/* Matches .paragraphwrapper a in Paragraph.module.scss, the site's standard inline-link look */
+.name a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--fc-fg);
+
+  &:focus {
+    outline: 1px solid var(--fc-fg);
+  }
+
+  &:active {
+    outline: none;
+  }
+}
+
+.barTrack {
+  position: relative;
+  height: 2.5rem;
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--fc-fg);
+  transition: width 0.3s ease;
+}
+
+.sum {
+  position: absolute;
+  top: 0.6rem;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sumInside {
+  color: var(--fc-bg);
+  left: 1rem;
+}
+
+.sumOutside {
+  color: var(--fc-fg);
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--fc-fg);
+  opacity: 0.7;
+  margin-top: 1rem;
+  padding-top: 0.4rem;
+  font-size: 0.7rem;
+  color: var(--fc-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  font-size: 0.8rem;
+  color: var(--fc-fg);
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+  .wrapper {
+    max-width: 640px;
+  }
+}
+
+@media only screen and (max-width: 1180px) {
+  .wrapper {
+    max-width: 100%;
+  }
+}

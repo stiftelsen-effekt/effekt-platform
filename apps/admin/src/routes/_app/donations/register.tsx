@@ -51,7 +51,7 @@ import { useTRPC } from "@/lib/trpc";
 export const Route = createFileRoute("/_app/donations/register")({
   loader: ({ context: { queryClient, trpc }, cause }) =>
     loadPage(queryClient, cause, [
-      causeAreaConfigOptions(trpc),
+      causeAreaConfigOptions(trpc, { includeInactive: true }),
       { ...trpc.config.paymentMethods.list.queryOptions(), staleTime: 300_000 },
       { ...trpc.meta.owners.queryOptions(), staleTime: 300_000 },
     ]),
@@ -75,7 +75,7 @@ const breadcrumbs = [{ label: "Donations", to: "/donations" }];
 
 function RegisterDonationPage() {
   const trpc = useTRPC();
-  const causeAreas = useCauseAreaConfig();
+  const causeAreas = useCauseAreaConfig({ includeInactive: true });
   const methods = useQuery({
     ...trpc.config.paymentMethods.list.queryOptions(),
     staleTime: 300_000,

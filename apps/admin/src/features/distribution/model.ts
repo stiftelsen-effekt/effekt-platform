@@ -38,6 +38,21 @@ export function standardOrganizations(area: CauseAreaConfig): DraftOrganization[
   return activeOrganizations(area).map((org) => ({ id: org.id, share: org.standardShare ?? 0 }));
 }
 
+/**
+ * Organizations a custom split can give to: the active ones first (the ones donors see), then
+ * the inactive ones. Inactive only means hidden from donors on the website; companies and
+ * foundations still give to them, so an admin can put them on a KID. Needs the full config
+ * (`config.causeAreas.listAll`) to include them.
+ */
+export function customOrganizations(
+  area: CauseAreaConfig,
+  shareOf: (orgId: number) => number = () => 0,
+): DraftOrganization[] {
+  const active = area.organizations.filter((org) => org.isActive);
+  const inactive = area.organizations.filter((org) => !org.isActive);
+  return [...active, ...inactive].map((org) => ({ id: org.id, share: shareOf(org.id) }));
+}
+
 /** Empty draft: every usable cause area at 0 %, standard split on. */
 export function emptyDraft(config: CauseAreaConfig[]): DistributionDraft {
   return {
@@ -63,9 +78,10 @@ export function standardDraft(config: CauseAreaConfig[]): DistributionDraft {
 
 /**
  * Draft from an existing distribution (API strings), filling in unused cause areas. Cause
- * areas and organizations the distribution uses stay in the draft even when they have been
- * deactivated since (pass the full config, `config.causeAreas.listAll`, when editing), so
- * opening an old split never silently drops part of it.
+ * areas the distribution uses stay in the draft even when they have been deactivated since,
+ * and a custom split lists every organization of its cause area, inactive ones included
+ * (pass the full config, `config.causeAreas.listAll`, when editing), so opening an old split
+ * never silently drops part of it.
  */
 export function draftFromApi(
   config: CauseAreaConfig[],
@@ -88,9 +104,7 @@ export function draftFromApi(
           standardSplit: existing.standardSplit,
           organizations: existing.standardSplit
             ? standard
-            : area.organizations
-                .filter((org) => org.isActive || usedShare(org.id) !== undefined)
-                .map((org) => ({ id: org.id, share: Number(usedShare(org.id) ?? 0) })),
+            : customOrganizations(area, (orgId) => Number(usedShare(orgId) ?? 0)),
         };
       }),
   };
@@ -220,7 +234,11 @@ export function setOrganizationShare(
   };
 }
 
-/** Switching standard split on resets organization shares to the configured ones. */
+/**
+ * Switching standard split on resets organization shares to the configured ones. Switching it
+ * off starts from the same shares and lists every organization of the cause area, inactive
+ * ones included, so any of them can be given a share.
+ */
 export function setStandardSplit(
   draft: DistributionDraft,
   config: CauseAreaConfig[],
@@ -234,7 +252,15 @@ export function setStandardSplit(
         ? {
             ...area,
             standardSplit,
-            organizations: areaConfig ? standardOrganizations(areaConfig) : area.organizations,
+            organizations: !areaConfig
+              ? area.organizations
+              : standardSplit
+                ? standardOrganizations(areaConfig)
+                : customOrganizations(
+                    areaConfig,
+                    (orgId) =>
+                      standardOrganizations(areaConfig).find((o) => o.id === orgId)?.share ?? 0,
+                  ),
           }
         : area,
     ),
