@@ -19,16 +19,16 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@sanity/icons": "^5.3.0",
+    "@sanity/icons": "^5.4.0",
     "@sanity/table": "^3.1.21",
     "@sanity/ui": "^4.4.12",
-    "@sanity/vision": "^6.23.0",
+    "@sanity/vision": "^6.24.0",
     "date-fns": "catalog:",
     "katex": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-feather": "catalog:",
-    "sanity": "^6.23.0",
+    "sanity": "^6.24.0",
     "styled-components": "catalog:"
   },
   "devDependencies": {
