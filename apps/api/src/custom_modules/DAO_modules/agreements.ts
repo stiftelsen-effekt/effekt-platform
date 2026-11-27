@@ -63,7 +63,7 @@ export type AgreementRow = {
   cancelled: Date | null;
   /** Vipps only, YYYY-MM-DD */
   pausedUntil: string | null;
-  /** Distinct campaign/referral codes attached to this agreement's KID, most recent first */
+  /** Distinct campaign/referral codes claimed for this specific agreement, most recent first */
   campaignCode: string | null;
 };
 
@@ -101,17 +101,20 @@ const str = (expression: string) =>
   `CAST(${expression} AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_0900_ai_ci`;
 
 /**
- * Joined by KID. A KID can carry more than one referral code over time (the same KID is
- * reused for later donations/agreements with the same split, see Donation_referral_codes in
- * schema.prisma), so this concatenates distinct codes, most recent first.
+ * Joined by the specific agreement (provider + id), not just KID: a KID is reused for later
+ * donations/agreements with the same split (see Donation_referral_codes in schema.prisma), and a
+ * code is claimed for one agreement only (DAO_modules/donationReferralCodes.ts claimForAgreement),
+ * so this never shows another agreement's code even when they share a KID. A row with no claimed
+ * agreement (older data, or a one-off donation) never joins to any agreement.
  */
-const campaignCodesJoin = `
+const campaignCodesJoin = (provider: AgreementProvider) => `
     LEFT JOIN (
       SELECT
-        KID,
+        Agreement_id,
         GROUP_CONCAT(DISTINCT Referral_code ORDER BY Timestamp DESC SEPARATOR ', ') as campaign_codes
       FROM Donation_referral_codes
-      GROUP BY KID
+      WHERE Agreement_provider = '${provider}'
+      GROUP BY Agreement_id
     ) CampaignCodes`;
 
 const providerQueries: Record<AgreementProvider, string> = {
@@ -139,7 +142,7 @@ const providerQueries: Record<AgreementProvider, string> = {
       ${str("CampaignCodes.campaign_codes")} AS campaignCode
     FROM Vipps_agreements VA
     INNER JOIN Donors ON Donors.ID = VA.donorID
-    ${campaignCodesJoin} ON CampaignCodes.KID = VA.KID`,
+    ${campaignCodesJoin("vipps")} ON ${str("CampaignCodes.Agreement_id")} = ${str("VA.ID")}`,
 
   avtalegiro: `
     SELECT
@@ -165,7 +168,7 @@ const providerQueries: Record<AgreementProvider, string> = {
     FROM Avtalegiro_agreements AG
     INNER JOIN Distributions D ON D.KID = AG.KID
     INNER JOIN Donors ON Donors.ID = D.Donor_ID
-    ${campaignCodesJoin} ON CampaignCodes.KID = AG.KID`,
+    ${campaignCodesJoin("avtalegiro")} ON ${str("CampaignCodes.Agreement_id")} = ${str("AG.ID")}`,
 };
 
 /** ORDER BY expressions per sort column. Ids are text; shorter ids first so numbers sort numerically */

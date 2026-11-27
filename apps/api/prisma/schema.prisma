@@ -660,16 +660,24 @@ model Referral_types {
 /// Stored separately from Distributions because the same KID is reused for later
 /// donations with the same split — a column on the KID row would bleed onto those.
 model Donation_referral_codes {
-  ID            Int      @id @default(autoincrement())
-  KID           String?  @db.VarChar(32)
-  Referral_code String   @db.VarChar(128)
-  Timestamp     DateTime @default(now()) @db.DateTime(0)
+  ID                 Int      @id @default(autoincrement())
+  KID                String?  @db.VarChar(32)
+  Referral_code      String   @db.VarChar(128)
+  Timestamp          DateTime @default(now()) @db.DateTime(0)
+  // Set once the donation actually becomes this specific agreement (see
+  // pendingDonationRegistration.ts / vipps.addAgreement / avtalegiro.draftAvtaleGiroAgreement).
+  // NULL until then, and permanently NULL for one-off (non-agreement) donations. A KID is reused
+  // across agreements with the same split, so without this an agreement's displayed campaign code
+  // would leak in every other agreement sharing its KID (see agreements.ts campaignCodesJoin).
+  Agreement_provider String?  @db.VarChar(16)
+  Agreement_id       String?  @db.VarChar(64)
 
   // Keep the row for campaign history if the distribution is removed.
   Distributions Distributions? @relation(fields: [KID], references: [KID], onDelete: SetNull, map: "fk_Donation_referral_codes_to_Distributions_idx")
 
   @@index([KID], map: "KID_idx")
   @@index([Referral_code], map: "Referral_code_idx")
+  @@index([Agreement_provider, Agreement_id], map: "Agreement_idx")
 }
 
 /// Decided gifts that are not received yet (tilsagn). Shown as a separate layer on top of

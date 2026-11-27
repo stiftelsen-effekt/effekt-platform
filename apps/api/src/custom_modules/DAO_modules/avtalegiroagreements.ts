@@ -208,7 +208,22 @@ async function addDraftIfNone(KID: string, amount: number, paymentDate: number):
       WHERE NOT EXISTS (SELECT 1 FROM Avtalegiro_agreements WHERE KID = ?)`,
     [KID, amount, paymentDate, KID],
   );
-  return result.affectedRows > 0;
+  const added = result.affectedRows > 0;
+  // Only on an actual insert do we claim the code: a resend/retry of the same draft must not
+  // re-claim (and potentially steal) the KID's code for this already-created agreement. A
+  // failure here must not fail the draft creation itself.
+  if (added && "insertId" in result) {
+    try {
+      await DAO.donationReferralCodes.claimForAgreement(
+        KID,
+        "avtalegiro",
+        String((result as ResultSetHeader).insertId),
+      );
+    } catch (ex) {
+      console.error("Failed to claim referral code for AvtaleGiro draft (KID %s):", KID, ex);
+    }
+  }
+  return added;
 }
 
 /**
