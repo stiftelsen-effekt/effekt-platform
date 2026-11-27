@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Fundraiserchart } from "../../../../studio/sanity.types";
 import { DateTime } from "luxon";
 import { FundraiserChartSkeleton } from "./ChartSkeleton";
+import { LinkComponent } from "../Links/Links";
 import styles from "./FundraiserChart.module.scss";
 
 /**
@@ -111,9 +112,17 @@ export const FundraiserChart: React.FC<Fundraiserchart> = (props) => {
               <div className={styles.row} key={fundraiser.name}>
                 <div className={styles.name}>
                   {fundraiser.pageSlug ? (
-                    <a href={fundraiser.pageSlug} target="_blank" rel="noopener noreferrer">
-                      {fundraiser.name} ↗
-                    </a>
+                    <LinkComponent
+                      link={{
+                        _type: "navitem",
+                        _key: fundraiser.name,
+                        pagetype: "generic_page",
+                        slug: fundraiser.pageSlug,
+                      }}
+                      newtab
+                    >
+                      {fundraiser.name}
+                    </LinkComponent>
                   ) : (
                     fundraiser.name
                   )}
