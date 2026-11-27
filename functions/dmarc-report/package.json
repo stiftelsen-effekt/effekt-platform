@@ -17,8 +17,8 @@
     "@google-cloud/functions-framework": "catalog:",
     "fast-xml-parser": "5.12.1",
     "fflate": "0.8.3",
-    "imapflow": "2.11.0",
-    "mailparser": "3.14.3"
+    "imapflow": "2.12.1",
+    "mailparser": "3.14.4"
   },
   "devDependencies": {
     "oxlint": "catalog:",
