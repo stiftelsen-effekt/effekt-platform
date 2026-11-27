@@ -1,0 +1,112 @@
+.wrapper {
+  max-width: 760px;
+  width: 100%;
+  --fc-bg: #fafafa;
+  --fc-fg: #000000;
+  background: var(--fc-bg);
+  padding: 2rem;
+}
+
+.wrapper.dark {
+  --fc-bg: #000000;
+  --fc-fg: #fafafa;
+}
+
+.heading {
+  margin-bottom: 1.5rem;
+  color: var(--fc-fg);
+}
+
+.graphWrapper {
+  width: 100%;
+}
+
+.row {
+  position: relative;
+  margin-top: 3rem;
+
+  &:first-child {
+    margin-top: 2rem;
+  }
+}
+
+.name {
+  position: absolute;
+  left: 1rem;
+  top: -1.6rem;
+  font-size: 1rem;
+  white-space: nowrap;
+  color: var(--fc-fg);
+}
+
+.name a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--fc-fg);
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.barTrack {
+  position: relative;
+  height: 2.5rem;
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--fc-fg);
+  transition: width 0.3s ease;
+}
+
+.sum {
+  position: absolute;
+  top: 0.6rem;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sumInside {
+  color: var(--fc-bg);
+  left: 1rem;
+}
+
+.sumOutside {
+  color: var(--fc-fg);
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--fc-fg);
+  opacity: 0.7;
+  margin-top: 1rem;
+  padding-top: 0.4rem;
+  font-size: 0.7rem;
+  color: var(--fc-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  font-size: 0.8rem;
+  color: var(--fc-fg);
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+@media only screen and (max-width: 1520px) and (min-width: 1181px) {
+  .wrapper {
+    max-width: 640px;
+  }
+}
+
+@media only screen and (max-width: 1180px) {
+  .wrapper {
+    max-width: 100%;
+  }
+}
