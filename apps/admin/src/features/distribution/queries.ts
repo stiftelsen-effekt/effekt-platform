@@ -5,9 +5,9 @@ import type { CauseAreaConfig } from "./model";
 
 /**
  * Cause areas with their organizations and standard split shares, for the distribution
- * editor and summaries. New splits use the active ones (`config.causeAreas.listActive`);
- * reading or editing an existing split needs all of them (`listAll`), so cause areas and
- * organizations deactivated since still have names and stay in the draft.
+ * editor and summaries. `config.causeAreas.listActive` has only what donors see; the admin
+ * editor uses all of them (`listAll`), so a custom split can give to inactive organizations and
+ * an existing split keeps cause areas and organizations deactivated since.
  */
 export function useCauseAreaConfig({ includeInactive = false } = {}) {
   const trpc = useTRPC();
