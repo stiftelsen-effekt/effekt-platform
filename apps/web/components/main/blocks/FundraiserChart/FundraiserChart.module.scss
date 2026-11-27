@@ -1,15 +1,33 @@
+/* Light keeps its own boxed card; dark bleeds edge to edge with the inner content still
+   centered and capped at the usual reading width */
+.band {
+  --fc-bg: #fafafa;
+  --fc-fg: #000000;
+  width: 100%;
+}
+
+/* The exact side gutter to cancel varies with the page layout (SectionContainer's padding,
+   any scroll/transition transform ancestors), so FundraiserChart.tsx measures the viewport
+   width at runtime and sets --fc-bleed-width instead of guessing a fixed vw offset here. The
+   parent's "align-items: center" then centers this oversized box on its own, landing it flush
+   with both viewport edges without any manual margin math. */
+.band.dark {
+  --fc-bg: #000000;
+  --fc-fg: #fafafa;
+  width: var(--fc-bleed-width, 100%);
+  background: var(--fc-bg);
+}
+
 .wrapper {
   max-width: 760px;
   width: 100%;
-  --fc-bg: #fafafa;
-  --fc-fg: #000000;
+  margin: 0 auto;
   background: var(--fc-bg);
   padding: 2rem;
 }
 
-.wrapper.dark {
-  --fc-bg: #000000;
-  --fc-fg: #fafafa;
+.band.dark .wrapper {
+  padding: 3rem 2rem;
 }
 
 .heading {

@@ -1,5 +1,6 @@
 import { BarChart2 } from "react-feather";
 import { defineType, defineField } from "sanity";
+import { FundraiserChartFundraisersInput } from "../../components/fundraiserChartFundraisersInput";
 
 export default defineType({
   name: "fundraiserchart",
@@ -30,6 +31,10 @@ export default defineType({
     defineField({
       name: "fundraisers",
       type: "array",
+      description: "Search by donor name to add a registered fundraiser to the leaderboard.",
+      components: {
+        input: FundraiserChartFundraisersInput,
+      },
       of: [
         {
           type: "object",
