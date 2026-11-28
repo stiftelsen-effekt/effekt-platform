@@ -7,6 +7,7 @@ import { useMainLocale } from "../../../../../context/MainLocaleContext";
 import { TaxUnitEditModal } from "../../TaxUnitModal/TaxUnitEditModal";
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
+import { dkDeductionSummary, formatDKTaxId } from "./dkTaxDeductions";
 
 export const DKTaxUnitList: React.FC<{
   taxUnits: TaxUnit[];
@@ -22,10 +23,7 @@ export const DKTaxUnitList: React.FC<{
 
   const unit = taxUnits[0];
 
-  const suplementalInformation =
-    unit.ssn.length === 10
-      ? unit.ssn.replace(/(\d{6})(\d{4})/, "$1-$2")
-      : unit.ssn.replace(/(\d{4})(\d{4})/, "$1 $2");
+  const suplementalInformation = formatDKTaxId(unit.ssn);
 
   const headers = [
     {
@@ -46,7 +44,7 @@ export const DKTaxUnitList: React.FC<{
     },
   ];
 
-  const filteredDeductions = unit.taxDeductions?.filter((d) => d.sumDonations > 0) || [];
+  const { years: filteredDeductions, totals } = dkDeductionSummary(unit);
 
   const contextOptions = [{ label: "Rediger", icon: <Edit2 size={16} /> }];
 
@@ -79,21 +77,15 @@ export const DKTaxUnitList: React.FC<{
     return row;
   });
 
-  const countDonations = Math.round(
-    filteredDeductions.reduce((acc, cur) => acc + cur.sumDonations, 0),
-  );
+  const countDonations = Math.round(totals.sumDonations);
   const totalsRow = {
     id: `${unit.id.toString()}total`,
     defaultExpanded: false,
     cells: [
       { value: "Totalt" },
       { value: formatKroner(countDonations) },
-      {
-        value: formatKroner(filteredDeductions.reduce((acc, cur) => acc + cur.deduction, 0)),
-      },
-      {
-        value: formatKroner(filteredDeductions.reduce((acc, cur) => acc + cur.benefit, 0)),
-      },
+      { value: formatKroner(totals.deduction) },
+      { value: formatKroner(totals.benefit) },
     ],
     element: unit,
   };

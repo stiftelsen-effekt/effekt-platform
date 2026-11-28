@@ -63,6 +63,7 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
                 numberOfDonationsLabel={numberOfDonationsLabel}
                 sumDonationsLabel={sumDonationsLabel}
                 sumTaxDeductionsLabel={sumTaxDeductionsLabel}
+                sumTaxBenefitLabel={sumTaxBenefitLabel}
               />
             </div>
 

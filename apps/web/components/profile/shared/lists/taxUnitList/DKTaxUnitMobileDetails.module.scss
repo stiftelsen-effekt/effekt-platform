@@ -1,0 +1,59 @@
+// The selectors start with .details so they win over the list's own `.table tr td` and
+// `.gridContainer tr th` rules, which reach this nested table too.
+.details {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--primary);
+}
+
+.count {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 0.75rem;
+}
+
+.details .table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.details .table tr th,
+.details .table tr td {
+  padding: 0.25rem 0 0.25rem 0.5rem;
+  text-align: right;
+  white-space: nowrap;
+  font-weight: normal;
+  vertical-align: baseline;
+}
+
+// The year column
+.details .table tr th:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+// Column labels can be long ("Sum af donationer"), so they wrap
+.details .table thead tr th {
+  white-space: normal;
+  vertical-align: bottom;
+  padding-bottom: 0.5rem;
+}
+
+.details .table tfoot tr th,
+.details .table tfoot tr td {
+  border-top: 1px solid var(--primary);
+  padding-top: 0.5rem;
+  font-weight: bold;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
